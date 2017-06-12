@@ -460,6 +460,14 @@ static kh_inline khint_t __ac_Wang_hash(khint_t key)
  */
 #define kh_resize(name, h, s) kh_resize_##name(h, s)
 
+
+/*! @function
+  @abstract     Resize the hash table so that current size == max size.
+  @param  h     Pointer to the hash table [khash_t(name)*]
+  @param  s     New size [khint_t]
+ */
+#define kh_trim(name, h) (kh_resize(name, h, kh_size(h)))
+
 /*! @function
   @abstract     Insert a key to the hash table.
   @param  name  Name of the hash table [symbol]
