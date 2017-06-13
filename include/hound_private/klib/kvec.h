@@ -61,6 +61,7 @@ int main() {
 #define kv_max(v) ((v).m)
 
 #define kv_resize(type, v, s)  ((v).m = (s), (v).a = (type*)realloc((v).a, sizeof(type) * (v).m))
+#define kv_trim(type, v) (kv_resize(type, v, kv_size(v)))
 
 #define kv_copy(type, v1, v0) do {							\
 		if ((v1).m < (v0).n) kv_resize(type, v1, (v0).n);	\
