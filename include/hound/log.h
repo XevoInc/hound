@@ -21,7 +21,7 @@ void hound_log_vmsg(int priority, const char *fmt, va_list args);
  */
 #define hound_log_err(err, fmt, ...) \
     do { \
-        hound_log_msg(LOG_ERR, fmt ", err: %d'", ##__VA_ARGS__, err); \
+        hound_log_msg(LOG_ERR, fmt ", err: %d'", __VA_ARGS__, err); \
     } while (0);
 
 #define hound_log_err_nofmt(err, msg) \

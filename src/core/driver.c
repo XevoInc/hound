@@ -5,6 +5,7 @@
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
+#define _GNU_SOURCE
 #include <hound/assert.h>
 #include <hound/driver.h>
 #include <hound/log.h>

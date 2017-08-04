@@ -5,7 +5,7 @@
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
-#define _GNU_SOURCE
+#define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <hound/assert.h>
 #include <hound/log.h>

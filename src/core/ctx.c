@@ -5,6 +5,7 @@
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
+#define _GNU_SOURCE
 #include <hound/assert.h>
 #include <hound/hound.h>
 #include <hound/log.h>
@@ -281,7 +282,7 @@ hound_err ctx_start(struct hound_ctx *ctx)
 
     /* Ref all drivers. */
     kh_iter(ctx->driver_data_map, iter,
-        drv = (typeof(drv)) kh_key(ctx->driver_data_map, iter);
+        drv = (__typeof__(drv)) kh_key(ctx->driver_data_map, iter);
         drv_data_list = &kh_val(ctx->driver_data_map, iter);
         err = driver_ref(drv, ctx->queue, drv_data_list);
         if (err != HOUND_OK) {
@@ -297,7 +298,7 @@ hound_err ctx_start(struct hound_ctx *ctx)
 driver_ref_error:
     /* Unref any drivers we may have started. */
     for (; iter < kh_end(ctx->driver_data_map); --iter) {
-        drv = (typeof(drv)) kh_key(ctx->driver_data_map, iter);
+        drv = (__typeof__(drv)) kh_key(ctx->driver_data_map, iter);
         drv_data_list = &kh_val(ctx->driver_data_map, iter);
         err = driver_unref(drv, ctx->queue, drv_data_list);
         if (err != HOUND_OK) {
@@ -330,7 +331,7 @@ hound_err ctx_stop(struct hound_ctx *ctx)
 
     /* Unref all drivers. */
     kh_iter(ctx->driver_data_map, iter,
-        drv = (typeof(drv)) kh_key(ctx->driver_data_map, iter);
+        drv = (__typeof__(drv)) kh_key(ctx->driver_data_map, iter);
         drv_data_list = &kh_val(ctx->driver_data_map, iter);
         err = driver_unref(drv, ctx->queue, drv_data_list);
         if (err != HOUND_OK) {

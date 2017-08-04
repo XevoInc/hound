@@ -5,6 +5,7 @@
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
+#define _DEFAULT_SOURCE
 #include <hound_private/log.h>
 #include <syslog.h>
 
