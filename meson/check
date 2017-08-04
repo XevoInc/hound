@@ -21,6 +21,5 @@ wrap() {
   fi
 }
 
-wrap meson/cppcheck
 wrap meson/clangcheck
 wrap meson/clangtidy
