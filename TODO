@@ -4,6 +4,3 @@ Things to do:
 - An IIO driver
 - The protocol driver stack
 - Dynamically loadable drivers?
-- Figure out how to fix or eliminate the variadic macro in log.h. It is not
-  C11-safe (requires GNU11), so it forces users to use GNU11 as well, which is
-  very bad.

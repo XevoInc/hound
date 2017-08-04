@@ -3,7 +3,7 @@ project('hound', 'c',
   version: '0.1',
   license: 'proprietary',
   default_options: [
-    'c_std=gnu11',
+    'c_std=c11',
     'buildtype=debug',
     'warning_level=3',
     'werror=true'])
