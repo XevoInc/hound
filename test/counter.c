@@ -11,7 +11,7 @@
 #include <hound/driver.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
-#define SAMPLES (1024)
+#define SAMPLES (4217)
 
 extern struct hound_io_driver counter_driver;
 extern void counter_next(void);
