@@ -332,15 +332,10 @@ void push_drv_data(struct driver *drv, struct hound_drv_data *drv_data)
             HOUND_OOM,
             "Failed to push drv data onto active data list",
             drv_data->id);
-        goto error;
+        return;
     }
     data->refcount = 1;
     data->data = drv_data;
-
-    return;
-
-error:
-    free(data);
 }
 
 hound_err driver_ref(
