@@ -73,8 +73,6 @@ hound_err driver_get_datadesc(const struct hound_datadesc ***desc, size_t *len)
     const struct hound_datadesc **pos;
     size_t size;
 
-
-
     NULL_CHECK(len);
     NULL_CHECK(desc);
 
