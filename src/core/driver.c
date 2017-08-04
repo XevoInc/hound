@@ -91,6 +91,8 @@ hound_err driver_get_datadesc(const struct hound_datadesc ***desc, size_t *len)
          * freeing random memory when they call hound_free_datadesc to cleanup.
          */
         *desc = NULL;
+        err = HOUND_OK;
+        goto out;
     }
     else {
         /* Allocate. */
