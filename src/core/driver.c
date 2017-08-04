@@ -322,7 +322,7 @@ size_t get_active_data_index(
 }
 
 static
-void push_drv_data(struct driver *drv, struct hound_drv_data *drv_data)
+hound_err push_drv_data(struct driver *drv, struct hound_drv_data *drv_data)
 {
     struct data *data;
 
@@ -332,10 +332,12 @@ void push_drv_data(struct driver *drv, struct hound_drv_data *drv_data)
             HOUND_OOM,
             "Failed to push drv data onto active data list",
             drv_data->id);
-        return;
+        return HOUND_OOM;
     }
     data->refcount = 1;
     data->data = drv_data;
+
+    return HOUND_OK;
 }
 
 hound_err driver_ref(
@@ -373,7 +375,14 @@ hound_err driver_ref(
             }
         }
         else {
-            push_drv_data(drv, drv_data);
+            err = push_drv_data(drv, drv_data);
+            if (err != HOUND_OK) {
+                /*
+                 * If this fails, we are out of memory, so the entire
+                 * active_data list is invalid!
+                 */
+                goto out;
+            }
             changed = true;
         }
     }
@@ -443,6 +452,7 @@ void cleanup_drv_data(
 {
     struct data *data;
     struct hound_drv_data *drv_data;
+    hound_err err;
     bool found;
     size_t i;
     size_t index;
@@ -455,7 +465,11 @@ void cleanup_drv_data(
             ++data->refcount;
         }
         else {
-            push_drv_data(drv, drv_data);
+            err = push_drv_data(drv, drv_data);
+            if (err != HOUND_OK) {
+                /* We have run out of memory! */
+                return;
+            }
         }
     }
 }
