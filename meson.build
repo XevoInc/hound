@@ -69,5 +69,5 @@ run_target('docs', command: 'meson/makedoc')
 
 # Static analysis.
 run_target('check', command: 'meson/check')
-run_target('clangcheck', command: 'meson/clangcheck')
-run_target('clangtidy', command: 'meson/clangtidy')
+run_target('clang-check', command: 'meson/clang-check')
+run_target('clang-tidy', command: 'meson/clang-tidy')
