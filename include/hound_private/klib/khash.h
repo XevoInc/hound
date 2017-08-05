@@ -677,7 +677,7 @@ static kh_inline khint_t __ac_Wang_hash(khint_t key)
   @param  khval_t  Type of values [type]
  */
 #define KHASH_MAP_INIT_INT64(name, khval_t)								\
-	KHASH_INIT(name, khint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
+	KHASH_INIT(name, khint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal) /* NOLINT */
 
 typedef const char *kh_cstr_t;
 /*! @function
