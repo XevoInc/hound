@@ -62,8 +62,8 @@ hound_err counter_reset(void)
 }
 
 hound_err counter_device_ids(
-        const char ***device_ids,
-        hound_device_id_count *count)
+    const char ***device_ids,
+    hound_device_id_count *count)
 {
     *count = ARRAYLEN(s_device_ids);
     *device_ids = s_device_ids;
@@ -72,8 +72,8 @@ hound_err counter_device_ids(
 }
 
 hound_err counter_datadesc(
-        const struct hound_drv_datadesc **desc,
-        hound_datacount *count)
+    const struct hound_drv_datadesc **desc,
+    hound_datacount *count)
 {
     *count = ARRAYLEN(s_datadesc);
     *desc = s_datadesc;
