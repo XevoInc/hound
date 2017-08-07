@@ -103,16 +103,6 @@ struct hound_io_driver {
     hound_err (*stop)(void);
 };
 
-struct hound_proto_driver {
-    hound_err (*init)(void);
-    hound_err (*destroy)(void);
-    hound_err (*translate)(
-        const void *data,
-        size_t in_size,
-        void **out,
-        size_t *out_size);
-};
-
 /**
  * Registers a new driver at the given path. A copy of the driver description is
  * made, so the memory ownership is not transferred.
