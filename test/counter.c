@@ -48,24 +48,24 @@ int main(void) {
     };
 
     err = hound_register_io_driver("/dev/counter", &counter_driver);
-    HOUND_ASSERT_EQ(err, HOUND_OK);
+    HOUND_ASSERT_OK(err);
 
     rq.queue_len = SAMPLES;
     rq.cb = data_cb;
     rq.rq_list.len = ARRAYLEN(data_rq);
     rq.rq_list.data = data_rq;
     hound_alloc_ctx(&ctx, &rq);
-    HOUND_ASSERT_EQ(err, HOUND_OK);
+    HOUND_ASSERT_OK(err);
 
     err = hound_start(ctx);
-    HOUND_ASSERT_EQ(err, HOUND_OK);
+    HOUND_ASSERT_OK(err);
 
     /* Do individual, sync reads. */
     reset_counts();
     for (count = 0; count < SAMPLES; ++count) {
         counter_next();
         err = hound_read(ctx, 1);
-        HOUND_ASSERT_EQ(err, HOUND_OK);
+        HOUND_ASSERT_OK(err);
     }
     HOUND_ASSERT_EQ(s_count, count);
 
@@ -75,7 +75,7 @@ int main(void) {
         counter_next();
     }
     err = hound_read(ctx, count);
-    HOUND_ASSERT_EQ(err, HOUND_OK);
+    HOUND_ASSERT_OK(err);
     HOUND_ASSERT_EQ(s_count, count);
 
     /* Do individual, async reads. */
@@ -90,7 +90,7 @@ int main(void) {
          * multithreaded code.
          */
         err = hound_read_async(ctx, 1, &read);
-        HOUND_ASSERT_EQ(err, HOUND_OK);
+        HOUND_ASSERT_OK(err);
         count += read;
     }
     HOUND_ASSERT_EQ(s_count, count);
@@ -107,7 +107,7 @@ int main(void) {
          * multithreaded code.
          */
         err = hound_read_async(ctx, SAMPLES, &read);
-        HOUND_ASSERT_EQ(err, HOUND_OK);
+        HOUND_ASSERT_OK(err);
         count += read;
     }
     HOUND_ASSERT_EQ(count, SAMPLES);
@@ -125,20 +125,20 @@ int main(void) {
          * multithreaded code.
          */
         err = hound_read_all(ctx, &read);
-        HOUND_ASSERT_EQ(err, HOUND_OK);
+        HOUND_ASSERT_OK(err);
         count += read;
     }
     HOUND_ASSERT_EQ(count, SAMPLES);
     HOUND_ASSERT_EQ(s_count, count);
 
     err = hound_stop(ctx);
-    HOUND_ASSERT_EQ(err, HOUND_OK);
+    HOUND_ASSERT_OK(err);
 
     hound_free_ctx(ctx);
-    HOUND_ASSERT_EQ(err, HOUND_OK);
+    HOUND_ASSERT_OK(err);
 
     err = hound_unregister_io_driver("/dev/counter");
-    HOUND_ASSERT_EQ(err, HOUND_OK);
+    HOUND_ASSERT_OK(err);
 
     return 0;
 }

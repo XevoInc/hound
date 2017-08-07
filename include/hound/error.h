@@ -14,6 +14,7 @@
 #ifndef HOUND_ASSERT_H_
 #define HOUND_ASSERT_H_
 
+#include <hound/hound.h>
 #include <hound/log.h>
 #include <stdlib.h>
 
@@ -39,9 +40,15 @@ void _hound_error_log_msg(
       } \
     } while (0);
 
-#define _HOUND_ASSERT_FMT(expr, fmt, x, y) \
+#define _HOUND_ASSERT_FMT(expr, fmt, ...) \
     _HOUND_ASSERT_SKELETON(expr, \
-        _hound_error_log_msg(#expr, __FILE__, __LINE__, __func__, #fmt, x, y));
+        _hound_error_log_msg( \
+            #expr, \
+            __FILE__, \
+            __LINE__, \
+            __func__, \
+            "LHS: " fmt "\nRHS: " fmt, \
+            __VA_ARGS__));
 
 #define _HOUND_ASSERT_OP_FMT(op, fmt, x, y) _HOUND_ASSERT_FMT(x op y, fmt, x, y)
 
@@ -136,5 +143,9 @@ void _hound_error_log_msg(
 #define HOUND_ASSERT_TRUE(x) HOUND_ASSERT(x)
 #define HOUND_ASSERT_FALSE(x) HOUND_ASSERT(!(x))
 #define HOUND_ASSERT_ERROR HOUND_ASSERT_TRUE(0)
+
+#define HOUND_ASSERT_ERRCODE(x, y) \
+    _HOUND_ASSERT_FMT(x == y, "%d (%s)", x, hound_strerror(x), y, hound_strerror(y))
+#define HOUND_ASSERT_OK(err) HOUND_ASSERT_ERRCODE(err, HOUND_OK)
 
 #endif /* HOUND_PRIVATE_ASSERT_H_ */

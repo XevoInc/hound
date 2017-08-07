@@ -24,11 +24,11 @@ void test_register(void)
     hound_err err;
 
     err = hound_register_io_driver(NULL, &nop_driver);
-    HOUND_ASSERT_EQ(err, HOUND_NULL_VAL);
+    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
     err = hound_register_io_driver("/dev/nop", NULL);
-    HOUND_ASSERT_EQ(err, HOUND_NULL_VAL);
+    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
     err = hound_register_io_driver("/dev/nop", &nop_driver);
-    HOUND_ASSERT_EQ(err, HOUND_OK);
+    HOUND_ASSERT_OK(err);
 }
 
 static
@@ -39,13 +39,13 @@ void test_datadesc(void)
     size_t desc_len;
 
     err = hound_get_datadesc(NULL, &desc_len);
-    HOUND_ASSERT_EQ(err, HOUND_NULL_VAL);
+    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
     err = hound_get_datadesc(&desc, NULL);
-    HOUND_ASSERT_EQ(err, HOUND_NULL_VAL);
+    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
     err = hound_get_datadesc(&desc, &desc_len);
-    HOUND_ASSERT_EQ(err, HOUND_OK);
+    HOUND_ASSERT_OK(err);
 
     hound_free_datadesc(desc);
 }
@@ -67,7 +67,7 @@ void ctx_test(
     rq.rq_list.len = rq_len;
     rq.rq_list.data = data_rq;
     err = hound_alloc_ctx(ctx, &rq);
-    HOUND_ASSERT_EQ(err, expected);
+    HOUND_ASSERT_ERRCODE(err, expected);
 }
 
 static
@@ -81,7 +81,7 @@ void test_alloc_ctx(struct hound_ctx **ctx)
     struct hound_data_rq bad_data_rq[ARRAYLEN(data_rq)];
 
     err = hound_alloc_ctx(ctx, NULL);
-    HOUND_ASSERT_EQ(err, HOUND_NULL_VAL);
+    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
     ctx_test(ctx, 0, data_cb, ARRAYLEN(data_rq), data_rq, HOUND_EMPTY_QUEUE);
     ctx_test(ctx, 5, data_cb, 0, NULL, HOUND_NO_DATA_REQUESTED);
@@ -118,13 +118,13 @@ void test_start_ctx(struct hound_ctx *ctx)
     hound_err err;
 
     err = hound_start(NULL);
-    HOUND_ASSERT_EQ(err, HOUND_NULL_VAL);
+    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
     err = hound_start(ctx);
-    HOUND_ASSERT_EQ(err, HOUND_OK);
+    HOUND_ASSERT_OK(err);
 
     err = hound_start(ctx);
-    HOUND_ASSERT_EQ(err, HOUND_CTX_ALREADY_ACTIVE);
+    HOUND_ASSERT_ERRCODE(err, HOUND_CTX_ALREADY_ACTIVE);
 }
 
 static
@@ -133,13 +133,13 @@ void test_stop_ctx(struct hound_ctx *ctx)
     hound_err err;
 
     err = hound_stop(NULL);
-    HOUND_ASSERT_EQ(err, HOUND_NULL_VAL);
+    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
     err = hound_stop(ctx);
-    HOUND_ASSERT_EQ(err, HOUND_OK);
+    HOUND_ASSERT_OK(err);
 
     err = hound_stop(ctx);
-    HOUND_ASSERT_EQ(err, HOUND_CTX_NOT_ACTIVE);
+    HOUND_ASSERT_ERRCODE(err, HOUND_CTX_NOT_ACTIVE);
 }
 
 static
@@ -148,10 +148,10 @@ void test_free_ctx(struct hound_ctx *ctx)
     hound_err err;
 
     err = hound_free_ctx(NULL);
-    HOUND_ASSERT_EQ(err, HOUND_NULL_VAL);
+    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
     err = hound_free_ctx(ctx);
-    HOUND_ASSERT_EQ(err, HOUND_OK);
+    HOUND_ASSERT_OK(err);
 }
 
 static
@@ -160,7 +160,7 @@ void test_unregister()
     hound_err err;
 
     err = hound_unregister_io_driver("/dev/nop");
-    HOUND_ASSERT_EQ(err, HOUND_OK);
+    HOUND_ASSERT_OK(err);
 }
 
 int main(void) {
