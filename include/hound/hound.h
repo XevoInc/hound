@@ -18,31 +18,30 @@ typedef uint_fast64_t hound_data;
 typedef int hound_err;
 
 /** Hound error codes are negative while errno codes are positive. */
-enum hound_err_t {
+enum hound_err_enum {
     HOUND_OK = 0,
     HOUND_NULL_VAL = -1,
-    HOUND_NAME_NOT_FOUND = -2,
-    HOUND_OOM = -3,
-    HOUND_DRIVER_ALREADY_REGISTERED = -4,
-    HOUND_DRIVER_NOT_REGISTERED = -5,
-    HOUND_DRIVER_IN_USE = -6,
-    HOUND_MISSING_DEVICE_IDS = -7,
-    HOUND_CONFLICTING_DRIVERS = -8,
-    HOUND_NO_DATA_REQUESTED = -9,
-    HOUND_DATA_ID_DOES_NOT_EXIST = -10,
-    HOUND_CTX_ALREADY_ACTIVE = -11,
-    HOUND_CTX_NOT_ACTIVE = -12,
-    HOUND_EMPTY_QUEUE = -13,
-    HOUND_MISSING_CALLBACK = -14,
-    HOUND_FREQUENCY_UNSUPPORTED = -15,
-    HOUND_FREQUENCY_CONFLICTING = -16,
-    HOUND_IO_ERROR = -17,
-    HOUND_QUEUE_TOO_SMALL = -18
+    HOUND_OOM = -2,
+    HOUND_DRIVER_ALREADY_REGISTERED = -3,
+    HOUND_DRIVER_NOT_REGISTERED = -4,
+    HOUND_DRIVER_IN_USE = -5,
+    HOUND_MISSING_DEVICE_IDS = -6,
+    HOUND_CONFLICTING_DRIVERS = -7,
+    HOUND_NO_DATA_REQUESTED = -8,
+    HOUND_DATA_ID_DOES_NOT_EXIST = -9,
+    HOUND_CTX_ALREADY_ACTIVE = -10,
+    HOUND_CTX_NOT_ACTIVE = -11,
+    HOUND_EMPTY_QUEUE = -12,
+    HOUND_MISSING_CALLBACK = -13,
+    HOUND_FREQUENCY_UNSUPPORTED = -14,
+    HOUND_IO_ERROR = -15,
+    HOUND_QUEUE_TOO_SMALL = -16
 };
 
 /** Returns a human-readable error string. The string must not be modified or
- * freed. */
-const char *hound_perror(hound_err e);
+ * freed, but it may be modified by subsequent calls to hound_strerror or the
+ * libc strerror class of functions. */
+const char *hound_strerror(hound_err err);
 
 /* Data. */
 enum hound_datatype {

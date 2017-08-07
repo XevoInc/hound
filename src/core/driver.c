@@ -6,7 +6,7 @@
  */
 
 #define _GNU_SOURCE
-#include <hound/assert.h>
+#include <hound/error.h>
 #include <hound/driver.h>
 #include <hound/log.h>
 #include <hound/hound.h>
@@ -366,13 +366,12 @@ hound_err driver_ref(
         index = get_active_data_index(drv, drv_data, &found);
         if (found) {
             data = &kv_A(drv->active_data, index);
-            if (data->data->freq != drv_data->freq) {
-                err = HOUND_FREQUENCY_CONFLICTING;
-                goto error_data_loop;
-            }
-            else {
-                ++data->refcount;
-            }
+            /*
+             * We can assert this because ctx_alloc should have failed if the
+             * frequencies did not match.
+             */
+            HOUND_ASSERT_EQ(data->data->freq, drv_data->freq);
+            ++data->refcount;
         }
         else {
             err = push_drv_data(drv, drv_data);
@@ -423,13 +422,7 @@ error_io_add_fd:
 error_driver_start:
     --drv->refcount;
 error_driver_setdata:
-    /*
-     * Technically i will be this already, but if someone in the future reuses
-     * i, it will break the cleanup code, so set this defensively.
-     */
-    i = drv_data_list->len;
-error_data_loop:
-    for (; i < drv_data_list->len; --i) {
+    for (i = 0; i < drv_data_list->len; ++i) {
         drv_data = &drv_data_list->data[i];
         index = get_active_data_index(drv, drv_data, &found);
         /* We previously added this data, so it should be found. */

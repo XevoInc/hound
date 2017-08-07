@@ -6,7 +6,7 @@
  */
 
 #define _GNU_SOURCE
-#include <hound/assert.h>
+#include <hound/error.h>
 #include <hound/hound.h>
 #include <hound/log.h>
 #include <hound_private/driver.h>

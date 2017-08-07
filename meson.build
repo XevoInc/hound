@@ -25,9 +25,9 @@ install_subdir('include/hound', install_dir : 'include/hound')
 
 # libhound.
 src = [
-    'src/core/assert.c',
     'src/core/ctx.c',
     'src/core/driver.c',
+    'src/core/error.c',
     'src/core/entrypoint.c',
     'src/core/error.c',
     'src/core/hound.c',

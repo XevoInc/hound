@@ -9,7 +9,7 @@
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
-#include <hound/assert.h>
+#include <hound/error.h>
 #include <hound_private/queue.h>
 #include <hound_private/util.h>
 #include <pthread.h>
