@@ -35,7 +35,9 @@ enum hound_err_enum {
     HOUND_MISSING_CALLBACK = -13,
     HOUND_FREQUENCY_UNSUPPORTED = -14,
     HOUND_IO_ERROR = -15,
-    HOUND_QUEUE_TOO_SMALL = -16
+    HOUND_QUEUE_TOO_SMALL = -16,
+    HOUND_INVALID_STRING = -17,
+    HOUND_MISSING_FREQUENCIES = -18
 };
 
 /** Returns a human-readable error string. The string must not be modified or
