@@ -1,24 +1,16 @@
 #!/bin/bash
 
-set -e
-
-cd "$MESON_SOURCE_ROOT"
-
-set -uo pipefail
-
-boom() {
-  >&2 echo "Build check failed."
-  exit 1
-}
+set -euo pipefail
 
 wrap() {
   cmd="$1"
 
   echo "${cmd}..."
   $cmd
-  if [[ $? != 0 ]]; then
-    boom
-  fi
 }
 
+cd "$MESON_BUILD_ROOT"
+wrap mesontest
+
+cd "$MESON_SOURCE_ROOT"
 wrap meson/clang-tidy
