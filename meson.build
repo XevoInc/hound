@@ -7,6 +7,9 @@ project('hound', 'c',
         'buildtype=debug',
         'warning_level=3',
         'werror=true'])
+# Sadly we have to duplicate this because meson won't let us have anything but
+# project() as the first line in the file.
+version = '0.1'
 
 cflags = ['-Wshadow', '-fvisibility=hidden']
 add_project_arguments(cflags, language: 'c')
@@ -41,13 +44,14 @@ lib = shared_library(
     src,
     include_directories: include,
     install: true,
-    dependencies: thread_deps)
+    dependencies: thread_deps,
+    version: version)
 pkg.generate(
     name: 'hound',
     description: 'A generic, performant sensor gathering library',
     libraries: [lib],
     subdirs: 'hound',
-    version: '0.1')
+    version: version)
 
 # Tests.
 tests = [
