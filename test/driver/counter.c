@@ -8,7 +8,7 @@
  */
 
 #define _GNU_SOURCE
-#include <hound/assert.h>
+#include <hound/error.h>
 #include <hound/hound.h>
 #include <hound/driver.h>
 #include <fcntl.h>

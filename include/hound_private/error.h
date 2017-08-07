@@ -10,12 +10,14 @@
 
 #include <stdarg.h>
 
-void _assert_log_msg(
+void _error_log_msg(
     const char *expr,
     const char *file,
     int line,
     const char *func,
     const char *fmt,
     va_list args);
+
+const char *error_strerror(hound_err err);
 
 #endif /* HOUND_PRIVATE_ASSERT_H_ */

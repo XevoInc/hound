@@ -17,7 +17,7 @@
 #include <hound/log.h>
 #include <stdlib.h>
 
-void _hound_assert_log_msg(
+void _hound_error_log_msg(
     const char *expr,
     const char *file,
     int line,
@@ -41,7 +41,7 @@ void _hound_assert_log_msg(
 
 #define _HOUND_ASSERT_FMT(expr, fmt, x, y) \
     _HOUND_ASSERT_SKELETON(expr, \
-        _hound_assert_log_msg(#expr, __FILE__, __LINE__, __func__, #fmt, x, y);
+        _hound_error_log_msg(#expr, __FILE__, __LINE__, __func__, #fmt, x, y);
 
 #define _HOUND_ASSERT_OP_FMT(expr, fmt, x, y) _HOUND_ASSERT_FMT(x op y, fmt, x, y)
 
@@ -105,7 +105,7 @@ void _hound_assert_log_msg(
 
 #define _HOUND_ASSERT_GENERIC(expr, x, y) \
     _HOUND_ASSERT_SKELETON(expr, \
-        _hound_assert_log_msg(#expr, __FILE__, __LINE__, __func__, _HOUND_FMT(x), x, y));
+        _hound_error_log_msg(#expr, __FILE__, __LINE__, __func__, _HOUND_FMT(x), x, y));
 
 #define _HOUND_ASSERT_OP_GENERIC(op, x, y) _HOUND_ASSERT_GENERIC(x op y, x, y)
 

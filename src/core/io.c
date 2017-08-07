@@ -7,7 +7,7 @@
 
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
-#include <hound/assert.h>
+#include <hound/error.h>
 #include <hound/log.h>
 #include <hound_private/driver.h>
 #include <hound_private/klib/kvec.h>

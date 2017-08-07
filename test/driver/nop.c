@@ -7,7 +7,7 @@
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
-#include <hound/assert.h>
+#include <hound/error.h>
 #include <hound/hound.h>
 #include <hound/driver.h>
 #include <sys/stat.h>

@@ -6,8 +6,8 @@
  */
 
 #include <hound/hound.h>
-#include <hound_private/assert.h>
 #include <hound_private/ctx.h>
+#include <hound_private/error.h>
 #include <hound_private/driver.h>
 #include <hound_private/log.h>
 
@@ -110,7 +110,7 @@ void hound_log_vmsg(int priority, const char *fmt, va_list args)
 }
 
 HOUND_PUBLIC_API
-void _hound_assert_log_msg(
+void _hound_error_log_msg(
     const char *expr,
     const char *file,
     int line,
@@ -121,6 +121,12 @@ void _hound_assert_log_msg(
     va_list args;
 
     va_start(args, fmt);
-    _assert_log_msg(expr, file, line, func, fmt, args);
+    _error_log_msg(expr, file, line, func, fmt, args);
     va_end(args);
+}
+
+HOUND_PUBLIC_API
+const char *hound_strerror(hound_err err)
+{
+    return error_strerror(err);
 }
