@@ -38,7 +38,7 @@ src = [
     'src/core/util.c'
 ]
 
-# Library
+# Library.
 lib = library(
     'hound',
     src,
@@ -54,6 +54,7 @@ pkg.generate(
     version: version)
 
 # Tests.
+add_test_setup('valgrind', exe_wrapper: ['valgrind', '-v'])
 tests = [
     ['nop', ['test/driver/nop.c', 'test/nop.c']],
     ['counter', ['test/driver/counter.c', 'test/counter.c']]
