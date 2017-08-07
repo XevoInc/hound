@@ -40,9 +40,11 @@ static size_t s_count = 0;
 static uint8_t s_buf[sizeof(s_count)];
 static size_t s_buf_bytes = 0;
 
-hound_err counter_init(hound_alloc alloc)
+hound_err counter_init(hound_alloc alloc, void *data)
 {
     s_alloc = alloc;
+    HOUND_ASSERT_NOT_NULL(data);
+    s_count = *((__typeof__(s_count) *) data);
 
     return HOUND_OK;
 }

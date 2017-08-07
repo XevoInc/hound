@@ -47,7 +47,8 @@ int main(void) {
         { .id = HOUND_DEVICE_TEMPERATURE, .freq = 0 },
     };
 
-    err = hound_register_io_driver("/dev/counter", &counter_driver);
+    count = 0;
+    err = hound_register_io_driver("/dev/counter", &counter_driver, &count);
     HOUND_ASSERT_OK(err);
 
     rq.queue_len = SAMPLES;

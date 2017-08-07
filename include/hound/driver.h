@@ -36,7 +36,7 @@ struct hound_drv_data_list {
 typedef void *(hound_alloc)(size_t);
 
 struct hound_io_driver {
-    hound_err (*init)(hound_alloc alloc);
+    hound_err (*init)(hound_alloc alloc, void *data);
 
     hound_err (*destroy)(void);
     hound_err (*reset)(void);
@@ -114,7 +114,8 @@ struct hound_io_driver {
  */
 hound_err hound_register_io_driver(
     const char *path,
-    const struct hound_io_driver *driver);
+    const struct hound_io_driver *driver,
+    void *data);
 
 /**
  * Unregisters the driver at the given path, effectively unloading the backing
