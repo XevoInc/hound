@@ -41,7 +41,7 @@ void _hound_error_log_msg(
 
 #define _HOUND_ASSERT_FMT(expr, fmt, x, y) \
     _HOUND_ASSERT_SKELETON(expr, \
-        _hound_error_log_msg(#expr, __FILE__, __LINE__, __func__, #fmt, x, y);
+        _hound_error_log_msg(#expr, __FILE__, __LINE__, __func__, #fmt, x, y));
 
 #define _HOUND_ASSERT_OP_FMT(op, fmt, x, y) _HOUND_ASSERT_FMT(x op y, fmt, x, y)
 
