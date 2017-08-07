@@ -43,7 +43,9 @@ static size_t s_buf_bytes = 0;
 hound_err counter_init(hound_alloc alloc, void *data)
 {
     s_alloc = alloc;
-    HOUND_ASSERT_NOT_NULL(data);
+    if (data == NULL) {
+        return HOUND_NULL_VAL;
+    }
     s_count = *((__typeof__(s_count) *) data);
 
     return HOUND_OK;
