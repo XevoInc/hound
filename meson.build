@@ -1,12 +1,12 @@
 # Summary.
 project('hound', 'c',
-  version: '0.1',
-  license: 'proprietary',
-  default_options: [
-    'c_std=c11',
-    'buildtype=debug',
-    'warning_level=3',
-    'werror=true'])
+    version: '0.1',
+    license: 'proprietary',
+    default_options: [
+        'c_std=c11',
+        'buildtype=debug',
+        'warning_level=3',
+        'werror=true'])
 
 cflags = ['-Wshadow', '-fvisibility=hidden']
 add_project_arguments(cflags, language: 'c')
@@ -37,31 +37,31 @@ src = [
 
 # Library
 lib = shared_library(
-  'hound',
-  src,
-  include_directories: include,
-  install: true,
-  dependencies: thread_deps)
+    'hound',
+    src,
+    include_directories: include,
+    install: true,
+    dependencies: thread_deps)
 pkg.generate(
-  name: 'hound',
-  description: 'A generic, performant sensor gathering library',
-  libraries: [lib],
-  subdirs: 'hound',
-  version: '0.1')
+    name: 'hound',
+    description: 'A generic, performant sensor gathering library',
+    libraries: [lib],
+    subdirs: 'hound',
+    version: '0.1')
 
 # Tests.
 tests = [
-  ['nop', ['test/driver/nop.c', 'test/nop.c']],
-  ['counter', ['test/driver/counter.c', 'test/counter.c']]
-  ]
+    ['nop', ['test/driver/nop.c', 'test/nop.c']],
+    ['counter', ['test/driver/counter.c', 'test/counter.c']]
+    ]
 foreach t : tests
-  exe = executable(
-    t.get(0),
-    t.get(1),
-    include_directories: include,
-    link_with: lib,
-    dependencies: [thread_deps])
-  test(t.get(0), exe)
+    exe = executable(
+        t.get(0),
+        t.get(1),
+        include_directories: include,
+        link_with: lib,
+        dependencies: [thread_deps])
+    test(t.get(0), exe)
 endforeach
 
 # Documentation.
