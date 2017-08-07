@@ -43,7 +43,7 @@ void _hound_error_log_msg(
     _HOUND_ASSERT_SKELETON(expr, \
         _hound_error_log_msg(#expr, __FILE__, __LINE__, __func__, #fmt, x, y);
 
-#define _HOUND_ASSERT_OP_FMT(expr, fmt, x, y) _HOUND_ASSERT_FMT(x op y, fmt, x, y)
+#define _HOUND_ASSERT_OP_FMT(op, fmt, x, y) _HOUND_ASSERT_FMT(x op y, fmt, x, y)
 
 #define HOUND_ASSERT(expr) \
     _HOUND_ASSERT_SKELETON(expr, \
@@ -54,12 +54,12 @@ void _hound_error_log_msg(
            __LINE__, \
            __func__));
 
-#define HOUND_ASSERT_LT_FMT(x, y) _HOUND_ASSERT_OP_FMT(<, x, y)
-#define HOUND_ASSERT_LTE_FMT(x, y) _HOUND_ASSERT_OP_FMT(<=, x, y)
-#define HOUND_ASSERT_EQ_FMT(x, y) _HOUND_ASSERT_OP_FMT(==, x, y)
-#define HOUND_ASSERT_NEQ_FMT(x, y) _HOUND_ASSERT_OP_FMT(!=, x, y)
-#define HOUND_ASSERT_GT_FMT(x, y) _HOUND_ASSERT_OP_FMT(>, x, y)
-#define HOUND_ASSERT_GTE_FMT(x, y) _HOUND_ASSERT_OP_FMT(>=, x, y)
+#define HOUND_ASSERT_LT_FMT(fmt, x, y) _HOUND_ASSERT_OP_FMT(<, fmt, x, y)
+#define HOUND_ASSERT_LTE_FMT(fmt, x, y) _HOUND_ASSERT_OP_FMT(<=, fmt, x, y)
+#define HOUND_ASSERT_EQ_FMT(fmt, x, y) _HOUND_ASSERT_OP_FMT(==, fmt, x, y)
+#define HOUND_ASSERT_NEQ_FMT(fmt, x, y) _HOUND_ASSERT_OP_FMT(!=, fmt, x, y)
+#define HOUND_ASSERT_GT_FMT(fmt, x, y) _HOUND_ASSERT_OP_FMT(>, fmt, x, y)
+#define HOUND_ASSERT_GTE_FMT(fmt, x, y) _HOUND_ASSERT_OP_FMT(>=, fmt, x, y)
 
 #if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
 
@@ -121,12 +121,12 @@ void _hound_error_log_msg(
 
 #else
 
-#define HOUND_ASSERT_LT(fmt, x, y) HOUND_ASSERT_LT_FMT(x, y)
-#define HOUND_ASSERT_LTE(fmt, x, y) HOUND_ASSERT_LTE_FMT(x, y)
-#define HOUND_ASSERT_EQ(fmt, x, y) HOUND_ASSERT_EQ_FMT(x, y)
-#define HOUND_ASSERT_NEQ(fmt, x, y) HOUND_ASSERT_NEQ_FMT(x, y)
-#define HOUND_ASSERT_GT(fmt, x, y) HOUND_ASSERT_GT_FMT(x, y)
-#define HOUND_ASSERT_GTE(fmt, x, y) HOUND_ASSERT_GTE_FMT(x, y)
+#define HOUND_ASSERT_LT(fmt, x, y) HOUND_ASSERT_LT_FMT(fmt, x, y)
+#define HOUND_ASSERT_LTE(fmt, x, y) HOUND_ASSERT_LTE_FMT(fmt, x, y)
+#define HOUND_ASSERT_EQ(fmt, x, y) HOUND_ASSERT_EQ_FMT(fmt, x, y)
+#define HOUND_ASSERT_NEQ(fmt, x, y) HOUND_ASSERT_NEQ_FMT(fmt, x, y)
+#define HOUND_ASSERT_GT(fmt, x, y) HOUND_ASSERT_GT_FMT(fmt, x, y)
+#define HOUND_ASSERT_GTE(fmt, x, y) HOUND_ASSERT_GTE_FMT(fmt, x, y)
 
 #define HOUND_ASSERT_NULL(x) HOUND_ASSERT_EQ(%p, x, NULL)
 #define HOUND_ASSERT_NOT_NULL(x) HOUND_ASSERT_NEQ(%p, x, NULL)
