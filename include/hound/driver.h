@@ -12,6 +12,8 @@
 #include <hound/hound.h>
 #include <hound_private/klib/khash.h>
 
+#define HOUND_DEVICE_ID_MAX_LEN (33)
+
 typedef uint_least8_t hound_datacount;
 typedef uint_least8_t hound_device_id_count;
 typedef uint_least8_t hound_freqcount;

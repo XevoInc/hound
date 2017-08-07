@@ -100,6 +100,10 @@ const char *error_strerror(hound_err err)
             return "I/O error (EIO)";
         case HOUND_QUEUE_TOO_SMALL:
             return "blocking read requested for more samples than the max queue size";
+        case HOUND_INVALID_STRING:
+            return "string is not null-terminated, or is too long";
+        case HOUND_MISSING_FREQUENCIES:
+            return "driver specifies no frequencies, or NULL frequencies";
     }
 
     __builtin_unreachable();

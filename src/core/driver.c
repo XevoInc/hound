@@ -175,7 +175,13 @@ hound_err driver_register(
     for (i = 0; i < drv->device_id_count; ++i) {
         if (drv->device_ids[i] == NULL) {
             err = HOUND_MISSING_DEVICE_IDS;
-            goto error_missing_ids;
+            goto error_device_ids;
+        }
+
+        if (strnlen(drv->device_ids[i], HOUND_DEVICE_ID_MAX_LEN) ==
+            HOUND_DEVICE_ID_MAX_LEN) {
+            err = HOUND_INVALID_STRING;
+            goto error_device_ids;
         }
     }
 
@@ -183,6 +189,23 @@ hound_err driver_register(
     err = driver->datadesc(&drv->data, &drv->datacount);
     if (err != HOUND_OK) {
         goto error_datadesc;
+    }
+
+    for (i = 0; i < drv->datacount; ++i) {
+        if (drv->data[i].name == NULL) {
+            err = HOUND_NULL_VAL;
+            goto error_datadesc;
+        }
+        if (strnlen(drv->data[i].name, HOUND_DEVICE_ID_MAX_LEN) ==
+            HOUND_DEVICE_ID_MAX_LEN) {
+            err = HOUND_INVALID_STRING;
+            goto error_datadesc;
+        }
+
+        if (drv->data[i].freq_count == 0 || drv->data[i].avail_freq == NULL) {
+            err = HOUND_MISSING_FREQUENCIES;
+            goto error_datadesc;
+        }
     }
 
     /* Set the rest of the driver fields. */
@@ -235,7 +258,6 @@ error_data_map_put:
 error_device_map_put:
 error_conflicting_drivers:
 error_datadesc:
-error_missing_ids:
 error_device_ids:
     free(drv);
 out:
