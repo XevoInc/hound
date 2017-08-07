@@ -23,11 +23,11 @@ void test_register(void)
 {
     hound_err err;
 
-    err = hound_register_io_driver(NULL, &nop_driver);
+    err = hound_register_io_driver(NULL, &nop_driver, NULL);
     HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
-    err = hound_register_io_driver("/dev/nop", NULL);
+    err = hound_register_io_driver("/dev/nop", NULL, NULL);
     HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
-    err = hound_register_io_driver("/dev/nop", &nop_driver);
+    err = hound_register_io_driver("/dev/nop", &nop_driver, NULL);
     HOUND_ASSERT_OK(err);
 }
 

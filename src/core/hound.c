@@ -82,9 +82,10 @@ hound_err hound_max_queue_length(struct hound_ctx *ctx, size_t *count)
 HOUND_PUBLIC_API
 hound_err hound_register_io_driver(
     const char *path,
-    const struct hound_io_driver *driver)
+    const struct hound_io_driver *driver,
+    void *data)
 {
-    return driver_register(path, driver);
+    return driver_register(path, driver, data);
 }
 
 HOUND_PUBLIC_API

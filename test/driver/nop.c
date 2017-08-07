@@ -39,7 +39,7 @@ static struct hound_drv_datadesc s_datadesc[] = {
 };
 static int s_fd = FD_INVALID;
 
-hound_err nop_init(UNUSED hound_alloc alloc)
+hound_err nop_init(UNUSED hound_alloc alloc, UNUSED void *data)
 {
     return HOUND_OK;
 }

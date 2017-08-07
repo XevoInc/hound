@@ -123,7 +123,8 @@ void driver_free_datadesc(const struct hound_datadesc **desc)
 
 hound_err driver_register(
     const char *path,
-    const struct hound_io_driver *driver)
+    const struct hound_io_driver *driver,
+    void *init_data)
 {
     struct driver *drv;
     hound_err err;
@@ -153,7 +154,7 @@ hound_err driver_register(
     NULL_CHECK(driver->stop);
 
     /* Init. */
-    err = driver->init(malloc);
+    err = driver->init(malloc, init_data);
     if (err != HOUND_OK) {
         goto out;
     }
