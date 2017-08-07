@@ -39,7 +39,7 @@ src = [
 ]
 
 # Library
-lib = shared_library(
+lib = library(
     'hound',
     src,
     include_directories: include,
