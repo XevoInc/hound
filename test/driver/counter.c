@@ -109,7 +109,6 @@ hound_err counter_parse(
         if (record->data == NULL) {
             return HOUND_OOM;
         }
-        /* TODO: add timestamp */
         record->id = HOUND_DEVICE_TEMPERATURE;
         record->size = sizeof(s_count);
         consumed_bytes = sizeof(s_count) - s_buf_bytes;
