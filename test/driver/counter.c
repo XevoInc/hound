@@ -34,19 +34,20 @@ static const struct hound_drv_datadesc s_datadesc[] = {
     }
 };
 
-static hound_alloc *s_alloc = NULL;
+static hound_alloc *s_alloc;
 int s_pipe[2] = { FD_INVALID, FD_INVALID };
-static size_t s_count = 0;
+static size_t s_count;
 static uint8_t s_buf[sizeof(s_count)];
-static size_t s_buf_bytes = 0;
+static size_t s_buf_bytes;
 
 hound_err counter_init(hound_alloc alloc, void *data)
 {
-    s_alloc = alloc;
     if (data == NULL) {
         return HOUND_NULL_VAL;
     }
     s_count = *((__typeof__(s_count) *) data);
+    s_alloc = alloc;
+    s_buf_bytes = 0;
 
     return HOUND_OK;
 }
