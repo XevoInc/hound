@@ -284,6 +284,7 @@ static
 void io_stop_poll(void)
 {
     hound_err err;
+    void *ret;
 
     /* First let the event loop gracefully exit. */
     io_pause_poll();
@@ -300,8 +301,9 @@ void io_stop_poll(void)
     HOUND_ASSERT_EQ(err, 0);
 
     /* Wait until the thread is finally dead. */
-    err = pthread_join(s_poll_thread, NULL);
+    err = pthread_join(s_poll_thread, &ret);
     HOUND_ASSERT_EQ(err, 0);
+    HOUND_ASSERT_EQ(ret, PTHREAD_CANCELED);
 }
 
 hound_err io_add_fd(int fd, struct driver_ops *drv_ops)
