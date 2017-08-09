@@ -56,8 +56,9 @@ pkg.generate(
 # Tests.
 add_test_setup('valgrind', exe_wrapper: ['valgrind', '-v'])
 tests = [
-    ['nop', ['test/driver/nop.c', 'test/nop.c']],
-    ['counter', ['test/driver/counter.c', 'test/counter.c']]
+    ['nop', ['test/driver/nop.c', 'test/nop.c'], [] ],
+    ['counter', ['test/driver/counter.c', 'test/counter.c'], [] ],
+    ['file', ['test/driver/file.c', 'test/file.c'], files('test/data/testfile') ]
     ]
 foreach t : tests
     exe = executable(
@@ -66,7 +67,7 @@ foreach t : tests
         include_directories: include,
         link_with: lib,
         dependencies: [thread_deps])
-    test(t.get(0), exe)
+    test(t.get(0), exe, args: t.get(2))
 endforeach
 
 # Documentation.
