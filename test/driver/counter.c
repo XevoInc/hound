@@ -56,8 +56,11 @@ hound_err counter_destroy(void)
     return HOUND_OK;
 }
 
-hound_err counter_reset(void)
+hound_err counter_reset(hound_alloc alloc, void *data)
 {
+    counter_destroy();
+    counter_init(alloc, data);
+
     return HOUND_OK;
 }
 

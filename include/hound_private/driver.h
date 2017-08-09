@@ -17,7 +17,7 @@ typedef uint_least8_t drv_datacount;
 
 struct driver_ops {
     hound_err (*destroy)(void);
-    hound_err (*reset)(void);
+    hound_err (*reset)(hound_alloc alloc, void *data);
     hound_err (*setdata)(const struct hound_drv_data_list *data);
     hound_err (*parse)(
         const uint8_t *buf,

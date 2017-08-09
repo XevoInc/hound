@@ -41,7 +41,7 @@ struct hound_io_driver {
     hound_err (*init)(hound_alloc alloc, void *data);
 
     hound_err (*destroy)(void);
-    hound_err (*reset)(void);
+    hound_err (*reset)(hound_alloc alloc, void *data);
 
     /**
      * Get the device IDs advertised by this driver.
