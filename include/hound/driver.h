@@ -14,24 +14,24 @@
 
 #define HOUND_DEVICE_ID_MAX_LEN (33)
 
-typedef uint_least8_t hound_datacount;
+typedef uint_least8_t hound_data_count;
 typedef uint_least8_t hound_device_id_count;
-typedef uint_least8_t hound_freqcount;
+typedef uint_least8_t hound_period_count;
 
 struct hound_drv_datadesc {
     hound_data_id id;
     const char *name;
-    hound_freqcount freq_count;
-    const hound_data_freq *avail_freq;
+    hound_period_count period_count;
+    const hound_data_period *avail_periods;
 };
 
 struct hound_drv_data {
     hound_data_id id;
-    hound_data_freq freq;
+    hound_data_period period;
 };
 
 struct hound_drv_data_list {
-    hound_datacount len;
+    hound_data_count len;
     struct hound_drv_data *data;
 };
 
@@ -69,7 +69,7 @@ struct hound_io_driver {
      */
     hound_err (*datadesc)(
             const struct hound_drv_datadesc **desc,
-            hound_datacount *count);
+            hound_data_count *count);
 
     hound_err (*setdata)(const struct hound_drv_data_list *data);
 

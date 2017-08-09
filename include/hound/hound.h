@@ -33,11 +33,11 @@ enum hound_err_enum {
     HOUND_CTX_NOT_ACTIVE = -11,
     HOUND_EMPTY_QUEUE = -12,
     HOUND_MISSING_CALLBACK = -13,
-    HOUND_FREQUENCY_UNSUPPORTED = -14,
+    HOUND_PERIOD_UNSUPPORTED = -14,
     HOUND_IO_ERROR = -15,
     HOUND_QUEUE_TOO_SMALL = -16,
     HOUND_INVALID_STRING = -17,
-    HOUND_MISSING_FREQUENCIES = -18
+    HOUND_MISSING_PERIODS = -18
 };
 
 /** Returns a human-readable error string. The string must not be modified or
@@ -76,17 +76,17 @@ struct hound_record {
 };
 
 typedef void (*hound_cb)(struct hound_record *rec);
-typedef uint_fast64_t hound_data_freq;
+typedef uint_fast64_t hound_data_period;
 
 struct hound_datadesc {
     hound_data_id id;
     const char *name;
-    hound_data_freq freq;
+    hound_data_period period_ns;
 };
 
 struct hound_data_rq {
     hound_data_id id;
-    hound_data_freq freq;
+    hound_data_period period_ns;
 };
 
 struct hound_data_rq_list {

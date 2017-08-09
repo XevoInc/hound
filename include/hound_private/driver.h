@@ -54,9 +54,9 @@ hound_err driver_unref(
 
 hound_err driver_get(hound_data_id data_id, struct driver **drv);
 
-bool driver_freq_supported(
+bool driver_period_supported(
     struct driver *drv,
     hound_data_id id,
-    hound_data_freq freq);
+    hound_data_period period);
 
 #endif /* HOUND_PRIVATE_DRIVER_H_ */

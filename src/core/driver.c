@@ -32,7 +32,7 @@ struct driver {
     pthread_mutex_t mutex;
     refcount_val refcount;
 
-    hound_datacount datacount;
+    hound_data_count datacount;
     const struct hound_drv_datadesc *data;
 
     kvec_t(struct data) active_data;
@@ -202,8 +202,8 @@ hound_err driver_register(
             goto error_datadesc;
         }
 
-        if (drv->data[i].freq_count == 0 || drv->data[i].avail_freq == NULL) {
-            err = HOUND_MISSING_FREQUENCIES;
+        if (drv->data[i].period_count == 0 || drv->data[i].avail_periods == NULL) {
+            err = HOUND_MISSING_PERIODS;
             goto error_datadesc;
         }
     }
@@ -391,9 +391,9 @@ hound_err driver_ref(
             data = &kv_A(drv->active_data, index);
             /*
              * We can assert this because ctx_alloc should have failed if the
-             * frequencies did not match.
+             * periods did not match.
              */
-            HOUND_ASSERT_EQ(data->data->freq, drv_data->freq);
+            HOUND_ASSERT_EQ(data->data->period, drv_data->period);
             ++data->refcount;
         }
         else {
@@ -583,10 +583,10 @@ out:
     return err;
 }
 
-bool driver_freq_supported(
+bool driver_period_supported(
     struct driver *drv,
     hound_data_id id,
-    hound_data_freq freq)
+    hound_data_period period)
 {
     const struct hound_drv_datadesc *desc;
     bool found;
@@ -604,8 +604,8 @@ bool driver_freq_supported(
         }
 
         found = false;
-        for (j = 0; j < desc->freq_count; ++j) {
-            if (desc->avail_freq[j] == freq) {
+        for (j = 0; j < desc->period_count; ++j) {
+            if (desc->avail_periods[j] == period) {
                 found = true;
                 break;
             }

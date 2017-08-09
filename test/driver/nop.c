@@ -16,25 +16,33 @@
 #include <unistd.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
+#define NS_PER_SEC (1e9)
 #define FD_INVALID (-1)
 #define UNUSED __attribute__((unused))
 
 static const char *s_device_ids[] = {"dummy", "fake"};
-static const hound_data_freq s_accel_freq[] = { 0, 1, 10, 500, 1000, 2000 };
-static const hound_data_freq s_gyro_freq[] = { 0 };
+static const hound_data_period s_accel_period[] = {
+    0,
+    NS_PER_SEC,
+    NS_PER_SEC/10,
+    NS_PER_SEC/500,
+    NS_PER_SEC/1000,
+    NS_PER_SEC/2000
+};
+static const hound_data_period s_gyro_period[] = { 0 };
 static const struct hound_drv_datadesc s_datadesc[] = {
     {
         .id = HOUND_DEVICE_ACCELEROMETER,
         .name = "super-extra-accelerometer",
-        .freq_count = ARRAYLEN(s_accel_freq),
-        .avail_freq = s_accel_freq
+        .period_count = ARRAYLEN(s_accel_period),
+        .avail_periods = s_accel_period
     },
 
     {
         .id = HOUND_DEVICE_GYROSCOPE,
         .name = "oneshot-gyroscope",
-        .freq_count = ARRAYLEN(s_gyro_freq),
-        .avail_freq = s_gyro_freq
+        .period_count = ARRAYLEN(s_gyro_period),
+        .avail_periods = s_gyro_period
     }
 };
 static int s_fd = FD_INVALID;
@@ -66,7 +74,7 @@ hound_err nop_device_ids(
 
 hound_err nop_datadesc(
         const struct hound_drv_datadesc **desc,
-        hound_datacount *count)
+        hound_data_count *count)
 {
     *count = ARRAYLEN(s_datadesc);
     *desc = s_datadesc;
