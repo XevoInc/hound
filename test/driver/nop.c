@@ -49,7 +49,7 @@ hound_err nop_destroy(void)
     return HOUND_OK;
 }
 
-hound_err nop_reset(void)
+hound_err nop_reset(UNUSED hound_alloc alloc, UNUSED void *data)
 {
     return HOUND_OK;
 }
