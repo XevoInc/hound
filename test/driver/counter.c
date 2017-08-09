@@ -141,7 +141,9 @@ hound_err counter_start(int *fd)
     HOUND_ASSERT_EQ(s_pipe[WRITE_END], FD_INVALID);
 
     err = pipe(s_pipe);
-    HOUND_ASSERT_EQ(err, 0);
+    if (err != 0) {
+        return err;
+    }
     *fd = s_pipe[READ_END];
 
     return HOUND_OK;
