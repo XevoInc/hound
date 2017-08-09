@@ -37,7 +37,8 @@ void data_cb(struct hound_record *rec)
     ++s_seqno;
 }
 
-int main(void) {
+int main(void)
+{
     struct hound_ctx *ctx;
     hound_err err;
     size_t count;

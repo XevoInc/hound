@@ -164,7 +164,8 @@ void test_unregister()
     HOUND_ASSERT_OK(err);
 }
 
-int main(void) {
+int main(void)
+{
     struct hound_ctx *ctx;
 
     test_register();
