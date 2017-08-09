@@ -24,13 +24,13 @@
 #define WRITE_END (1)
 
 static const char *s_device_ids[] = {"counter"};
-static const hound_data_freq s_freqs[] = { 0 };
+static const hound_data_freq s_freq = 0;
 static const struct hound_drv_datadesc s_datadesc[] = {
     {
         .id = HOUND_DEVICE_TEMPERATURE,
         .name = "increasing-temperature-counter",
-        .freq_count = ARRAYLEN(s_freqs),
-        .avail_freq = s_freqs
+        .freq_count = 1,
+        .avail_freq = &s_freq
     }
 };
 
