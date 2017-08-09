@@ -35,7 +35,7 @@ static const struct hound_drv_datadesc s_datadesc[] = {
 };
 
 static hound_alloc *s_alloc = NULL;
-int s_fd[2] = { FD_INVALID, FD_INVALID };
+int s_pipe[2] = { FD_INVALID, FD_INVALID };
 static size_t s_count = 0;
 static uint8_t s_buf[sizeof(s_count)];
 static size_t s_buf_bytes = 0;
@@ -136,12 +136,12 @@ hound_err counter_start(int *fd)
 {
     hound_err err;
 
-    HOUND_ASSERT_EQ(s_fd[0], FD_INVALID);
-    HOUND_ASSERT_EQ(s_fd[1], FD_INVALID);
+    HOUND_ASSERT_EQ(s_pipe[READ_END], FD_INVALID);
+    HOUND_ASSERT_EQ(s_pipe[WRITE_END], FD_INVALID);
 
-    err = pipe(s_fd);
+    err = pipe(s_pipe);
     HOUND_ASSERT_EQ(err, 0);
-    *fd = s_fd[READ_END];
+    *fd = s_pipe[READ_END];
 
     return HOUND_OK;
 }
@@ -150,16 +150,16 @@ hound_err counter_stop(void)
 {
     hound_err err;
 
-    HOUND_ASSERT_NEQ(s_fd[READ_END], FD_INVALID);
-    HOUND_ASSERT_NEQ(s_fd[WRITE_END], FD_INVALID);
+    HOUND_ASSERT_NEQ(s_pipe[READ_END], FD_INVALID);
+    HOUND_ASSERT_NEQ(s_pipe[WRITE_END], FD_INVALID);
 
-    err = close(s_fd[READ_END]);
+    err = close(s_pipe[READ_END]);
     HOUND_ASSERT_EQ(err, 0);
-    err = close(s_fd[WRITE_END]);
+    err = close(s_pipe[WRITE_END]);
     HOUND_ASSERT_EQ(err, 0);
 
-    s_fd[READ_END] = FD_INVALID;
-    s_fd[WRITE_END] = FD_INVALID;
+    s_pipe[READ_END] = FD_INVALID;
+    s_pipe[WRITE_END] = FD_INVALID;
 
     return HOUND_OK;
 }
@@ -168,7 +168,7 @@ void counter_next(void)
 {
     size_t written;
 
-    written = write(s_fd[WRITE_END], &s_count, sizeof(s_count));
+    written = write(s_pipe[WRITE_END], &s_count, sizeof(s_count));
     HOUND_ASSERT_EQ(written, sizeof(s_count));
 
     ++s_count;
