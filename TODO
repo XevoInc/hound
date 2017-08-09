@@ -1,4 +1,5 @@
 Things to do:
+- Allow user callbacks to have a void * context passed to them
 - A driver that reads from a file
 - A CAN driver
 - An IIO driver
