@@ -10,6 +10,7 @@
 #include <hound/driver.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
+#define NS_PER_SEC (1e9)
 
 extern struct hound_io_driver nop_driver;
 
@@ -75,8 +76,8 @@ void test_alloc_ctx(struct hound_ctx **ctx)
 {
     hound_err err;
     struct hound_data_rq data_rq[] = {
-        { .id = HOUND_DEVICE_ACCELEROMETER, .freq = 1000 },
-        { .id = HOUND_DEVICE_GYROSCOPE, .freq = 0 },
+        { .id = HOUND_DEVICE_ACCELEROMETER, .period_ns = NS_PER_SEC/1000 },
+        { .id = HOUND_DEVICE_GYROSCOPE, .period_ns = 0 },
     };
     struct hound_data_rq bad_data_rq[ARRAYLEN(data_rq)];
 
@@ -100,14 +101,14 @@ void test_alloc_ctx(struct hound_ctx **ctx)
         HOUND_DATA_ID_DOES_NOT_EXIST);
 
     memcpy(bad_data_rq, data_rq, sizeof(data_rq));
-    bad_data_rq[0].freq = 999;
+    bad_data_rq[0].period_ns = 999;
     ctx_test(
         ctx,
         5,
         data_cb,
         ARRAYLEN(bad_data_rq),
         bad_data_rq,
-        HOUND_FREQUENCY_UNSUPPORTED);
+        HOUND_PERIOD_UNSUPPORTED);
 
     ctx_test(ctx, 5, data_cb, ARRAYLEN(data_rq), data_rq, HOUND_OK);
 }

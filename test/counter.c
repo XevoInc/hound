@@ -44,7 +44,7 @@ int main(void) {
     size_t read;
     struct hound_rq rq;
     struct hound_data_rq data_rq[] = {
-        { .id = HOUND_DEVICE_TEMPERATURE, .freq = 0 },
+        { .id = HOUND_DEVICE_TEMPERATURE, .period_ns = 0 },
     };
 
     count = 0;

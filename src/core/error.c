@@ -94,16 +94,16 @@ const char *error_strerror(hound_err err)
             return "context requests a data queue of length 0";
         case HOUND_MISSING_CALLBACK:
             return "context does not specify a data callback";
-        case HOUND_FREQUENCY_UNSUPPORTED:
-            return "context requests a frequency not supported by the backing driver";
+        case HOUND_PERIOD_UNSUPPORTED:
+            return "context requests a period not supported by the backing driver";
         case HOUND_IO_ERROR:
             return "I/O error (EIO)";
         case HOUND_QUEUE_TOO_SMALL:
             return "blocking read requested for more samples than the max queue size";
         case HOUND_INVALID_STRING:
             return "string is not null-terminated, or is too long";
-        case HOUND_MISSING_FREQUENCIES:
-            return "driver specifies no frequencies, or NULL frequencies";
+        case HOUND_MISSING_PERIODS:
+            return "driver specifies no periods, or NULL periods";
     }
 
     __builtin_unreachable();

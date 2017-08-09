@@ -77,8 +77,8 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
         if (err != HOUND_OK) {
             goto out;
         }
-        if (!driver_freq_supported(drv, data_rq->id, data_rq->freq)) {
-            err = HOUND_FREQUENCY_UNSUPPORTED;
+        if (!driver_period_supported(drv, data_rq->id, data_rq->period_ns)) {
+            err = HOUND_PERIOD_UNSUPPORTED;
             goto out;
         }
     }
@@ -167,7 +167,7 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
                 continue;
             }
             drv_data_list->data[index].id = list->data[j].id;
-            drv_data_list->data[index].freq = list->data[j].freq;
+            drv_data_list->data[index].period = list->data[j].period_ns;
             ++index;
         }
     }
