@@ -25,7 +25,7 @@
 
 static const char *s_device_ids[] = {"counter"};
 static const hound_data_freq s_freqs[] = { 0 };
-static struct hound_drv_datadesc s_datadesc[] = {
+static const struct hound_drv_datadesc s_datadesc[] = {
     {
         .id = HOUND_DEVICE_TEMPERATURE,
         .name = "increasing-temperature-counter",

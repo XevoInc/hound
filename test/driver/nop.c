@@ -22,7 +22,7 @@
 static const char *s_device_ids[] = {"dummy", "fake"};
 static const hound_data_freq s_accel_freq[] = { 0, 1, 10, 500, 1000, 2000 };
 static const hound_data_freq s_gyro_freq[] = { 0 };
-static struct hound_drv_datadesc s_datadesc[] = {
+static const struct hound_drv_datadesc s_datadesc[] = {
     {
         .id = HOUND_DEVICE_ACCELEROMETER,
         .name = "super-extra-accelerometer",
