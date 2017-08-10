@@ -14,7 +14,7 @@
 #define SAMPLES (4217)
 
 extern struct hound_io_driver counter_driver;
-extern void counter_next(void);
+extern void counter_next(hound_data_id id);
 extern void counter_zero(void);
 
 struct stats {
@@ -52,9 +52,8 @@ int main(void)
     size_t read;
     struct hound_rq rq;
     struct stats stats;
-    struct hound_data_rq data_rq[] = {
-        { .id = HOUND_DEVICE_TEMPERATURE, .period_ns = 0 },
-    };
+    struct hound_data_rq data_rq =
+        { .id = HOUND_DEVICE_TEMPERATURE, .period_ns = 0 };
 
     count = 0;
     err = hound_register_io_driver("/dev/counter", &counter_driver, &count);
@@ -64,8 +63,8 @@ int main(void)
     rq.queue_len = SAMPLES;
     rq.cb = data_cb;
     rq.cb_ctx = &stats;
-    rq.rq_list.len = ARRAYLEN(data_rq);
-    rq.rq_list.data = data_rq;
+    rq.rq_list.len = 1;
+    rq.rq_list.data = &data_rq;
     hound_alloc_ctx(&ctx, &rq);
     HOUND_ASSERT_OK(err);
 
@@ -75,7 +74,10 @@ int main(void)
     /* Do individual, sync reads. */
     reset_counts(&stats);
     for (count = 0; count < SAMPLES; ++count) {
-        counter_next();
+		/*
+		 * We don't need to call counter_next, because synchronous read does
+		 * automatically does that.
+		 */
         err = hound_read(ctx, 1);
         HOUND_ASSERT_OK(err);
     }
@@ -83,9 +85,6 @@ int main(void)
 
     /* Do one larger, sync read. */
     reset_counts(&stats);
-    for (count = 0; count < SAMPLES; ++count) {
-        counter_next();
-    }
     err = hound_read(ctx, count);
     HOUND_ASSERT_OK(err);
     HOUND_ASSERT_EQ(stats.count, count);
@@ -93,7 +92,7 @@ int main(void)
     /* Do individual, async reads. */
     reset_counts(&stats);
     for (count = 0; count < SAMPLES; ++count) {
-        counter_next();
+        counter_next(data_rq.id);
     }
     count = 0;
     while (count < SAMPLES) {
@@ -110,7 +109,7 @@ int main(void)
     /* Do large async reads. */
     reset_counts(&stats);
     for (count = 0; count < SAMPLES; ++count) {
-        counter_next();
+        counter_next(data_rq.id);
     }
     count = 0;
     while (count < SAMPLES) {
@@ -128,7 +127,7 @@ int main(void)
     /* Read all at once. */
     reset_counts(&stats);
     for (count = 0; count < SAMPLES; ++count) {
-        counter_next();
+        counter_next(data_rq.id);
     }
     count = 0;
     while (count < SAMPLES) {

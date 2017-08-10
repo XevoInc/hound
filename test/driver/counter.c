@@ -167,7 +167,7 @@ hound_err counter_stop(void)
     return HOUND_OK;
 }
 
-void counter_next(void)
+hound_err counter_next(UNUSED hound_data_id id)
 {
     size_t written;
 
@@ -175,6 +175,8 @@ void counter_next(void)
     HOUND_ASSERT_EQ(written, sizeof(s_count));
 
     ++s_count;
+
+	return HOUND_OK;
 }
 
 void counter_zero(void)
@@ -191,5 +193,6 @@ struct hound_io_driver counter_driver = {
     .setdata = counter_setdata,
     .parse = counter_parse,
     .start = counter_start,
+    .next = counter_next,
     .stop = counter_stop
 };

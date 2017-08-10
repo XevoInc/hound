@@ -110,6 +110,11 @@ hound_err nop_start(int *fd)
     return HOUND_OK;
 }
 
+hound_err nop_next(UNUSED hound_data_id id)
+{
+	return HOUND_OK;
+}
+
 hound_err nop_stop(void)
 {
     hound_err err;
@@ -130,5 +135,6 @@ struct hound_io_driver nop_driver = {
     .setdata = nop_setdata,
     .parse = nop_parse,
     .start = nop_start,
+    .next = nop_next,
     .stop = nop_stop
 };

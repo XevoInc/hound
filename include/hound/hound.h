@@ -131,7 +131,21 @@ hound_err hound_start(struct hound_ctx *ctx);
 hound_err hound_stop(struct hound_ctx *ctx);
 
 /**
- * Triggers callback invocations to process queued data.
+ * Asks all drivers underlying this context to produce data. This call is useful
+ * only for pull mode (non-periodic, period == 0) data, and it does nothing for
+ * periodic drivers.
+ *
+ * @param ctx a context
+ * @param n the number of records to produce.
+ *
+ * @return an error code
+ */
+hound_err hound_next(struct hound_ctx *ctx, size_t n);
+
+/**
+ * Triggers callback invocations to process queued data, blocking all the
+ * requested data has been processed by callbacks. Also calls hound_next() for
+ * any pull-mode data.
  *
  * @param ctx a context
  * @param n the number of records to read. Reads the records as fast as
@@ -143,7 +157,8 @@ hound_err hound_stop(struct hound_ctx *ctx);
 hound_err hound_read(struct hound_ctx *ctx, size_t n);
 
 /**
- * Triggers callback invocations to process queued data without blocking.
+ * Triggers callback invocations to process queued data without blocking. This
+ * function does not call hound_next(), so it is useless for pull-mode data.
  *
  * @param ctx a context
  * @param n trigger callbacks for up to count records. If fewer than n records
