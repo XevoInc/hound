@@ -22,6 +22,8 @@ hound_err ctx_free(struct hound_ctx *ctx);
 hound_err ctx_start(struct hound_ctx *ctx);
 hound_err ctx_stop(struct hound_ctx *ctx);
 
+hound_err ctx_next(struct hound_ctx *ctx, size_t n);
+
 hound_err ctx_read(struct hound_ctx *ctx, size_t n);
 hound_err ctx_read_async(struct hound_ctx *ctx, size_t n, size_t *read);
 hound_err ctx_read_all(struct hound_ctx *ctx, size_t *read);

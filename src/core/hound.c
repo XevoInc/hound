@@ -50,6 +50,12 @@ hound_err hound_stop(struct hound_ctx *ctx)
 }
 
 HOUND_PUBLIC_API
+hound_err hound_next(struct hound_ctx *ctx, size_t n)
+{
+    return ctx_next(ctx, n);
+}
+
+HOUND_PUBLIC_API
 hound_err hound_read(struct hound_ctx *ctx, size_t n)
 {
     return ctx_read(ctx, n);

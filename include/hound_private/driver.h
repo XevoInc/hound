@@ -24,6 +24,7 @@ struct driver_ops {
         size_t *bytes,
         struct hound_record *record);
     hound_err (*start)(int *fd);
+    hound_err (*next)(hound_data_id id);
     hound_err (*stop)(void);
 };
 
@@ -43,6 +44,8 @@ hound_err driver_unregister(const char *path);
 /** Opaque pointer for the private driver API. */
 struct driver;
 
+hound_err driver_next(struct driver *drv, hound_data_id id);
+
 hound_err driver_ref(
     struct driver *drv,
     struct queue *queue,
@@ -52,7 +55,7 @@ hound_err driver_unref(
     struct queue *queue,
     const struct hound_drv_data_list *drv_data_list);
 
-hound_err driver_get(hound_data_id data_id, struct driver **drv);
+hound_err driver_get(hound_data_id id, struct driver **drv);
 
 bool driver_period_supported(
     struct driver *drv,

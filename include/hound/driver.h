@@ -102,6 +102,7 @@ struct hound_io_driver {
         struct hound_record *record);
 
     hound_err (*start)(int *fd);
+    hound_err (*next)(hound_data_id id);
     hound_err (*stop)(void);
 };
 

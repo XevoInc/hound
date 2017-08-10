@@ -151,6 +151,7 @@ hound_err driver_register(
     NULL_CHECK(driver->setdata);
     NULL_CHECK(driver->parse);
     NULL_CHECK(driver->start);
+    NULL_CHECK(driver->next);
     NULL_CHECK(driver->stop);
 
     /* Init. */
@@ -218,6 +219,7 @@ hound_err driver_register(
     drv->ops.setdata = driver->setdata;
     drv->ops.parse = driver->parse;
     drv->ops.start = driver->start;
+    drv->ops.next = driver->next;
     drv->ops.stop = driver->stop;
 
     /* Verify that all descriptors are sane. */
@@ -361,6 +363,20 @@ hound_err push_drv_data(struct driver *drv, struct hound_drv_data *drv_data)
     data->data = drv_data;
 
     return HOUND_OK;
+}
+
+
+hound_err driver_next(struct driver *drv, hound_data_id id)
+{
+    hound_err err;
+
+    HOUND_ASSERT_NOT_NULL(drv);
+
+    pthread_mutex_lock(&drv->mutex);
+    err = drv->ops.next(id);
+    pthread_mutex_unlock(&drv->mutex);
+
+    return err;
 }
 
 hound_err driver_ref(
