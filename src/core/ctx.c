@@ -28,6 +28,7 @@ struct hound_ctx {
 
     bool active;
     hound_cb cb;
+    void *cb_ctx;
     struct queue *queue;
     khash_t(DRIVER_DATA_MAP) *driver_data_map;
 };
@@ -97,6 +98,7 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
 
     ctx->active = false;
     ctx->cb = rq->cb;
+    ctx->cb_ctx = rq->cb_ctx;
 
     err = queue_alloc(&ctx->queue, rq->queue_len);
     if (err != HOUND_OK) {
@@ -362,7 +364,7 @@ void process_callbacks(
 
     for (i = 0; i < n; ++i) {
         rec_info = buf[i];
-        ctx->cb(&rec_info->record);
+        ctx->cb(&rec_info->record, ctx->cb_ctx);
         count = atomic_ref_dec(&rec_info->refcount);
         if (count == 1) {
             /*
