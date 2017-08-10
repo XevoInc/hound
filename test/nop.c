@@ -14,9 +14,10 @@
 
 extern struct hound_io_driver nop_driver;
 
-void data_cb(struct hound_record *rec)
+void data_cb(struct hound_record *rec, void *cb_ctx)
 {
     HOUND_ASSERT_NOT_NULL(rec);
+    HOUND_ASSERT_NULL(cb_ctx);
 }
 
 static
@@ -65,6 +66,7 @@ void ctx_test(
 
     rq.queue_len = queue_len;
     rq.cb = cb;
+    rq.cb_ctx = NULL;
     rq.rq_list.len = rq_len;
     rq.rq_list.data = data_rq;
     err = hound_alloc_ctx(ctx, &rq);
