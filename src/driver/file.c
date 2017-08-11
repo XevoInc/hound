@@ -41,9 +41,9 @@ static struct hound_drv_datadesc s_datadesc = {
 
 static hound_alloc *s_alloc;
 
-int s_fd;
-int s_pipe[2];
-char s_file_buf[4096];
+static int s_fd;
+static int s_pipe[2];
+static char s_file_buf[4096];
 
 hound_err file_init(hound_alloc alloc, void *data)
 {
