@@ -7,9 +7,9 @@
 
 #define _GNU_SOURCE
 #include <hound/error.h>
-#include <hound/driver.h>
 #include <hound/log.h>
 #include <hound/hound.h>
+#include <hound_private/api.h>
 #include <hound_private/driver.h>
 #include <hound_private/io.h>
 #include <hound_private/klib/khash.h>
@@ -121,9 +121,10 @@ void driver_free_datadesc(const struct hound_datadesc **desc)
     free(desc);
 }
 
+HOUND_PUBLIC_API
 hound_err driver_register(
     const char *path,
-    const struct hound_driver *driver,
+    struct driver_ops *ops,
     void *init_data)
 {
     struct driver *drv;
@@ -142,20 +143,20 @@ hound_err driver_register(
         goto out;
     }
 
-    NULL_CHECK(driver);
-    NULL_CHECK(driver->init);
-    NULL_CHECK(driver->destroy);
-    NULL_CHECK(driver->reset);
-    NULL_CHECK(driver->device_ids);
-    NULL_CHECK(driver->datadesc);
-    NULL_CHECK(driver->setdata);
-    NULL_CHECK(driver->parse);
-    NULL_CHECK(driver->start);
-    NULL_CHECK(driver->next);
-    NULL_CHECK(driver->stop);
+    NULL_CHECK(ops);
+    NULL_CHECK(ops->init);
+    NULL_CHECK(ops->destroy);
+    NULL_CHECK(ops->reset);
+    NULL_CHECK(ops->device_ids);
+    NULL_CHECK(ops->datadesc);
+    NULL_CHECK(ops->setdata);
+    NULL_CHECK(ops->parse);
+    NULL_CHECK(ops->start);
+    NULL_CHECK(ops->next);
+    NULL_CHECK(ops->stop);
 
     /* Init. */
-    err = driver->init(malloc, init_data);
+    err = ops->init(malloc, init_data);
     if (err != HOUND_OK) {
         goto out;
     }
@@ -168,7 +169,7 @@ hound_err driver_register(
     }
 
     /* Device IDs. */
-    err = driver->device_ids(&drv->device_ids, &drv->device_id_count);
+    err = ops->device_ids(&drv->device_ids, &drv->device_id_count);
     if (err != HOUND_OK) {
         goto error_device_ids;
     }
@@ -187,7 +188,7 @@ hound_err driver_register(
     }
 
     /* Get all the supported data for the driver. */
-    err = driver->datadesc(&drv->data, &drv->datacount);
+    err = ops->datadesc(&drv->data, &drv->datacount);
     if (err != HOUND_OK) {
         goto error_datadesc;
     }
@@ -214,13 +215,7 @@ hound_err driver_register(
     drv->refcount = 0;
     drv->fd = FD_INVALID;
     kv_init(drv->active_data);
-    drv->ops.destroy = driver->destroy;
-    drv->ops.reset = driver->reset;
-    drv->ops.setdata = driver->setdata;
-    drv->ops.parse = driver->parse;
-    drv->ops.start = driver->start;
-    drv->ops.next = driver->next;
-    drv->ops.stop = driver->stop;
+    drv->ops = *ops;
 
     /* Verify that all descriptors are sane. */
     for (i = 0; i < drv->datacount; ++i) {

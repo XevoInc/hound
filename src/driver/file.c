@@ -11,8 +11,9 @@
 #include <fcntl.h>
 #include <hound/error.h>
 #include <hound/hound.h>
-#include <hound/driver.h>
 #include <hound/driver/file.h>
+#include <hound_private/api.h>
+#include <hound_private/driver.h>
 #include <linux/limits.h>
 #include <unistd.h>
 
@@ -23,6 +24,11 @@
 
 #define READ_END (0)
 #define WRITE_END (1)
+
+struct driver_init {
+    const char *filepath;
+    hound_data_id data_id;
+};
 
 static const char *s_device_ids[] = {"file"};
 static hound_data_period s_period_ns = 0;
@@ -41,7 +47,7 @@ char s_file_buf[4096];
 
 hound_err file_init(hound_alloc alloc, void *data)
 {
-    struct hound_driver_file_init *init;
+    struct driver_init *init;
 
     if (data == NULL) {
         return HOUND_NULL_VAL;
@@ -217,7 +223,7 @@ hound_err file_stop(void)
     return HOUND_OK;
 }
 
-struct hound_driver file_driver = {
+static struct driver_ops file_driver = {
     .init = file_init,
     .destroy = file_destroy,
     .reset = file_reset,
@@ -229,3 +235,13 @@ struct hound_driver file_driver = {
 	.next = file_next,
     .stop = file_stop
 };
+
+HOUND_PUBLIC_API
+hound_err hound_register_file_driver(const char *filepath, hound_data_id id)
+{
+	struct driver_init init;
+
+	init.filepath = filepath;
+	init.data_id = id;
+	return driver_register(filepath, &file_driver, &init);
+}

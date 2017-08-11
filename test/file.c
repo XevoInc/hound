@@ -1,7 +1,6 @@
 /**
- * @file      counter.c
- * @brief     Unit test for the counter driver, which tests the basic I/O
- *            subsystem.
+ * @file      file.c
+ * @brief     Unit test for the file driver.
  * @author    Martin Kelly <mkelly@xevo.com>
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
@@ -10,9 +9,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <hound/error.h>
-#include <hound/driver.h>
 #include <hound/driver/file.h>
 #include <hound/hound.h>
+#include <hound_private/driver.h>
 #include <linux/limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,10 +20,9 @@
 #include <unistd.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
-#define TESTFILE "data/testfile"
 #define NS_PER_SEC (1e9)
 
-extern struct hound_driver file_driver;
+extern struct driver_ops FILE_DRIVER;
 
 struct text {
     char *data;
@@ -84,11 +82,10 @@ int main(int argc, const char **argv)
 {
     struct hound_ctx *ctx;
     hound_err err;
+    const char *filepath;
 	struct text text;
     size_t total_count;
-    struct hound_data_rq data_rq =
-        { .id = HOUND_DEVICE_ACCELEROMETER, .period_ns = 0 };
-    struct hound_driver_file_init init = { .data_id = data_rq.id };
+    struct hound_data_rq data_rq = { .id = HOUND_DEVICE_ACCELEROMETER };
     struct hound_rq rq = {
         /*
          * Make the queue large to reduce the chance of overwriting the circular
@@ -109,9 +106,9 @@ int main(int argc, const char **argv)
         fprintf(stderr, "File argument is longer than PATH_MAX\n");
         exit(EXIT_FAILURE);
     }
-    init.filepath = argv[1];
+    filepath = argv[1];
 
-    err = hound_register_driver("/dev/filedrv", &file_driver, &init);
+    err = hound_register_file_driver(filepath, data_rq.id);
     HOUND_ASSERT_OK(err);
 
     err = hound_alloc_ctx(&ctx, &rq);
@@ -120,7 +117,7 @@ int main(int argc, const char **argv)
     err = hound_start(ctx);
     HOUND_ASSERT_OK(err);
 
-    text.data = slurp_file(init.filepath, &total_count);
+    text.data = slurp_file(filepath, &total_count);
     text.index = 0;
     while (text.index < total_count) {
         err = hound_read(ctx, 1);
@@ -135,7 +132,7 @@ int main(int argc, const char **argv)
     err = hound_free_ctx(ctx);
     HOUND_ASSERT_OK(err);
 
-    err = hound_unregister_driver("/dev/filedrv");
+    err = hound_unregister_driver(filepath);
     HOUND_ASSERT_OK(err);
 
     return 0;

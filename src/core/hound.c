@@ -6,12 +6,11 @@
  */
 
 #include <hound/hound.h>
+#include <hound_private/api.h>
 #include <hound_private/ctx.h>
 #include <hound_private/error.h>
 #include <hound_private/driver.h>
 #include <hound_private/log.h>
-
-#define HOUND_PUBLIC_API __attribute__ ((visibility ("default")))
 
 HOUND_PUBLIC_API
 hound_err hound_get_datadesc(const struct hound_datadesc ***desc, size_t *len)
@@ -83,15 +82,6 @@ HOUND_PUBLIC_API
 hound_err hound_max_queue_length(struct hound_ctx *ctx, size_t *count)
 {
     return ctx_max_queue_length(ctx, count);
-}
-
-HOUND_PUBLIC_API
-hound_err hound_register_driver(
-    const char *path,
-    const struct hound_driver *driver,
-    void *data)
-{
-    return driver_register(path, driver, data);
 }
 
 HOUND_PUBLIC_API
