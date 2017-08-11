@@ -112,6 +112,7 @@ struct hound_io_driver {
  *
  * @param path the path to a device file
  * @param driver a driver description
+ * @param data driver-specific initialization data
  *
  * @return an error code
  */
