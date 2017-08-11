@@ -13,23 +13,18 @@
 #include <hound/hound.h>
 #include <hound_private/driver.h>
 #include <linux/limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
-#define NS_PER_SEC (1e9)
-
-extern struct driver_ops FILE_DRIVER;
-
 struct text {
     char *data;
     size_t index;
 };
 
-char *s_text;
 void data_cb(struct hound_record *record, void *data)
 {
     struct text *text;
@@ -75,8 +70,6 @@ char *slurp_file(const char *filepath, size_t *count)
 
     return data;
 }
-
-#include <stdio.h>
 
 int main(int argc, const char **argv)
 {
@@ -124,7 +117,7 @@ int main(int argc, const char **argv)
         HOUND_ASSERT_OK(err);
     }
     HOUND_ASSERT_EQ(text.index, total_count);
-    free(s_text);
+    free(text.data);
 
     err = hound_stop(ctx);
     HOUND_ASSERT_OK(err);
