@@ -123,7 +123,7 @@ void driver_free_datadesc(const struct hound_datadesc **desc)
 
 hound_err driver_register(
     const char *path,
-    const struct hound_io_driver *driver,
+    const struct hound_driver *driver,
     void *init_data)
 {
     struct driver *drv;

@@ -126,7 +126,7 @@ hound_err nop_stop(void)
     return HOUND_OK;
 }
 
-struct hound_io_driver nop_driver = {
+struct hound_driver nop_driver = {
     .init = nop_init,
     .destroy = nop_destroy,
     .reset = nop_reset,

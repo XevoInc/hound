@@ -184,7 +184,7 @@ void counter_zero(void)
     s_count = 0;
 }
 
-struct hound_io_driver counter_driver = {
+struct hound_driver counter_driver = {
     .init = counter_init,
     .destroy = counter_destroy,
     .reset = counter_reset,

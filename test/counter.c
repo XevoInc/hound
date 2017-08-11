@@ -13,7 +13,7 @@
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 #define SAMPLES (4217)
 
-extern struct hound_io_driver counter_driver;
+extern struct hound_driver counter_driver;
 extern void counter_next(hound_data_id id);
 extern void counter_zero(void);
 
@@ -56,7 +56,7 @@ int main(void)
         { .id = HOUND_DEVICE_TEMPERATURE, .period_ns = 0 };
 
     count = 0;
-    err = hound_register_io_driver("/dev/counter", &counter_driver, &count);
+    err = hound_register_driver("/dev/counter", &counter_driver, &count);
     HOUND_ASSERT_OK(err);
 
     stats.seqno = 0;
@@ -148,7 +148,7 @@ int main(void)
     hound_free_ctx(ctx);
     HOUND_ASSERT_OK(err);
 
-    err = hound_unregister_io_driver("/dev/counter");
+    err = hound_unregister_driver("/dev/counter");
     HOUND_ASSERT_OK(err);
 
     return 0;

@@ -12,7 +12,7 @@
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 #define NS_PER_SEC (1e9)
 
-extern struct hound_io_driver nop_driver;
+extern struct hound_driver nop_driver;
 
 void data_cb(struct hound_record *rec, void *cb_ctx)
 {
@@ -25,11 +25,11 @@ void test_register(void)
 {
     hound_err err;
 
-    err = hound_register_io_driver(NULL, &nop_driver, NULL);
+    err = hound_register_driver(NULL, &nop_driver, NULL);
     HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
-    err = hound_register_io_driver("/dev/nop", NULL, NULL);
+    err = hound_register_driver("/dev/nop", NULL, NULL);
     HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
-    err = hound_register_io_driver("/dev/nop", &nop_driver, NULL);
+    err = hound_register_driver("/dev/nop", &nop_driver, NULL);
     HOUND_ASSERT_OK(err);
 }
 
@@ -162,7 +162,7 @@ void test_unregister()
 {
     hound_err err;
 
-    err = hound_unregister_io_driver("/dev/nop");
+    err = hound_unregister_driver("/dev/nop");
     HOUND_ASSERT_OK(err);
 }
 

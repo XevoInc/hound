@@ -218,7 +218,7 @@ hound_err file_stop(void)
     return HOUND_OK;
 }
 
-struct hound_io_driver file_driver = {
+struct hound_driver file_driver = {
     .init = file_init,
     .destroy = file_destroy,
     .reset = file_reset,

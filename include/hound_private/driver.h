@@ -36,7 +36,7 @@ void driver_free_datadesc(const struct hound_datadesc **desc);
 
 hound_err driver_register(
     const char *path,
-    const struct hound_io_driver *driver,
+    const struct hound_driver *driver,
     void *data);
 
 hound_err driver_unregister(const char *path);

@@ -24,7 +24,7 @@
 #define TESTFILE "data/testfile"
 #define NS_PER_SEC (1e9)
 
-extern struct hound_io_driver file_driver;
+extern struct hound_driver file_driver;
 
 struct text {
     char *data;
@@ -114,7 +114,7 @@ int main(int argc, const char **argv)
     }
     init.filepath = argv[1];
 
-    err = hound_register_io_driver("/dev/filedrv", &file_driver, &init);
+    err = hound_register_driver("/dev/filedrv", &file_driver, &init);
     HOUND_ASSERT_OK(err);
 
     err = hound_alloc_ctx(&ctx, &rq);
@@ -138,7 +138,7 @@ int main(int argc, const char **argv)
     err = hound_free_ctx(ctx);
     HOUND_ASSERT_OK(err);
 
-    err = hound_unregister_io_driver("/dev/filedrv");
+    err = hound_unregister_driver("/dev/filedrv");
     HOUND_ASSERT_OK(err);
 
     return 0;
