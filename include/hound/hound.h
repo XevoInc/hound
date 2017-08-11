@@ -135,8 +135,8 @@ hound_err hound_stop(struct hound_ctx *ctx);
  *
  * @param ctx a context
  * @param n the number of records to read. Reads the records as fast as
- *              possible, blocking when the queue is empty until a new item is
- *              available.
+ *          possible, blocking when the queue is empty until a new item is
+ *          available.
  *
  * @return an error code
  */
