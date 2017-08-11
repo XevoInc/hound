@@ -37,7 +37,7 @@ struct hound_drv_data_list {
 
 typedef void *(hound_alloc)(size_t);
 
-struct hound_io_driver {
+struct hound_driver {
     hound_err (*init)(hound_alloc alloc, void *data);
 
     hound_err (*destroy)(void);
@@ -116,9 +116,9 @@ struct hound_io_driver {
  *
  * @return an error code
  */
-hound_err hound_register_io_driver(
+hound_err hound_register_driver(
     const char *path,
-    const struct hound_io_driver *driver,
+    const struct hound_driver *driver,
     void *data);
 
 /**
@@ -129,6 +129,6 @@ hound_err hound_register_io_driver(
  *
  * @return an error code
  */
-hound_err hound_unregister_io_driver(const char *path);
+hound_err hound_unregister_driver(const char *path);
 
 #endif /* HOUND_DRIVER_H_ */
