@@ -7,12 +7,12 @@
 
 #include <hound/error.h>
 #include <hound/hound.h>
-#include <hound/driver.h>
+#include <hound_private/driver.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 #define NS_PER_SEC (1e9)
 
-extern struct hound_driver nop_driver;
+extern struct driver_ops nop_driver;
 
 void data_cb(struct hound_record *rec, void *cb_ctx)
 {
@@ -25,11 +25,11 @@ void test_register(void)
 {
     hound_err err;
 
-    err = hound_register_driver(NULL, &nop_driver, NULL);
+    err = driver_register(NULL, &nop_driver, NULL);
     HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
-    err = hound_register_driver("/dev/nop", NULL, NULL);
+    err = driver_register("/dev/nop", NULL, NULL);
     HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
-    err = hound_register_driver("/dev/nop", &nop_driver, NULL);
+    err = driver_register("/dev/nop", &nop_driver, NULL);
     HOUND_ASSERT_OK(err);
 }
 

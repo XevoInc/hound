@@ -8,9 +8,8 @@
 #ifndef HOUND_DRIVER_FILE_H_
 #define HOUND_DRIVER_FILE_H_
 
-struct hound_driver_file_init {
-    const char *filepath;
-    hound_data_id data_id;
-};
+#include <hound/hound.h>
+
+hound_err hound_register_file_driver(const char *filepath, hound_data_id id);
 
 #endif /* HOUND_DRIVER_FILE_H_ */

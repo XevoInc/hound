@@ -35,7 +35,8 @@ src = [
     'src/core/log.c',
     'src/core/queue.c',
     'src/core/refcount.c',
-    'src/core/util.c'
+    'src/core/util.c',
+    'src/driver/file.c'
 ]
 
 # Library.
@@ -58,7 +59,7 @@ add_test_setup('valgrind', exe_wrapper: ['valgrind', '-v'])
 tests = [
     ['nop', ['test/driver/nop.c', 'test/nop.c'], [] ],
     ['counter', ['test/driver/counter.c', 'test/counter.c'], [] ],
-    ['file', ['test/driver/file.c', 'test/file.c'], files('test/data/testfile') ]
+    ['file', ['test/file.c'], files('test/data/testfile') ]
     ]
 foreach t : tests
     exe = executable(

@@ -10,7 +10,7 @@
 #define _GNU_SOURCE
 #include <hound/error.h>
 #include <hound/hound.h>
-#include <hound/driver.h>
+#include <hound_private/driver.h>
 #include <fcntl.h>
 #include <string.h>
 #include <time.h>
@@ -184,7 +184,7 @@ void counter_zero(void)
     s_count = 0;
 }
 
-struct hound_driver counter_driver = {
+struct driver_ops counter_driver = {
     .init = counter_init,
     .destroy = counter_destroy,
     .reset = counter_reset,

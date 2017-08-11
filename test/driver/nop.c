@@ -9,7 +9,7 @@
 
 #include <hound/error.h>
 #include <hound/hound.h>
-#include <hound/driver.h>
+#include <hound_private/driver.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -126,7 +126,7 @@ hound_err nop_stop(void)
     return HOUND_OK;
 }
 
-struct hound_driver nop_driver = {
+struct driver_ops nop_driver = {
     .init = nop_init,
     .destroy = nop_destroy,
     .reset = nop_reset,
