@@ -557,6 +557,15 @@ static kh_inline khint_t __ac_Wang_hash(khint_t key)
 #define kh_n_buckets(h) ((h)->n_buckets)
 
 /*! @function
+  @abstract     Check if a key exists in the map.
+  @param  name  Name of the hash table [symbol]
+  @param  h     Pointer to the hash table [khash_t(name)*]
+  @param  k     Key [type of keys]
+  @return       true if the key is found in the map, false otherwise
+ */
+#define kh_found(name, h, k) (kh_get_##name(h, k) != kh_end(h))
+
+/*! @function
   @abstract     Iterate over the entries in the hash table
   @param  h     Pointer to the hash table [khash_t(name)*]
   @param  ivar  The iterator variable
