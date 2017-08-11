@@ -25,7 +25,7 @@
 #define WRITE_END (1)
 
 static const char *s_device_ids[] = {"file"};
-static hound_data_period s_period_ns;
+static hound_data_period s_period_ns = 0;
 static const char *s_filepath = NULL;
 static struct hound_drv_datadesc s_datadesc = {
     .name = "file-data",
@@ -56,7 +56,6 @@ hound_err file_init(hound_alloc alloc, void *data)
     }
     s_filepath = init->filepath;
     s_datadesc.id = init->data_id;
-    s_period_ns = init->period_ns;
     s_pipe[READ_END] = FD_INVALID;
     s_pipe[WRITE_END] = FD_INVALID;
     s_alloc = alloc;

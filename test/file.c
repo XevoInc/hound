@@ -88,10 +88,7 @@ int main(int argc, const char **argv)
     size_t total_count;
     struct hound_data_rq data_rq =
         { .id = HOUND_DEVICE_ACCELEROMETER, .period_ns = 0 };
-    struct hound_driver_file_init init = {
-        .data_id = data_rq.id,
-        .period_ns = data_rq.period_ns
-    };
+    struct hound_driver_file_init init = { .data_id = data_rq.id };
     struct hound_rq rq = {
         /*
          * Make the queue large to reduce the chance of overwriting the circular
