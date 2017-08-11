@@ -393,7 +393,7 @@ hound_err driver_ref(
              * We can assert this because ctx_alloc should have failed if the
              * periods did not match.
              */
-            HOUND_ASSERT_EQ(data->data->period, drv_data->period);
+            HOUND_ASSERT_EQ(data->data->period_ns, drv_data->period_ns);
             ++data->refcount;
         }
         else {

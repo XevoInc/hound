@@ -27,7 +27,7 @@ struct hound_drv_datadesc {
 
 struct hound_drv_data {
     hound_data_id id;
-    hound_data_period period;
+    hound_data_period period_ns;
 };
 
 struct hound_drv_data_list {
