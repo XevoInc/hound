@@ -52,16 +52,18 @@ hound_err file_init(hound_alloc alloc, void *data)
     if (data == NULL) {
         return HOUND_NULL_VAL;
     }
+    init = data;
+
     /*
      * PATH_MAX includes '\0', so if the len is PATH_MAX, then no '\0' character
      * was found.
      */
-    init = data;
     if (strnlen(init->filepath, PATH_MAX) == PATH_MAX) {
         return HOUND_INVALID_STRING;
     }
     s_filepath = init->filepath;
     s_datadesc.id = init->data_id;
+    s_fd = FD_INVALID;
     s_pipe[READ_END] = FD_INVALID;
     s_pipe[WRITE_END] = FD_INVALID;
     s_alloc = alloc;
@@ -71,6 +73,7 @@ hound_err file_init(hound_alloc alloc, void *data)
 
 hound_err file_destroy(void)
 {
+    s_alloc = NULL;
     s_filepath = NULL;
 
     return HOUND_OK;
