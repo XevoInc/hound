@@ -32,7 +32,7 @@ struct text {
 char *s_text;
 void data_cb(struct hound_record *record, void *data)
 {
-	struct text *text;
+    struct text *text;
     int ret;
 
     HOUND_ASSERT_NOT_NULL(record);
@@ -40,10 +40,10 @@ void data_cb(struct hound_record *record, void *data)
     HOUND_ASSERT_GT(record->size, 0);
     HOUND_ASSERT_NOT_NULL(data);
 
-	text = data;
+    text = data;
     ret = memcmp(text->data + text->index, record->data, record->size);
     HOUND_ASSERT_EQ(ret, 0);
-	text->index += record->size;
+    text->index += record->size;
 }
 
 char *slurp_file(const char *filepath, size_t *count)
@@ -83,7 +83,7 @@ int main(int argc, const char **argv)
     struct hound_ctx *ctx;
     hound_err err;
     const char *filepath;
-	struct text text;
+    struct text text;
     size_t total_count;
     struct hound_data_rq data_rq = { .id = HOUND_DEVICE_ACCELEROMETER };
     struct hound_rq rq = {
@@ -93,7 +93,7 @@ int main(int argc, const char **argv)
          */
         .queue_len = 100,
         .cb = data_cb,
-		.cb_ctx = &text,
+        .cb_ctx = &text,
         .rq_list.len = 1,
         .rq_list.data = &data_rq
     };
