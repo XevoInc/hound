@@ -169,7 +169,7 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
                 continue;
             }
             drv_data_list->data[index].id = list->data[j].id;
-            drv_data_list->data[index].period = list->data[j].period_ns;
+            drv_data_list->data[index].period_ns = list->data[j].period_ns;
             ++index;
         }
     }
