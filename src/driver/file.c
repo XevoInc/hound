@@ -140,12 +140,12 @@ hound_err file_parse(
     hound_err err;
     struct timespec timestamp;
 
+    err = clock_gettime(CLOCK_MONOTONIC, &timestamp);
+    HOUND_ASSERT_EQ(err, 0);
+
     HOUND_ASSERT_NOT_NULL(buf);
     HOUND_ASSERT_NOT_NULL(bytes);
     HOUND_ASSERT_GT(*bytes, 0);
-
-    err = clock_gettime(CLOCK_MONOTONIC, &timestamp);
-    HOUND_ASSERT_EQ(err, 0);
 
     record->data = malloc(*bytes * sizeof(*buf));
     if (record->data == NULL) {
