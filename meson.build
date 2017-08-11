@@ -1,6 +1,6 @@
 # Summary.
 project('hound', 'c',
-    version: '0.1',
+    version: '0.2',
     license: 'proprietary',
     default_options: [
         'c_std=c11',
@@ -9,7 +9,7 @@ project('hound', 'c',
         'werror=true'])
 # Sadly we have to duplicate this because meson won't let us have anything but
 # project() as the first line in the file.
-version = '0.1'
+version = '0.2'
 
 cflags = ['-Wshadow', '-fvisibility=hidden']
 add_project_arguments(cflags, language: 'c')
