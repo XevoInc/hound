@@ -11,7 +11,6 @@
 struct hound_driver_file_init {
     const char *filepath;
     hound_data_id data_id;
-    hound_data_period period_ns;
 };
 
 #endif /* HOUND_DRIVER_FILE_H_ */
