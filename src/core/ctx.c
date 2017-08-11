@@ -120,9 +120,16 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
     }
 
     /* Populate our context. */
-    /* TODO: Handle failure case for kh_init. */
     ctx->periodic_data_map = kh_init(DRIVER_DATA_MAP);
+    if (ctx->periodic_data_map == NULL) {
+        goto error_periodic_data_map;
+    }
+
     ctx->on_demand_data_map = kh_init(DRIVER_DATA_MAP);
+    if (ctx->on_demand_data_map == NULL) {
+        goto error_on_demand_data_map;
+    }
+
     for (i = 0; i < list->len; ++i) {
         data_rq = &list->data[i];
 
@@ -204,8 +211,10 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
 
 error_ctx_loop:
     queue_destroy(ctx->queue);
-    free_driver_data_map(ctx->periodic_data_map);
     free_driver_data_map(ctx->on_demand_data_map);
+error_on_demand_data_map:
+    free_driver_data_map(ctx->periodic_data_map);
+error_periodic_data_map:
 error_queue_alloc:
     free(ctx);
 out:
