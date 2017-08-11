@@ -80,10 +80,6 @@ int main(int argc, const char **argv)
     size_t total_count;
     struct hound_data_rq data_rq = { .id = HOUND_DEVICE_ACCELEROMETER };
     struct hound_rq rq = {
-        /*
-         * Make the queue large to reduce the chance of overwriting the circular
-         * buffer.
-         */
         .queue_len = 100,
         .cb = data_cb,
         .cb_ctx = &text,
