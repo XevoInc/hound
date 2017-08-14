@@ -1,6 +1,6 @@
 /**
  * @file      file.h
- * @brief     Private file driver functionality shared by multiple compilation units.
+ * @brief     Public file driver header.
  * @author    Martin Kelly <mkelly@xevo.com>
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
