@@ -6,12 +6,10 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
-#include <errno.h>
 #include <fcntl.h>
 #include <hound/error.h>
 #include <hound/driver/file.h>
 #include <hound/hound.h>
-#include <hound_private/driver.h>
 #include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
