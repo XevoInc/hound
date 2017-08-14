@@ -1,4 +1,7 @@
 Things to do:
+- Small refactor so that drivers cannot change the sequence number in their
+  parse methods. Use a struct+union so the driver can set the relevant parts of
+  hound_record without being able to see the seqno field.
 - A CAN driver
 - An IIO driver
 - The protocol driver stack
