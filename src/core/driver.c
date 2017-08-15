@@ -203,11 +203,6 @@ hound_err driver_register(
             err = HOUND_INVALID_STRING;
             goto error_datadesc;
         }
-
-        if (drv->data[i].period_count == 0 || drv->data[i].avail_periods == NULL) {
-            err = HOUND_MISSING_PERIODS;
-            goto error_datadesc;
-        }
     }
 
     /* Set the rest of the driver fields. */
@@ -610,25 +605,30 @@ bool driver_period_supported(
 
     for (i = 0; i < drv->datacount; ++i) {
         desc = &drv->data[i];
-        if (desc->id != id) {
-            continue;
+        if (desc->id == id) {
+            break;
         }
-
+    }
+    if (i == drv->datacount) {
         found = false;
-        for (j = 0; j < desc->period_count; ++j) {
-            if (desc->avail_periods[j] == period) {
-                found = true;
-                break;
-            }
-        }
-
-        pthread_rwlock_unlock(&s_driver_rwlock);
-        return found;
+        goto out;
     }
 
-    /*
-     * This function should never be called unless the driver already supports
-     * this data ID.
-     */
-    HOUND_ASSERT_ERROR;
+    /* A driver specifying no periods means any period is permissable. */
+    if (desc->period_count == 0) {
+        found = true;
+        goto out;
+    }
+
+    found = false;
+    for (j = 0; j < desc->period_count; ++j) {
+        if (desc->avail_periods[j] == period) {
+            found = true;
+            goto out;
+        }
+    }
+
+out:
+    pthread_rwlock_unlock(&s_driver_rwlock);
+    return found;
 }
