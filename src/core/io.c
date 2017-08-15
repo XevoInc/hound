@@ -178,10 +178,10 @@ void *io_poll(UNUSED void *data)
                 continue;
             }
             else if (errno == ENOMEM) {
-                hound_log_err_nofmt(errno, "ppoll failed with ENOMEM");
+                hound_log_err_nofmt(errno, "poll failed with ENOMEM");
             }
             else if (errno == EIO) {
-                hound_log_err_nofmt(errno, "ppoll failed with EIO");
+                hound_log_err_nofmt(errno, "poll failed with EIO");
             }
             else {
                 /* Other error codes are likely program bugs. */
