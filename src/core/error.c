@@ -106,6 +106,8 @@ const char *error_strerror(hound_err err)
             return "the driver does not support this request";
         case HOUND_DRIVER_FAIL:
             return "the driver failed to complete the requested operation";
+        case HOUND_INVALID_VAL:
+            return "value specified is invalid";
     }
 
     __builtin_unreachable();
