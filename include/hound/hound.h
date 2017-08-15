@@ -37,9 +37,8 @@ enum hound_err_enum {
     HOUND_IO_ERROR = -15,
     HOUND_QUEUE_TOO_SMALL = -16,
     HOUND_INVALID_STRING = -17,
-    HOUND_MISSING_PERIODS = -18,
-    HOUND_DRIVER_UNSUPPORTED = -19,
-    HOUND_DRIVER_FAIL = -20
+    HOUND_DRIVER_UNSUPPORTED = -18,
+    HOUND_DRIVER_FAIL = -19
 };
 
 /** Returns a human-readable error string. The string must not be modified or

@@ -102,8 +102,6 @@ const char *error_strerror(hound_err err)
             return "blocking read requested for more samples than the max queue size";
         case HOUND_INVALID_STRING:
             return "string is not null-terminated, or is too long";
-        case HOUND_MISSING_PERIODS:
-            return "driver specifies no periods, or NULL periods";
         case HOUND_DRIVER_UNSUPPORTED:
             return "the driver does not support this request";
         case HOUND_DRIVER_FAIL:
