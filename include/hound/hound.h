@@ -38,7 +38,8 @@ enum hound_err_enum {
     HOUND_QUEUE_TOO_SMALL = -16,
     HOUND_INVALID_STRING = -17,
     HOUND_DRIVER_UNSUPPORTED = -18,
-    HOUND_DRIVER_FAIL = -19
+    HOUND_DRIVER_FAIL = -19,
+    HOUND_INVALID_VAL = -20
 };
 
 /** Returns a human-readable error string. The string must not be modified or
@@ -56,11 +57,9 @@ enum hound_datatype {
   HOUND_DEVICE_ACCELEROMETER = 5,
   HOUND_DEVICE_MAGNEMOMETER = 6,
   HOUND_DEVICE_GYROSCOPE = 7,
-  HOUND_DEVICE_MAX = 8
+  HOUND_DEVICE_CAN = 8,
+  HOUND_DEVICE_MAX = 9
 };
-
-#define HOUND_OBDII_BASE (0xffffffffff000000u)
-#define HOUND_OBDII_ID(mode, pid) (HOUND_OBDII_BASE + (mode << 16) + pid)
 
 /* Data. */
 
@@ -69,8 +68,8 @@ typedef uint_least64_t hound_seqno;
 typedef uint_least32_t hound_record_size;
 
 struct hound_record {
-    hound_data_id id;
     hound_seqno seqno;
+    hound_data_id id;
     struct timespec timestamp;
     hound_record_size size;
     uint8_t *data;

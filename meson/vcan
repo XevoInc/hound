@@ -1,0 +1,39 @@
+#!/bin/bash
+
+set -euo pipefail
+
+CAN_DEV='hound-vcan0'
+
+usage() {
+    echo "Usage: $0 setup|destroy" >&2
+    exit 1
+}
+
+setup() {
+    set -x
+    sudo modprobe can
+    sudo modprobe can_raw
+    sudo modprobe vcan
+    sudo ip link add dev $CAN_DEV type vcan
+    sudo ip link set dev $CAN_DEV up
+    set +x
+}
+
+destroy() {
+    set -x
+    sudo ip link set dev $CAN_DEV down
+    sudo ip link delete $CAN_DEV
+    set +x
+}
+
+if [[ $# != 1 ]]; then
+    usage
+fi
+
+if [[ $1 == setup ]]; then
+    setup
+elif [[ $1 == destroy ]]; then
+    destroy
+else
+    usage
+fi

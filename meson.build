@@ -36,6 +36,7 @@ src = [
     'src/core/queue.c',
     'src/core/refcount.c',
     'src/core/util.c',
+    'src/driver/can.c',
     'src/driver/file.c'
 ]
 
@@ -55,11 +56,15 @@ pkg.generate(
     version: version)
 
 # Tests.
+run_target('can-setup', command: ['meson/vcan', 'setup'])
+run_target('can-destroy', command: ['meson/vcan', 'destroy'])
+
 add_test_setup('valgrind', exe_wrapper: ['valgrind', '-v'])
 tests = [
     ['nop', ['test/driver/nop.c', 'test/nop.c'], [] ],
     ['counter', ['test/driver/counter.c', 'test/counter.c'], [] ],
-    ['file', ['test/file.c'], files('test/data/testfile') ]
+    ['file', ['test/file.c'], files('test/data/testfile') ],
+    ['can', ['test/can.c'], ['hound-vcan0'] ]
     ]
 foreach t : tests
     exe = executable(
