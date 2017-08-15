@@ -9,6 +9,7 @@
 #ifndef HOUND_LOG_H_
 #define HOUND_LOG_H_
 
+#include <hound/error.h>
 #include <stdarg.h>
 #include <syslog.h>
 
@@ -21,12 +22,12 @@ void hound_log_vmsg(int priority, const char *fmt, va_list args);
  */
 #define hound_log_err(err, fmt, ...) \
     do { \
-        hound_log_msg(LOG_ERR, fmt ", err: %d'", __VA_ARGS__, err); \
+        hound_log_msg(LOG_ERR, fmt ", err: %d (%s)'", __VA_ARGS__, err, hound_strerror(err)); \
     } while (0);
 
 #define hound_log_err_nofmt(err, msg) \
     do { \
-        hound_log_msg(LOG_ERR, msg ", err: %d", err); \
+        hound_log_msg(LOG_ERR, msg ", err: %d (%s)", err, hound_strerror(err)); \
     } while (0);
 
 #endif /* HOUND_LOG_H_ */
