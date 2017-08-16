@@ -14,7 +14,6 @@
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 
 extern hound_err register_counter_driver(size_t *count);
-extern void counter_next(hound_data_id id);
 extern void counter_zero(void);
 
 struct stats {
@@ -87,10 +86,6 @@ int main(void)
     /* Do individual, sync reads. */
     reset_counts(&stats);
     for (count = 0; count < samples; ++count) {
-		/*
-		 * We don't need to call counter_next, because synchronous read does
-		 * automatically does that.
-		 */
         err = hound_read(ctx, 1);
         HOUND_ASSERT_OK(err);
     }
@@ -105,7 +100,8 @@ int main(void)
     /* Do individual, async reads. */
     reset_counts(&stats);
     for (count = 0; count < samples; ++count) {
-        counter_next(data_rq.id);
+        err = hound_next(ctx, 1);
+        HOUND_ASSERT_OK(err);
     }
     count = 0;
     while (count < samples) {
@@ -122,7 +118,8 @@ int main(void)
     /* Do large async reads. */
     reset_counts(&stats);
     for (count = 0; count < samples; ++count) {
-        counter_next(data_rq.id);
+        hound_next(ctx, 1);
+        HOUND_ASSERT_OK(err);
     }
     count = 0;
     while (count < samples) {
@@ -140,7 +137,8 @@ int main(void)
     /* Read all at once. */
     reset_counts(&stats);
     for (count = 0; count < samples; ++count) {
-        counter_next(data_rq.id);
+        hound_next(ctx, 1);
+        HOUND_ASSERT_OK(err);
     }
     count = 0;
     while (count < samples) {
