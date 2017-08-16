@@ -8,12 +8,12 @@
 
 #include <hound/error.h>
 #include <hound/hound.h>
-#include <hound_private/driver.h>
+#include <string.h>
 #include <valgrind.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 
-extern struct driver_ops counter_driver;
+extern hound_err register_counter_driver(size_t *count);
 extern void counter_next(hound_data_id id);
 extern void counter_zero(void);
 
@@ -69,7 +69,7 @@ int main(void)
     }
 
     count = 0;
-    err = driver_register("/dev/counter", &counter_driver, &count);
+    err = register_counter_driver(&count);
     HOUND_ASSERT_OK(err);
 
     stats.seqno = 0;
