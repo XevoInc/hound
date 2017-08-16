@@ -10,11 +10,11 @@
 #include <hound/error.h>
 #include <hound/log.h>
 #include <hound_private/driver.h>
-#include <hound_private/klib/kvec.h>
 #include <hound_private/queue.h>
 #include <hound_private/refcount.h>
 #include <hound_private/util.h>
 #include <fcntl.h>
+#include <klib/kvec.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdbool.h>

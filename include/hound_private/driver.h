@@ -9,8 +9,8 @@
 #define HOUND_PRIVATE_DRIVER_H_
 
 #include <hound/hound.h>
-#include <hound_private/klib/khash.h>
 #include <hound_private/queue.h>
+#include <klib/khash.h>
 #include <stdbool.h>
 
 #define HOUND_DEVICE_ID_MAX_LEN (33)
