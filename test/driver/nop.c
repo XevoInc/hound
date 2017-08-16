@@ -138,3 +138,8 @@ struct driver_ops nop_driver = {
     .next = nop_next,
     .stop = nop_stop
 };
+
+hound_err register_nop_driver(void)
+{
+    return driver_register("/dev/nop", &nop_driver, NULL);
+}

@@ -196,3 +196,8 @@ struct driver_ops counter_driver = {
     .next = counter_next,
     .stop = counter_stop
 };
+
+hound_err register_counter_driver(size_t *count)
+{
+    return driver_register("/dev/counter", &counter_driver, count);
+}
