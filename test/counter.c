@@ -9,9 +9,9 @@
 #include <hound/error.h>
 #include <hound/hound.h>
 #include <hound_private/driver.h>
+#include <hound_private/valgrind.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
-#define SAMPLES (4217)
 
 extern struct driver_ops counter_driver;
 extern void counter_next(hound_data_id id);
@@ -51,16 +51,29 @@ int main(void)
     size_t count;
     size_t read;
     struct hound_rq rq;
+    size_t samples;
     struct stats stats;
     struct hound_data_rq data_rq =
         { .id = HOUND_DEVICE_TEMPERATURE, .period_ns = 0 };
+
+    /*
+     * Valgrind substantially slows down runtime performance, so reduce the
+     * sample count so that tests will still finish in a reasonable amount of
+     * time.
+     */
+    if (RUNNING_ON_VALGRIND) {
+        samples = 3;
+    }
+    else {
+        samples = 4217;
+    }
 
     count = 0;
     err = driver_register("/dev/counter", &counter_driver, &count);
     HOUND_ASSERT_OK(err);
 
     stats.seqno = 0;
-    rq.queue_len = SAMPLES;
+    rq.queue_len = samples;
     rq.cb = data_cb;
     rq.cb_ctx = &stats;
     rq.rq_list.len = 1;
@@ -73,7 +86,7 @@ int main(void)
 
     /* Do individual, sync reads. */
     reset_counts(&stats);
-    for (count = 0; count < SAMPLES; ++count) {
+    for (count = 0; count < samples; ++count) {
 		/*
 		 * We don't need to call counter_next, because synchronous read does
 		 * automatically does that.
@@ -91,11 +104,11 @@ int main(void)
 
     /* Do individual, async reads. */
     reset_counts(&stats);
-    for (count = 0; count < SAMPLES; ++count) {
+    for (count = 0; count < samples; ++count) {
         counter_next(data_rq.id);
     }
     count = 0;
-    while (count < SAMPLES) {
+    while (count < samples) {
         /*
          * A tight loop like this is not efficient, but it may help stress the
          * multithreaded code.
@@ -108,29 +121,29 @@ int main(void)
 
     /* Do large async reads. */
     reset_counts(&stats);
-    for (count = 0; count < SAMPLES; ++count) {
+    for (count = 0; count < samples; ++count) {
         counter_next(data_rq.id);
     }
     count = 0;
-    while (count < SAMPLES) {
+    while (count < samples) {
         /*
          * A tight loop like this is not efficient, but it may help stress the
          * multithreaded code.
          */
-        err = hound_read_async(ctx, SAMPLES, &read);
+        err = hound_read_async(ctx, samples, &read);
         HOUND_ASSERT_OK(err);
         count += read;
     }
-    HOUND_ASSERT_EQ(count, SAMPLES);
+    HOUND_ASSERT_EQ(count, samples);
     HOUND_ASSERT_EQ(stats.count, count);
 
     /* Read all at once. */
     reset_counts(&stats);
-    for (count = 0; count < SAMPLES; ++count) {
+    for (count = 0; count < samples; ++count) {
         counter_next(data_rq.id);
     }
     count = 0;
-    while (count < SAMPLES) {
+    while (count < samples) {
         /*
          * A tight loop like this is not efficient, but it may help stress the
          * multithreaded code.
@@ -139,7 +152,7 @@ int main(void)
         HOUND_ASSERT_OK(err);
         count += read;
     }
-    HOUND_ASSERT_EQ(count, SAMPLES);
+    HOUND_ASSERT_EQ(count, samples);
     HOUND_ASSERT_EQ(stats.count, count);
 
     err = hound_stop(ctx);
