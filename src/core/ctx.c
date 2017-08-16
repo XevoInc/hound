@@ -10,9 +10,9 @@
 #include <hound/hound.h>
 #include <hound/log.h>
 #include <hound_private/driver.h>
-#include <hound_private/klib/khash.h>
-#include <hound_private/klib/kvec.h>
 #include <hound_private/util.h>
+#include <klib/khash.h>
+#include <klib/kvec.h>
 #include <pthread.h>
 #include <stdbool.h>
 
