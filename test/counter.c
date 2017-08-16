@@ -9,7 +9,7 @@
 #include <hound/error.h>
 #include <hound/hound.h>
 #include <hound_private/driver.h>
-#include <hound_private/valgrind.h>
+#include <valgrind.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 
