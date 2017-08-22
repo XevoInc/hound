@@ -132,6 +132,7 @@ int main() {
 
 /* compiler specific configuration */
 
+typedef uint_fast16_t khint16_t;
 typedef uint_fast32_t khint32_t;
 typedef uint_fast64_t khint64_t;
 
@@ -648,7 +649,7 @@ static kh_inline khint_t __ac_Wang_hash(khint_t key)
 		code;												\
 	) }														\
 
-/* More conenient interfaces */
+/* More convenient interfaces */
 
 /*! @function
   @abstract     Instantiate a hash set containing integer keys
