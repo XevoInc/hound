@@ -3,14 +3,14 @@
 set -euo pipefail
 
 wrap() {
-  cmd="$1"
+  cmd="$@"
 
   echo "${cmd}..."
   $cmd
 }
 
 cd "$MESON_BUILD_ROOT"
-wrap mesontest
+wrap meson test
 
 cd "$MESON_SOURCE_ROOT"
 wrap meson/clang-tidy
