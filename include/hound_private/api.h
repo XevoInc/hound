@@ -8,6 +8,6 @@
 #ifndef HOUND_PRIVATE_API_H_
 #define HOUND_PRIVATE_API_H_
 
-#define HOUND_PUBLIC_API __attribute__ ((visibility ("default")))
+#define PUBLIC_API __attribute__ ((visibility ("default")))
 
 #endif /* HOUND_PRIVATE_API_H_ */

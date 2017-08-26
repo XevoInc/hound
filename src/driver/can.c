@@ -491,7 +491,7 @@ static struct driver_ops can_driver = {
     .stop = can_stop
 };
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_register_can_driver(struct hound_can_driver_init *init)
 {
     return driver_register(init->iface, &can_driver, init);
