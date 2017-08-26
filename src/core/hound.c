@@ -12,85 +12,85 @@
 #include <hound_private/driver.h>
 #include <hound_private/log.h>
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_get_datadesc(const struct hound_datadesc ***desc, size_t *len)
 {
     return driver_get_datadesc(desc, len);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 void hound_free_datadesc(const struct hound_datadesc **desc)
 {
     driver_free_datadesc(desc);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_alloc_ctx(struct hound_ctx **ctx, const struct hound_rq *rq)
 {
     return ctx_alloc(ctx, rq);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_free_ctx(struct hound_ctx *ctx)
 {
     return ctx_free(ctx);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_start(struct hound_ctx *ctx)
 {
     return ctx_start(ctx);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_stop(struct hound_ctx *ctx)
 {
     return ctx_stop(ctx);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_next(struct hound_ctx *ctx, size_t n)
 {
     return ctx_next(ctx, n);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_read(struct hound_ctx *ctx, size_t n)
 {
     return ctx_read(ctx, n);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_read_async(struct hound_ctx *ctx, size_t n, size_t *read)
 {
     return ctx_read_async(ctx, n, read);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_read_all(struct hound_ctx *ctx, size_t *read)
 {
     return ctx_read_all(ctx, read);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_queue_length(struct hound_ctx *ctx, size_t *count)
 {
     return ctx_queue_length(ctx, count);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_max_queue_length(struct hound_ctx *ctx, size_t *count)
 {
     return ctx_max_queue_length(ctx, count);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_unregister_driver(const char *path)
 {
     return driver_unregister(path);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 void hound_log_msg(int priority, const char *fmt, ...)
 {
     va_list args;
@@ -100,13 +100,13 @@ void hound_log_msg(int priority, const char *fmt, ...)
     va_end(args);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 void hound_log_vmsg(int priority, const char *fmt, va_list args)
 {
     log_vmsg(priority, fmt, args);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 void _hound_error_log_msg(
     const char *expr,
     const char *file,
@@ -122,7 +122,7 @@ void _hound_error_log_msg(
     va_end(args);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 const char *hound_strerror(hound_err err)
 {
     return error_strerror(err);

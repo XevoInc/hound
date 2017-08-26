@@ -239,7 +239,7 @@ static struct driver_ops file_driver = {
     .stop = file_stop
 };
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err hound_register_file_driver(const char *filepath, hound_data_id id)
 {
 	struct driver_init init;

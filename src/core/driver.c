@@ -121,7 +121,7 @@ void driver_free_datadesc(const struct hound_datadesc **desc)
     free(desc);
 }
 
-HOUND_PUBLIC_API
+PUBLIC_API
 hound_err driver_register(
     const char *path,
     struct driver_ops *ops,
