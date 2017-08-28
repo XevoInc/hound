@@ -105,15 +105,22 @@ ninja
 ```
 
 ### Running tests
-Do this to run unit tests:
+To run the unit tests, first use the `can-setup` script to setup virtual CAN
+devices. Note that this script requires sudo:
+```
+ninja can-setup
+```
+After that, you can use either of these commands to run the tests:
 ```
 ninja test
+meson test
 ```
-or
+
+To run the tests under valgrind, you can use:
 ```
-mesontest --setup valgrind
-# ninja test actually calls mesontest
+meson test --setup valgrind
 ```
+Note that `ninja test` actually calls `meson test`.
 
 Before checking in, you should run:
 ```
