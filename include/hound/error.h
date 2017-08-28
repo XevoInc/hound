@@ -14,6 +14,10 @@
 #ifndef HOUND_ASSERT_H_
 #define HOUND_ASSERT_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <hound/hound.h>
 #include <hound/log.h>
 #include <stdlib.h>
@@ -147,5 +151,9 @@ void _hound_error_log_msg(
 #define HOUND_ASSERT_ERRCODE(x, y) \
     _HOUND_ASSERT_FMT(x == y, "%d (%s)", x, hound_strerror(x), y, hound_strerror(y))
 #define HOUND_ASSERT_OK(err) HOUND_ASSERT_ERRCODE(err, HOUND_OK)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* HOUND_PRIVATE_ASSERT_H_ */
