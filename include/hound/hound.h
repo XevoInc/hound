@@ -8,6 +8,10 @@
 #ifndef HOUND_H_
 #define HOUND_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 #include <time.h>
@@ -209,5 +213,9 @@ hound_err hound_max_queue_length(struct hound_ctx *ctx, size_t *count);
  * @return an error code
  */
 hound_err hound_unregister_driver(const char *path);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* HOUND_H_ */

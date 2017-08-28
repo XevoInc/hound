@@ -9,6 +9,10 @@
 #ifndef HOUND_LOG_H_
 #define HOUND_LOG_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <hound/error.h>
 #include <stdarg.h>
 #include <syslog.h>
@@ -29,5 +33,9 @@ void hound_log_vmsg(int priority, const char *fmt, va_list args);
     do { \
         hound_log_msg(LOG_ERR, msg ", err: %d (%s)", err, hound_strerror(err)); \
     } while (0);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* HOUND_LOG_H_ */
