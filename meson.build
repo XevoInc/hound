@@ -15,6 +15,7 @@ pkg = import('pkgconfig')
 
 # Enable threads.
 thread_deps = dependency('threads')
+valgrind_dep = dependency('valgrind')
 
 # Includes.
 include = include_directories('include')
@@ -69,7 +70,7 @@ foreach t : tests
         t.get(1),
         include_directories: include,
         link_with: lib,
-        dependencies: [thread_deps])
+        dependencies: [thread_deps, valgrind_dep])
     test(t.get(0), exe, args: t.get(2))
 endforeach
 
