@@ -19,7 +19,7 @@ valgrind_dep = dependency('valgrind')
 
 # Includes.
 include = include_directories('include')
-install_subdir('include/hound', install_dir : 'include/hound')
+install_subdir('include/hound', install_dir: 'include')
 
 # libhound.
 src = [
