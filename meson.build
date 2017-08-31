@@ -63,7 +63,7 @@ tests = [
     ['counter', ['test/driver/counter.c', 'test/counter.c'], [] ],
     ['file', ['test/file.c'], files('test/data/testfile') ],
     ['can', ['test/can.c'], ['hound-vcan0'] ]
-    ]
+]
 foreach t : tests
     exe = executable(
         t.get(0),
