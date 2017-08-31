@@ -133,7 +133,7 @@ int main(int argc, const char **argv)
     struct hound_can_driver_init init;
 
     if (argc != 2) {
-        fprintf(stderr, "Usage: can CAN-IFACE\n");
+        fprintf(stderr, "Usage: %s CAN-IFACE\n", argv[0]);
         exit(EXIT_FAILURE);
     }
     if (strnlen(argv[1], IFNAMSIZ) == IFNAMSIZ) {
