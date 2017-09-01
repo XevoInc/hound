@@ -43,7 +43,7 @@ static struct hound_drv_datadesc s_datadesc = {
     .avail_periods = NULL
 };
 
-bool s_active;
+static bool s_active;
 static char s_iface[IFNAMSIZ];
 static int s_recv_own_msg;
 static hound_data_period s_period_ns;
