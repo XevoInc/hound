@@ -50,7 +50,6 @@ pkg.generate(
     name: 'hound',
     description: 'A generic, performant sensor gathering library',
     libraries: [lib],
-    subdirs: 'hound',
     version: meson.project_version())
 
 # Tests.
