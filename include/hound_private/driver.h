@@ -10,7 +10,6 @@
 
 #include <hound/hound.h>
 #include <hound_private/queue.h>
-#include <klib/khash.h>
 #include <stdbool.h>
 
 #define HOUND_DEVICE_ID_MAX_LEN (33)
@@ -130,7 +129,6 @@ hound_err driver_register(
     const char *path,
     struct driver_ops *ops,
     void *data);
-
 hound_err driver_unregister(const char *path);
 
 hound_err driver_next(struct driver *drv, hound_data_id id);
