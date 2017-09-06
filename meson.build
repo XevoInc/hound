@@ -51,6 +51,7 @@ pkg.generate(
     description: 'A generic, performant sensor gathering library',
     libraries: [lib],
     version: meson.project_version())
+hound_dep = declare_dependency(link_with: lib, include_directories: include)
 
 # Tests.
 run_target('can-setup', command: ['meson/vcan', 'setup'])
