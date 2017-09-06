@@ -15,6 +15,7 @@
 #include <hound_private/api.h>
 #include <hound_private/driver.h>
 #include <linux/limits.h>
+#include <string.h>
 #include <unistd.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
