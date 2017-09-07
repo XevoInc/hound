@@ -11,17 +11,17 @@
 #include <hound/log.h>
 #include <hound_private/driver.h>
 #include <hound_private/util.h>
-#include <klib/khash.h>
-#include <klib/kvec.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <xlib/xhash.h>
+#include <xlib/xvec.h>
 
 #define DEQUEUE_BUF_SIZE (128)
 
 /* TODO: add a pointer-based hash so we don't have to do casting? */
 
 /* driver --> list of data needed from that driver */
-KHASH_MAP_INIT_INT64(DRIVER_DATA_MAP, struct hound_drv_data_list)
+XHASH_MAP_INIT_INT64(DRIVER_DATA_MAP, struct hound_drv_data_list)
 
 struct hound_ctx {
     pthread_rwlock_t rwlock;
@@ -30,20 +30,20 @@ struct hound_ctx {
     hound_cb cb;
     void *cb_ctx;
     struct queue *queue;
-    khash_t(DRIVER_DATA_MAP) *periodic_data_map;
-    khash_t(DRIVER_DATA_MAP) *on_demand_data_map;
+    xhash_t(DRIVER_DATA_MAP) *periodic_data_map;
+    xhash_t(DRIVER_DATA_MAP) *on_demand_data_map;
 };
 
-void free_driver_data_map(khash_t(DRIVER_DATA_MAP) *map)
+void free_driver_data_map(xhash_t(DRIVER_DATA_MAP) *map)
 {
     struct hound_drv_data_list *drv_data_list;
-    khiter_t iter;
+    xhiter_t iter;
 
-    kh_iter(map, iter,
-        drv_data_list = &kh_val(map, iter);
+    xh_iter(map, iter,
+        drv_data_list = &xh_val(map, iter);
         free(drv_data_list->data);
     );
-    kh_destroy(DRIVER_DATA_MAP, map);
+    xh_destroy(DRIVER_DATA_MAP, map);
 }
 
 hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
@@ -57,8 +57,8 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
     size_t i;
     size_t j;
     size_t index;
-    khiter_t iter;
-    khash_t(DRIVER_DATA_MAP) *map;
+    xhiter_t iter;
+    xhash_t(DRIVER_DATA_MAP) *map;
     size_t matches;
     const struct hound_data_rq_list *list;
     int ret;
@@ -120,12 +120,12 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
     }
 
     /* Populate our context. */
-    ctx->periodic_data_map = kh_init(DRIVER_DATA_MAP);
+    ctx->periodic_data_map = xh_init(DRIVER_DATA_MAP);
     if (ctx->periodic_data_map == NULL) {
         goto error_periodic_data_map;
     }
 
-    ctx->on_demand_data_map = kh_init(DRIVER_DATA_MAP);
+    ctx->on_demand_data_map = xh_init(DRIVER_DATA_MAP);
     if (ctx->on_demand_data_map == NULL) {
         goto error_on_demand_data_map;
     }
@@ -142,8 +142,8 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
          * We want to process all the entries for a given driver all at once, so
          * if we've already seen this driver, just continue on.
          */
-        if (kh_found(DRIVER_DATA_MAP, ctx->periodic_data_map, (uint64_t) drv) ||
-            kh_found(DRIVER_DATA_MAP, ctx->on_demand_data_map, (uint64_t) drv)) {
+        if (xh_found(DRIVER_DATA_MAP, ctx->periodic_data_map, (uint64_t) drv) ||
+            xh_found(DRIVER_DATA_MAP, ctx->on_demand_data_map, (uint64_t) drv)) {
             continue;
         }
 
@@ -157,7 +157,7 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
         else {
             map = ctx->on_demand_data_map;
         }
-        iter = kh_put(
+        iter = xh_put(
             DRIVER_DATA_MAP,
             map,
             (uint64_t) drv,
@@ -166,7 +166,7 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
             err = HOUND_OOM;
             goto error_ctx_loop;
         }
-        drv_data_list = &kh_val(map, iter);
+        drv_data_list = &xh_val(map, iter);
 
         /* Look ahead to count how many requests match this driver. */
         matches = 1;
@@ -202,8 +202,8 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
             ++index;
         }
     }
-    kh_trim(DRIVER_DATA_MAP, ctx->periodic_data_map);
-    kh_trim(DRIVER_DATA_MAP, ctx->on_demand_data_map);
+    xh_trim(DRIVER_DATA_MAP, ctx->periodic_data_map);
+    xh_trim(DRIVER_DATA_MAP, ctx->on_demand_data_map);
 
     *ctx_out = ctx;
     err = HOUND_OK;
@@ -268,18 +268,18 @@ hound_err ctx_free(struct hound_ctx *ctx)
     return HOUND_OK;
 }
 
-hound_err ref_driver_map(struct hound_ctx *ctx, khash_t(DRIVER_DATA_MAP) *map)
+hound_err ref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
 {
 
     struct driver *drv;
     const struct hound_drv_data_list *drv_data_list;
-    khiter_t iter;
+    xhiter_t iter;
     hound_err ref_err;
     hound_err unref_err;
 
-    kh_iter(map, iter,
-        drv = (__typeof__(drv)) kh_key(map, iter);
-        drv_data_list = &kh_val(map, iter);
+    xh_iter(map, iter,
+        drv = (__typeof__(drv)) xh_key(map, iter);
+        drv_data_list = &xh_val(map, iter);
         ref_err = driver_ref(drv, ctx->queue, drv_data_list);
         if (ref_err != HOUND_OK) {
             --iter;
@@ -292,9 +292,9 @@ hound_err ref_driver_map(struct hound_ctx *ctx, khash_t(DRIVER_DATA_MAP) *map)
 
 error:
     /* Unref any drivers we reffed. */
-    for (; iter < kh_end(map); --iter) {
-        drv = (__typeof__(drv)) kh_key(map, iter);
-        drv_data_list = &kh_val(map, iter);
+    for (; iter < xh_end(map); --iter) {
+        drv = (__typeof__(drv)) xh_key(map, iter);
+        drv_data_list = &xh_val(map, iter);
         unref_err = driver_unref(drv, ctx->queue, drv_data_list);
         if (unref_err != HOUND_OK) {
             hound_log_err(
@@ -323,16 +323,16 @@ hound_err ref_drivers(struct hound_ctx *ctx)
     return HOUND_OK;
 }
 
-void unref_driver_map(struct hound_ctx *ctx, khash_t(DRIVER_DATA_MAP) *map)
+void unref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
 {
     struct driver *drv;
     hound_err err;
     const struct hound_drv_data_list *drv_data_list;
-    khiter_t iter;
+    xhiter_t iter;
 
-    kh_iter(map, iter,
-        drv = (__typeof__(drv)) kh_key(map, iter);
-        drv_data_list = &kh_val(map, iter);
+    xh_iter(map, iter,
+        drv = (__typeof__(drv)) xh_key(map, iter);
+        drv_data_list = &xh_val(map, iter);
         err = driver_unref(drv, ctx->queue, drv_data_list);
         if (err != HOUND_OK) {
             hound_log_err(
@@ -433,11 +433,11 @@ void ctx_next_nolock_single(struct hound_ctx *ctx)
     const struct hound_drv_data_list *drv_data_list;
     hound_err err;
     size_t i;
-    khiter_t iter;
+    xhiter_t iter;
 
-    kh_iter(ctx->on_demand_data_map, iter,
-        drv = (__typeof__(drv)) kh_key(ctx->on_demand_data_map, iter);
-        drv_data_list = &kh_val(ctx->on_demand_data_map, iter);
+    xh_iter(ctx->on_demand_data_map, iter,
+        drv = (__typeof__(drv)) xh_key(ctx->on_demand_data_map, iter);
+        drv_data_list = &xh_val(ctx->on_demand_data_map, iter);
 
         for (i = 0; i < drv_data_list->len; ++i) {
             data = &drv_data_list->data[i];

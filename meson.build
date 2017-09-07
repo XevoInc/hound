@@ -13,15 +13,17 @@ add_project_arguments(cflags, language: 'c')
 
 pkg = import('pkgconfig')
 
-# Enable threads.
-thread_deps = dependency('threads')
-valgrind_dep = dependency('valgrind')
-
 # Includes.
 include = include_directories('include')
 install_subdir('include/hound', install_dir: 'include')
 
-# libhound.
+# Library.
+thread_dep = dependency('threads')
+lib_deps = [
+    dependency('threads'),
+    dependency('xlib', fallback: ['xlib', 'xlib_dep'])
+]
+
 src = [
     'src/core/ctx.c',
     'src/core/driver.c',
@@ -38,13 +40,12 @@ src = [
     'src/driver/file.c'
 ]
 
-# Library.
 lib = library(
     'hound',
     src,
     include_directories: include,
     install: true,
-    dependencies: [thread_deps],
+    dependencies: lib_deps,
     version: meson.project_version())
 pkg.generate(
     name: 'hound',
@@ -56,6 +57,9 @@ hound_dep = declare_dependency(link_with: lib, include_directories: include)
 # Tests.
 run_target('can-setup', command: ['meson/vcan', 'setup'])
 run_target('can-destroy', command: ['meson/vcan', 'destroy'])
+
+valgrind_dep = dependency('valgrind')
+test_deps = [thread_dep] + [valgrind_dep]
 
 add_test_setup('valgrind', exe_wrapper: ['valgrind', '-v'])
 tests = [
@@ -70,7 +74,7 @@ foreach t : tests
         t.get(1),
         include_directories: include,
         link_with: lib,
-        dependencies: [thread_deps, valgrind_dep])
+        dependencies: test_deps)
     test(t.get(0), exe, args: t.get(2))
 endforeach
 

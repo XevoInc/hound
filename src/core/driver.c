@@ -13,11 +13,11 @@
 #include <hound_private/driver.h>
 #include <hound_private/io.h>
 #include <hound_private/util.h>
-#include <klib/khash.h>
-#include <klib/kvec.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <string.h>
+#include <xlib/xhash.h>
+#include <xlib/xvec.h>
 
 /* TODO: make logging consistent everywhere */
 
@@ -35,7 +35,7 @@ struct driver {
     hound_data_count datacount;
     const struct hound_drv_datadesc *data;
 
-    kvec_t(struct data) active_data;
+    xvec_t(struct data) active_data;
 
     hound_device_id_count device_id_count;
     const char **device_ids;
@@ -45,25 +45,25 @@ struct driver {
 };
 
 /* device path --> driver ID */
-KHASH_MAP_INIT_STR(DEVICE_MAP, struct driver *)
-static khash_t(DEVICE_MAP) *s_device_map = NULL;
+XHASH_MAP_INIT_STR(DEVICE_MAP, struct driver *)
+static xhash_t(DEVICE_MAP) *s_device_map = NULL;
 
 /* data ID --> data info */
-KHASH_MAP_INIT_INT64(DATA_MAP, struct driver *)
-static khash_t(DATA_MAP) *s_data_map;
+XHASH_MAP_INIT_INT64(DATA_MAP, struct driver *)
+static xhash_t(DATA_MAP) *s_data_map;
 
 static pthread_rwlock_t s_driver_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
 void driver_init(void)
 {
-    s_data_map = kh_init(DATA_MAP);
-    s_device_map = kh_init(DEVICE_MAP);
+    s_data_map = xh_init(DATA_MAP);
+    s_device_map = xh_init(DEVICE_MAP);
 }
 
 void driver_destroy(void)
 {
-    kh_destroy(DEVICE_MAP, s_device_map);
-    kh_destroy(DATA_MAP, s_data_map);
+    xh_destroy(DEVICE_MAP, s_device_map);
+    xh_destroy(DATA_MAP, s_data_map);
 }
 
 hound_err driver_get_datadesc(const struct hound_datadesc ***desc, size_t *len)
@@ -80,7 +80,7 @@ hound_err driver_get_datadesc(const struct hound_datadesc ***desc, size_t *len)
 
     /* Find the required data size. */
     size = 0;
-    kh_foreach_value(s_data_map, drv,
+    xh_foreach_value(s_data_map, drv,
         size += drv->datacount;
     );
 
@@ -104,7 +104,7 @@ hound_err driver_get_datadesc(const struct hound_datadesc ***desc, size_t *len)
     }
 
     pos = *desc;
-    kh_foreach_value(s_data_map, drv,
+    xh_foreach_value(s_data_map, drv,
         memcpy((void *) pos, drv->data, drv->datacount*sizeof(drv->data));
         pos += drv->datacount;
     );
@@ -130,15 +130,15 @@ hound_err driver_register(
     struct driver *drv;
     hound_err err;
     size_t i;
-    khiter_t iter;
+    xhiter_t iter;
     int ret;
 
     NULL_CHECK(path);
 
     pthread_rwlock_wrlock(&s_driver_rwlock);
 
-    iter = kh_get(DEVICE_MAP, s_device_map, path);
-    if (iter != kh_end(s_device_map)) {
+    iter = xh_get(DEVICE_MAP, s_device_map, path);
+    if (iter != xh_end(s_device_map)) {
         err = HOUND_DRIVER_ALREADY_REGISTERED;
         goto out;
     }
@@ -209,13 +209,13 @@ hound_err driver_register(
     pthread_mutex_init(&drv->mutex, NULL);
     drv->refcount = 0;
     drv->fd = FD_INVALID;
-    kv_init(drv->active_data);
+    xv_init(drv->active_data);
     drv->ops = *ops;
 
     /* Verify that all descriptors are sane. */
     for (i = 0; i < drv->datacount; ++i) {
-        iter = kh_get(DATA_MAP, s_data_map, drv->data[i].id);
-        if (iter != kh_end(s_data_map)) {
+        iter = xh_get(DATA_MAP, s_data_map, drv->data[i].id);
+        if (iter != xh_end(s_data_map)) {
             err = HOUND_CONFLICTING_DRIVERS;
             goto error_conflicting_drivers;
         }
@@ -224,29 +224,29 @@ hound_err driver_register(
     /*
      * Finally, commit the driver into all the maps.
      */
-    iter = kh_put(DEVICE_MAP, s_device_map, path, &ret);
+    iter = xh_put(DEVICE_MAP, s_device_map, path, &ret);
     if (ret == -1) {
         err = HOUND_OOM;
         goto error_device_map_put;
     }
-    kh_val(s_device_map, iter) = drv;
+    xh_val(s_device_map, iter) = drv;
 
     for (i = 0; i < drv->datacount; ++i ) {
-        iter = kh_put(DATA_MAP, s_data_map, drv->data[i].id, &ret);
+        iter = xh_put(DATA_MAP, s_data_map, drv->data[i].id, &ret);
         if (ret == -1) {
             err = HOUND_OOM;
             goto error_data_map_put;
         }
-        kh_val(s_data_map, iter) = drv;
+        xh_val(s_data_map, iter) = drv;
     }
 
     err = HOUND_OK;
     goto out;
 
 error_data_map_put:
-    iter = kh_get(DEVICE_MAP, s_device_map, path);
-    HOUND_ASSERT_NEQ(iter, kh_end(s_device_map));
-    kh_del(DEVICE_MAP, s_device_map, iter);
+    iter = xh_get(DEVICE_MAP, s_device_map, path);
+    HOUND_ASSERT_NEQ(iter, xh_end(s_device_map));
+    xh_del(DEVICE_MAP, s_device_map, iter);
 error_device_map_put:
 error_conflicting_drivers:
 error_datadesc:
@@ -262,19 +262,19 @@ hound_err driver_unregister(const char *path)
     struct driver *drv;
     struct driver *drv_iter;
     hound_err err;
-    khiter_t iter;
+    xhiter_t iter;
 
     NULL_CHECK(path);
 
     pthread_rwlock_wrlock(&s_driver_rwlock);
 
     /* Make sure the driver is actually registered. */
-    iter = kh_get(DEVICE_MAP, s_device_map, path);
-    if (iter == kh_end(s_device_map)) {
+    iter = xh_get(DEVICE_MAP, s_device_map, path);
+    if (iter == xh_end(s_device_map)) {
         err = HOUND_DRIVER_NOT_REGISTERED;
         goto out;
     }
-    drv = kh_val(s_device_map, iter);
+    drv = xh_val(s_device_map, iter);
 
     /* Make sure the driver is not in-use. */
     if (drv->refcount != 0) {
@@ -283,16 +283,16 @@ hound_err driver_unregister(const char *path)
     }
 
     /* Remove the driver from all the maps so no one can access it. */
-    kh_foreach_value_iter(s_device_map, drv_iter, iter,
+    xh_foreach_value_iter(s_device_map, drv_iter, iter,
         if (drv_iter == drv) {
-            kh_del(DEVICE_MAP, s_device_map, iter);
+            xh_del(DEVICE_MAP, s_device_map, iter);
         }
     );
 
     /* Remove the driver from the data map for each datatype it manages. */
-    kh_foreach_value_iter(s_data_map, drv_iter, iter,
+    xh_foreach_value_iter(s_data_map, drv_iter, iter,
         if (drv_iter == drv) {
-            kh_del(DATA_MAP, s_data_map, iter);
+            xh_del(DATA_MAP, s_data_map, iter);
         }
     );
 
@@ -306,7 +306,7 @@ hound_err driver_unregister(const char *path)
 
     err = pthread_mutex_destroy(&drv->mutex);
     HOUND_ASSERT_EQ(err, 0);
-    kv_destroy(drv->active_data);
+    xv_destroy(drv->active_data);
     free(drv);
 
     err = HOUND_OK;
@@ -324,8 +324,8 @@ size_t get_active_data_index(
     const struct data *data;
     size_t i;
 
-    for (i = 0; i < kv_size(drv->active_data); ++i) {
-        data = &kv_A(drv->active_data, i);
+    for (i = 0; i < xv_size(drv->active_data); ++i) {
+        data = &xv_A(drv->active_data, i);
         if (data->data->id == drv_data->id) {
             *found = true;
             return i;
@@ -341,8 +341,8 @@ hound_err push_drv_data(struct driver *drv, struct hound_drv_data *drv_data)
 {
     struct data *data;
 
-    data = kv_pushp(struct data, drv->active_data);
-    if (kv_data(drv->active_data) == NULL) {
+    data = xv_pushp(struct data, drv->active_data);
+    if (xv_data(drv->active_data) == NULL) {
         hound_log_err(
             HOUND_OOM,
             "Failed to push drv data onto active data list",
@@ -394,7 +394,7 @@ hound_err driver_ref(
         drv_data = &drv_data_list->data[i];
         index = get_active_data_index(drv, drv_data, &found);
         if (found) {
-            data = &kv_A(drv->active_data, index);
+            data = &xv_A(drv->active_data, index);
             /*
              * We can assert this because ctx_alloc should have failed if the
              * periods did not match.
@@ -456,7 +456,7 @@ error_driver_setdata:
         index = get_active_data_index(drv, drv_data, &found);
         /* We previously added this data, so it should be found. */
         HOUND_ASSERT_TRUE(found);
-        data = &kv_A(drv->active_data, index);
+        data = &xv_A(drv->active_data, index);
         --data->refcount;
         if (data->refcount == 0) {
             RM_VEC_INDEX(drv->active_data, index);
@@ -483,7 +483,7 @@ void cleanup_drv_data(
         drv_data = &drv_data_list->data[i];
         index = get_active_data_index(drv, drv_data, &found);
         if (found) {
-            data = &kv_A(drv->active_data, index);
+            data = &xv_A(drv->active_data, index);
             ++data->refcount;
         }
         else {
@@ -525,7 +525,7 @@ hound_err driver_unref(
          * data should be in this last.
          */
         HOUND_ASSERT_TRUE(found);
-        data = &kv_A(drv->active_data, index);
+        data = &xv_A(drv->active_data, index);
         --data->refcount;
         if (data->refcount == 0) {
             RM_VEC_INDEX(drv->active_data, index);
@@ -571,16 +571,16 @@ out:
 hound_err driver_get(hound_data_id data_id, struct driver **drv)
 {
     hound_err err;
-    khiter_t iter;
+    xhiter_t iter;
 
     pthread_rwlock_rdlock(&s_driver_rwlock);
 
-    iter = kh_get(DATA_MAP, s_data_map, data_id);
-    if (iter == kh_end(s_data_map)) {
+    iter = xh_get(DATA_MAP, s_data_map, data_id);
+    if (iter == xh_end(s_data_map)) {
         err = HOUND_DATA_ID_DOES_NOT_EXIST;
         goto out;
     }
-    *drv = kh_val(s_data_map, iter);
+    *drv = xh_val(s_data_map, iter);
 
     err = HOUND_OK;
 

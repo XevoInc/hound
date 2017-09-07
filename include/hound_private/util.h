@@ -37,8 +37,8 @@
 
 #define RM_VEC_INDEX(v, i) \
     do { \
-        SWAP(kv_data(v), i, kv_size(v)-1); \
-        (void) kv_pop(v); \
+        SWAP(xv_data(v), i, xv_size(v)-1); \
+        (void) xv_pop(v); \
     } while (0);
 
 size_t min(size_t a, size_t b);
