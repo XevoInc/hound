@@ -10,8 +10,8 @@
 #define HOUND_PRIVATE_CTX_H_
 
 #include <hound/hound.h>
-#include <klib/khash.h>
 #include <stdbool.h>
+#include <xlib/xhash.h>
 
 void ctx_init(void);
 void ctx_destroy(void);

@@ -1,0 +1,4 @@
+[wrap-git]
+directory=xlib
+url=git@github.com:XevoInc/xlib.git
+revision=head

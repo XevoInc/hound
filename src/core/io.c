@@ -14,12 +14,12 @@
 #include <hound_private/refcount.h>
 #include <hound_private/util.h>
 #include <fcntl.h>
-#include <klib/kvec.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <xlib/xvec.h>
 
 #define PAUSE_SIGNAL SIGUSR1
 #define POLL_BUF_SIZE (1024*1024*1024)
@@ -34,12 +34,12 @@
 struct fdctx {
     struct driver_ops *drv_ops;
     hound_seqno next_seqno;
-    kvec_t(struct queue *) queues;
+    xvec_t(struct queue *) queues;
 };
 
 static struct s_ios {
-    kvec_t(struct fdctx *) ctx;
-    kvec_t(struct pollfd) fds;
+    xvec_t(struct fdctx *) ctx;
+    xvec_t(struct pollfd) fds;
 } s_ios;
 
 static pthread_t s_poll_thread;
@@ -55,13 +55,13 @@ size_t get_fd_index(int fd)
     size_t index;
     const struct pollfd *pfd;
 
-    for (index = 0; index < kv_size(s_ios.fds); ++index) {
-        pfd = &kv_A(s_ios.fds, index);
+    for (index = 0; index < xv_size(s_ios.fds); ++index) {
+        pfd = &xv_A(s_ios.fds, index);
         if (pfd->fd == fd) {
             break;
         }
     }
-    HOUND_ASSERT_NEQ(index, kv_size(s_ios.fds));
+    HOUND_ASSERT_NEQ(index, xv_size(s_ios.fds));
 
     return index;
 }
@@ -69,7 +69,7 @@ size_t get_fd_index(int fd)
 static inline
 struct fdctx *get_fdctx(int fd)
 {
-    return kv_A(s_ios.ctx, get_fd_index(fd));
+    return xv_A(s_ios.ctx, get_fd_index(fd));
 }
 
 static
@@ -131,12 +131,12 @@ hound_err io_read(int fd, struct fdctx *ctx)
             continue;
         }
 
-        atomic_ref_init(&rec_info->refcount, kv_size(ctx->queues));
+        atomic_ref_init(&rec_info->refcount, xv_size(ctx->queues));
         rec_info->record = record;
         rec_info->record.seqno = ctx->next_seqno;
         ++ctx->next_seqno;
-        for (i = 0; i < kv_size(ctx->queues); ++i) {
-            queue_push(kv_A(ctx->queues, i), rec_info);
+        for (i = 0; i < xv_size(ctx->queues); ++i) {
+            queue_push(xv_A(ctx->queues, i), rec_info);
         }
     }
 
@@ -150,7 +150,7 @@ hound_err io_read(int fd, struct fdctx *ctx)
 static
 void io_wait_for_ready(void) {
     pthread_mutex_lock(&s_poll_mutex);
-    while (!s_poll_active_target || kv_size(s_ios.fds) == 0) {
+    while (!s_poll_active_target || xv_size(s_ios.fds) == 0) {
         s_poll_active_current = false;
         pthread_cond_signal(&s_poll_cond);
         pthread_cond_wait(&s_poll_cond, &s_poll_mutex);
@@ -171,7 +171,7 @@ void *io_poll(UNUSED void *data)
         io_wait_for_ready();
 
         /* Wait for I/O. */
-        err = poll(kv_data(s_ios.fds), kv_size(s_ios.fds), 0);
+        err = poll(xv_data(s_ios.fds), xv_size(s_ios.fds), 0);
         if (err == -1) {
             if (errno == EINTR) {
                 /* We got a signal; probably need to pause the loop. */
@@ -190,14 +190,14 @@ void *io_poll(UNUSED void *data)
         }
 
         /* Read any fds that have data. */
-        for (i = 0; i < kv_size(s_ios.fds); ++i) {
-            pfd = &kv_A(s_ios.fds, i);
+        for (i = 0; i < xv_size(s_ios.fds); ++i) {
+            pfd = &xv_A(s_ios.fds, i);
             if (pfd->revents == 0) {
                 continue;
             }
             HOUND_ASSERT(pfd->revents & POLL_HAS_DATA);
 
-            ctx = kv_A(s_ios.ctx, i);
+            ctx = xv_A(s_ios.ctx, i);
             err = io_read(pfd->fd, ctx);
             if (err != HOUND_OK) {
                 hound_log_err(err, "Failed to grab record from fd %d", pfd->fd);
@@ -324,10 +324,10 @@ hound_err io_add_fd(int fd, struct driver_ops *drv_ops)
 
     io_pause_poll();
 
-    pfd = kv_pushp(struct pollfd, s_ios.fds);
+    pfd = xv_pushp(struct pollfd, s_ios.fds);
     if (pfd == NULL) {
         err = HOUND_OOM;
-        goto error_kv_push;
+        goto error_xv_push;
     }
     pfd->fd = fd;
     pfd->events = POLL_HAS_DATA;
@@ -339,10 +339,10 @@ hound_err io_add_fd(int fd, struct driver_ops *drv_ops)
     }
     ctx->drv_ops = drv_ops;
     ctx->next_seqno = 0;
-    kv_init(ctx->queues);
+    xv_init(ctx->queues);
 
-    kv_push(struct fdctx *, s_ios.ctx, ctx);
-    if (kv_data(s_ios.ctx) == NULL) {
+    xv_push(struct fdctx *, s_ios.ctx, ctx);
+    if (xv_data(s_ios.ctx) == NULL) {
         err = HOUND_OOM;
         goto error_ctx_push;
     }
@@ -354,8 +354,8 @@ hound_err io_add_fd(int fd, struct driver_ops *drv_ops)
 error_ctx_push:
     free(ctx);
 error_ctx_alloc:
-    (void) kv_pop(s_ios.fds);
-error_kv_push:
+    (void) xv_pop(s_ios.fds);
+error_xv_push:
     io_resume_poll();
     return err;
 }
@@ -366,13 +366,13 @@ void io_remove_fd(int fd)
     size_t index;
 
     index = get_fd_index(fd);
-    ctx = kv_A(s_ios.ctx, index);
+    ctx = xv_A(s_ios.ctx, index);
 
     /*
      * All queues must be removed before we remove the backing fd, as drivers
      * should be loaded and unloaded on-demand.
      */
-    HOUND_ASSERT_EQ(kv_size(ctx->queues), 0);
+    HOUND_ASSERT_EQ(xv_size(ctx->queues), 0);
 
     io_pause_poll();
 
@@ -380,7 +380,7 @@ void io_remove_fd(int fd)
     RM_VEC_INDEX(s_ios.fds, index);
     RM_VEC_INDEX(s_ios.ctx, index);
 
-    kv_destroy(ctx->queues);
+    xv_destroy(ctx->queues);
     free(ctx);
 
     io_resume_poll();
@@ -395,8 +395,8 @@ hound_err io_add_queue(int fd, struct queue *queue)
 
     io_pause_poll();
 
-    kv_push(struct queue *, ctx->queues, queue);
-    if (kv_data(ctx->queues) == NULL) {
+    xv_push(struct queue *, ctx->queues, queue);
+    if (xv_data(ctx->queues) == NULL) {
         /* Push failed to reallocate the queue. */
         return HOUND_OOM;
     }
@@ -417,12 +417,12 @@ void io_remove_queue(int fd, struct queue *queue)
     io_pause_poll();
 
     /* Find our queue. */
-    for (index = 0; index < kv_size(ctx->queues); ++index) {
-        if (kv_A(ctx->queues, index) == queue) {
+    for (index = 0; index < xv_size(ctx->queues); ++index) {
+        if (xv_A(ctx->queues, index) == queue) {
             break;
         }
     }
-    HOUND_ASSERT_NEQ(index, kv_size(ctx->queues));
+    HOUND_ASSERT_NEQ(index, xv_size(ctx->queues));
 
     /* Remove the queue. */
     RM_VEC_INDEX(ctx->queues, index);
@@ -434,8 +434,8 @@ void io_init(void)
 {
     hound_err err;
 
-    kv_init(s_ios.fds);
-    kv_init(s_ios.ctx);
+    xv_init(s_ios.fds);
+    xv_init(s_ios.ctx);
     err = io_start_poll();
     if (err != HOUND_OK) {
         hound_log_err_nofmt(err, "Failed io_start_poll");
@@ -445,6 +445,6 @@ void io_init(void)
 void io_destroy(void)
 {
     io_stop_poll();
-    kv_destroy(s_ios.ctx);
-    kv_destroy(s_ios.fds);
+    xv_destroy(s_ios.ctx);
+    xv_destroy(s_ios.fds);
 }
