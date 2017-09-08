@@ -7,9 +7,9 @@
 
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
-#include <hound/error.h>
-#include <hound/log.h>
 #include <hound_private/driver.h>
+#include <hound_private/error.h>
+#include <hound_private/log.h>
 #include <hound_private/queue.h>
 #include <hound_private/refcount.h>
 #include <hound_private/util.h>
@@ -61,7 +61,7 @@ size_t get_fd_index(int fd)
             break;
         }
     }
-    HOUND_ASSERT_NEQ(index, xv_size(s_ios.fds));
+    XASSERT_NEQ(index, xv_size(s_ios.fds));
 
     return index;
 }
@@ -86,8 +86,8 @@ hound_err io_read(int fd, struct fdctx *ctx)
     bytes_total = read(fd, s_read_buf, ARRAYLEN(s_read_buf));
     if (bytes_total == -1) {
         /* We should not see these, as we only read after doing poll. */
-        HOUND_ASSERT_NEQ(errno, EAGAIN);
-        HOUND_ASSERT_NEQ(errno, EWOULDBLOCK);
+        XASSERT_NEQ(errno, EAGAIN);
+        XASSERT_NEQ(errno, EWOULDBLOCK);
 
         if (errno == EIO) {
             hound_log_err(errno, "read returned EIO on fd %d", fd);
@@ -95,7 +95,7 @@ hound_err io_read(int fd, struct fdctx *ctx)
         }
         else {
             /* Other error codes are likely program bugs. */
-            HOUND_ASSERT_ERROR;
+            XASSERT_ERROR;
         }
     }
 
@@ -112,14 +112,14 @@ hound_err io_read(int fd, struct fdctx *ctx)
                 record.id, record.size);
             return err;
         }
-        HOUND_ASSERT_LTE(bytes_left, (size_t) bytes_total);
+        XASSERT_LTE(bytes_left, (size_t) bytes_total);
 
         if (bytes_left == (size_t) bytes_total) {
             /* Driver can't make more records from this buffer. We're done. */
             break;
         }
-        HOUND_ASSERT_GT(record.size, 0);
-        HOUND_ASSERT_NOT_NULL(record.data);
+        XASSERT_GT(record.size, 0);
+        XASSERT_NOT_NULL(record.data);
         pos += bytes_total - bytes_left;
 
         /* Add to all user queues. */
@@ -185,7 +185,7 @@ void *io_poll(UNUSED void *data)
             }
             else {
                 /* Other error codes are likely program bugs. */
-                HOUND_ASSERT_FALSE(false);
+                XASSERT_ERROR;
             }
         }
 
@@ -195,7 +195,7 @@ void *io_poll(UNUSED void *data)
             if (pfd->revents == 0) {
                 continue;
             }
-            HOUND_ASSERT(pfd->revents & POLL_HAS_DATA);
+            XASSERT(pfd->revents & POLL_HAS_DATA);
 
             ctx = xv_A(s_ios.ctx, i);
             err = io_read(pfd->fd, ctx);
@@ -218,7 +218,7 @@ void io_pause_poll(void)
     s_poll_active_target = false;
     pthread_cond_signal(&s_poll_cond);
     err = pthread_kill(s_poll_thread, PAUSE_SIGNAL);
-    HOUND_ASSERT_EQ(err, 0);
+    XASSERT_EQ(err, 0);
     pthread_mutex_unlock(&s_poll_mutex);
 
     /*
@@ -263,14 +263,14 @@ hound_err io_start_poll(void)
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
     err = sigaction(PAUSE_SIGNAL, &action, NULL);
-    HOUND_ASSERT_EQ(err, 0);
+    XASSERT_EQ(err, 0);
 
     err = pthread_attr_init(&attr);
     if (err != 0) {
         return err;
     }
     err = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    HOUND_ASSERT_EQ(err, 0);
+    XASSERT_EQ(err, 0);
 
     err = pthread_create(&s_poll_thread, NULL, io_poll, NULL);
     if (err != 0) {
@@ -291,19 +291,19 @@ void io_stop_poll(void)
 
     /* Now shoot it in the head. */
     err = pthread_cancel(s_poll_thread);
-    HOUND_ASSERT_EQ(err, 0);
+    XASSERT_EQ(err, 0);
 
     /*
      * Remove our signal handler. Note that this *must* be done after pausing,
      * since we rely on the signal to trigger the pause.
      */
     err = sigaction(PAUSE_SIGNAL, NULL, NULL);
-    HOUND_ASSERT_EQ(err, 0);
+    XASSERT_EQ(err, 0);
 
     /* Wait until the thread is finally dead. */
     err = pthread_join(s_poll_thread, &ret);
-    HOUND_ASSERT_EQ(err, 0);
-    HOUND_ASSERT_EQ(ret, PTHREAD_CANCELED);
+    XASSERT_EQ(err, 0);
+    XASSERT_EQ(ret, PTHREAD_CANCELED);
 }
 
 hound_err io_add_fd(int fd, struct driver_ops *drv_ops)
@@ -313,14 +313,14 @@ hound_err io_add_fd(int fd, struct driver_ops *drv_ops)
     int flags;
     struct pollfd *pfd;
 
-    HOUND_ASSERT_NOT_NULL(drv_ops);
-    HOUND_ASSERT_NEQ(fd, 0);
+    XASSERT_NOT_NULL(drv_ops);
+    XASSERT_NEQ(fd, 0);
 
     /* Our fds must be non-blocking for the poll loop to work. */
     flags = fcntl(fd, F_GETFL, 0);
-    HOUND_ASSERT_NEQ(flags, -1);
+    XASSERT_NEQ(flags, -1);
     err = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    HOUND_ASSERT_NEQ(err, -1);
+    XASSERT_NEQ(err, -1);
 
     io_pause_poll();
 
@@ -372,7 +372,7 @@ void io_remove_fd(int fd)
      * All queues must be removed before we remove the backing fd, as drivers
      * should be loaded and unloaded on-demand.
      */
-    HOUND_ASSERT_EQ(xv_size(ctx->queues), 0);
+    XASSERT_EQ(xv_size(ctx->queues), 0);
 
     io_pause_poll();
 
@@ -391,7 +391,7 @@ hound_err io_add_queue(int fd, struct queue *queue)
     struct fdctx *ctx;
 
     ctx = get_fdctx(fd);
-    HOUND_ASSERT_NOT_NULL(ctx);
+    XASSERT_NOT_NULL(ctx);
 
     io_pause_poll();
 
@@ -412,7 +412,7 @@ void io_remove_queue(int fd, struct queue *queue)
     size_t index;
 
     ctx = get_fdctx(fd);
-    HOUND_ASSERT_NOT_NULL(ctx);
+    XASSERT_NOT_NULL(ctx);
 
     io_pause_poll();
 
@@ -422,7 +422,7 @@ void io_remove_queue(int fd, struct queue *queue)
             break;
         }
     }
-    HOUND_ASSERT_NEQ(index, xv_size(ctx->queues));
+    XASSERT_NEQ(index, xv_size(ctx->queues));
 
     /* Remove the queue. */
     RM_VEC_INDEX(ctx->queues, index);

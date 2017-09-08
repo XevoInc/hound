@@ -91,38 +91,6 @@ hound_err hound_unregister_driver(const char *path)
 }
 
 PUBLIC_API
-void hound_log_msg(int priority, const char *fmt, ...)
-{
-    va_list args;
-
-    va_start(args, fmt);
-    log_vmsg(priority, fmt, args);
-    va_end(args);
-}
-
-PUBLIC_API
-void hound_log_vmsg(int priority, const char *fmt, va_list args)
-{
-    log_vmsg(priority, fmt, args);
-}
-
-PUBLIC_API
-void _hound_error_log_msg(
-    const char *expr,
-    const char *file,
-    int line,
-    const char *func,
-    const char *fmt,
-    ...)
-{
-    va_list args;
-
-    va_start(args, fmt);
-    _error_log_msg(expr, file, line, func, fmt, args);
-    va_end(args);
-}
-
-PUBLIC_API
 const char *hound_strerror(hound_err err)
 {
     return error_strerror(err);

@@ -8,9 +8,9 @@
  */
 
 #define _GNU_SOURCE
-#include <hound/error.h>
 #include <hound/hound.h>
 #include <hound_private/driver.h>
+#include <hound_test/assert.h>
 #include <fcntl.h>
 #include <string.h>
 #include <time.h>
@@ -98,10 +98,10 @@ hound_err counter_parse(
     size_t consumed_bytes;
     hound_err err;
 
-    HOUND_ASSERT_NOT_NULL(buf);
-    HOUND_ASSERT_NOT_NULL(bytes);
-    HOUND_ASSERT_GT(*bytes, 0);
-    HOUND_ASSERT_NOT_NULL(record);
+    XASSERT_NOT_NULL(buf);
+    XASSERT_NOT_NULL(bytes);
+    XASSERT_GT(*bytes, 0);
+    XASSERT_NOT_NULL(record);
 
     if (*bytes + s_buf_bytes < sizeof(s_count)) {
         /* We have less than a full record. */
@@ -112,7 +112,7 @@ hound_err counter_parse(
     else {
         /* We have at least a full record. */
         err = clock_gettime(CLOCK_MONOTONIC, &record->timestamp);
-        HOUND_ASSERT_EQ(err, 0);
+        XASSERT_EQ(err, 0);
         record->data = (*s_alloc)(sizeof(s_count));
         if (record->data == NULL) {
             return HOUND_OOM;
@@ -137,8 +137,8 @@ hound_err counter_start(int *fd)
 {
     hound_err err;
 
-    HOUND_ASSERT_EQ(s_pipe[READ_END], FD_INVALID);
-    HOUND_ASSERT_EQ(s_pipe[WRITE_END], FD_INVALID);
+    XASSERT_EQ(s_pipe[READ_END], FD_INVALID);
+    XASSERT_EQ(s_pipe[WRITE_END], FD_INVALID);
 
     err = pipe(s_pipe);
     if (err != 0) {
@@ -153,13 +153,13 @@ hound_err counter_stop(void)
 {
     hound_err err;
 
-    HOUND_ASSERT_NEQ(s_pipe[READ_END], FD_INVALID);
-    HOUND_ASSERT_NEQ(s_pipe[WRITE_END], FD_INVALID);
+    XASSERT_NEQ(s_pipe[READ_END], FD_INVALID);
+    XASSERT_NEQ(s_pipe[WRITE_END], FD_INVALID);
 
     err = close(s_pipe[READ_END]);
-    HOUND_ASSERT_EQ(err, 0);
+    XASSERT_EQ(err, 0);
     err = close(s_pipe[WRITE_END]);
-    HOUND_ASSERT_EQ(err, 0);
+    XASSERT_EQ(err, 0);
 
     s_pipe[READ_END] = FD_INVALID;
     s_pipe[WRITE_END] = FD_INVALID;
@@ -172,7 +172,7 @@ hound_err counter_next(UNUSED hound_data_id id)
     size_t written;
 
     written = write(s_pipe[WRITE_END], &s_count, sizeof(s_count));
-    HOUND_ASSERT_EQ(written, sizeof(s_count));
+    XASSERT_EQ(written, sizeof(s_count));
 
     ++s_count;
 

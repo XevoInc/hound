@@ -6,8 +6,8 @@
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
-#include <hound/error.h>
 #include <hound/hound.h>
+#include <hound_test/assert.h>
 #include <string.h>
 #include <valgrind.h>
 
@@ -31,13 +31,13 @@ void data_cb(struct hound_record *rec, void *cb_ctx)
 {
     struct stats *stats;
 
-    HOUND_ASSERT_NOT_NULL(rec);
-    HOUND_ASSERT_NOT_NULL(cb_ctx);
+    XASSERT_NOT_NULL(rec);
+    XASSERT_NOT_NULL(cb_ctx);
     stats = cb_ctx;
 
-    HOUND_ASSERT_EQ(rec->size, sizeof(size_t));
-    HOUND_ASSERT_EQ(stats->seqno, rec->seqno);
-    HOUND_ASSERT_EQ(stats->count, *((size_t *) rec->data));
+    XASSERT_EQ(rec->size, sizeof(size_t));
+    XASSERT_EQ(stats->seqno, rec->seqno);
+    XASSERT_EQ(stats->count, *((size_t *) rec->data));
 
     ++stats->count;
     ++stats->seqno;
@@ -69,7 +69,7 @@ int main(void)
 
     count = 0;
     err = register_counter_driver(&count);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     stats.seqno = 0;
     rq.queue_len = samples;
@@ -78,30 +78,30 @@ int main(void)
     rq.rq_list.len = 1;
     rq.rq_list.data = &data_rq;
     hound_alloc_ctx(&ctx, &rq);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     err = hound_start(ctx);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     /* Do individual, sync reads. */
     reset_counts(&stats);
     for (count = 0; count < samples; ++count) {
         err = hound_read(ctx, 1);
-        HOUND_ASSERT_OK(err);
+        XASSERT_OK(err);
     }
-    HOUND_ASSERT_EQ(stats.count, count);
+    XASSERT_EQ(stats.count, count);
 
     /* Do one larger, sync read. */
     reset_counts(&stats);
     err = hound_read(ctx, count);
-    HOUND_ASSERT_OK(err);
-    HOUND_ASSERT_EQ(stats.count, count);
+    XASSERT_OK(err);
+    XASSERT_EQ(stats.count, count);
 
     /* Do individual, async reads. */
     reset_counts(&stats);
     for (count = 0; count < samples; ++count) {
         err = hound_next(ctx, 1);
-        HOUND_ASSERT_OK(err);
+        XASSERT_OK(err);
     }
     count = 0;
     while (count < samples) {
@@ -110,16 +110,16 @@ int main(void)
          * multithreaded code.
          */
         err = hound_read_async(ctx, 1, &read);
-        HOUND_ASSERT_OK(err);
+        XASSERT_OK(err);
         count += read;
     }
-    HOUND_ASSERT_EQ(stats.count, count);
+    XASSERT_EQ(stats.count, count);
 
     /* Do large async reads. */
     reset_counts(&stats);
     for (count = 0; count < samples; ++count) {
         hound_next(ctx, 1);
-        HOUND_ASSERT_OK(err);
+        XASSERT_OK(err);
     }
     count = 0;
     while (count < samples) {
@@ -128,17 +128,17 @@ int main(void)
          * multithreaded code.
          */
         err = hound_read_async(ctx, samples, &read);
-        HOUND_ASSERT_OK(err);
+        XASSERT_OK(err);
         count += read;
     }
-    HOUND_ASSERT_EQ(count, samples);
-    HOUND_ASSERT_EQ(stats.count, count);
+    XASSERT_EQ(count, samples);
+    XASSERT_EQ(stats.count, count);
 
     /* Read all at once. */
     reset_counts(&stats);
     for (count = 0; count < samples; ++count) {
         hound_next(ctx, 1);
-        HOUND_ASSERT_OK(err);
+        XASSERT_OK(err);
     }
     count = 0;
     while (count < samples) {
@@ -147,20 +147,20 @@ int main(void)
          * multithreaded code.
          */
         err = hound_read_all(ctx, &read);
-        HOUND_ASSERT_OK(err);
+        XASSERT_OK(err);
         count += read;
     }
-    HOUND_ASSERT_EQ(count, samples);
-    HOUND_ASSERT_EQ(stats.count, count);
+    XASSERT_EQ(count, samples);
+    XASSERT_EQ(stats.count, count);
 
     err = hound_stop(ctx);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     hound_free_ctx(ctx);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     err = hound_unregister_driver("/dev/counter");
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     return 0;
 }

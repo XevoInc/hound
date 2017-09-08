@@ -5,8 +5,8 @@
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
-#include <hound/error.h>
 #include <hound/hound.h>
+#include <hound_private/error.h>
 #include <hound_private/refcount.h>
 #include <stdatomic.h>
 
@@ -22,13 +22,13 @@ refcount_val atomic_ref_inc(atomic_refcount_val *ref)
 
 refcount_val atomic_ref_add(atomic_refcount_val *count, atomic_refcount_val val)
 {
-    HOUND_ASSERT_NEQ(count, NULL);
+    XASSERT_NEQ(count, NULL);
     return atomic_fetch_add_explicit(count, val, memory_order_relaxed);
 }
 
 refcount_val atomic_ref_dec(atomic_refcount_val *count)
 {
-    HOUND_ASSERT_NEQ(count, NULL);
-    HOUND_ASSERT_GT(*count, 0);
+    XASSERT_NEQ(count, NULL);
+    XASSERT_GT(*count, 0);
     return atomic_fetch_sub_explicit(count, 1, memory_order_relaxed);
 }

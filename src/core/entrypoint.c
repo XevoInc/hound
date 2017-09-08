@@ -1,5 +1,5 @@
 /**
- * @file      drivers.c
+ * @file      entrypoint.c
  * @brief     Hound library entrypoint.
  * @author    Martin Kelly <mkelly@xevo.com>
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.

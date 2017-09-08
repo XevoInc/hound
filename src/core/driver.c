@@ -6,12 +6,12 @@
  */
 
 #define _GNU_SOURCE
-#include <hound/error.h>
-#include <hound/log.h>
 #include <hound/hound.h>
 #include <hound_private/api.h>
 #include <hound_private/driver.h>
+#include <hound_private/error.h>
 #include <hound_private/io.h>
+#include <hound_private/log.h>
 #include <hound_private/util.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -245,7 +245,7 @@ hound_err driver_register(
 
 error_data_map_put:
     iter = xh_get(DEVICE_MAP, s_device_map, path);
-    HOUND_ASSERT_NEQ(iter, xh_end(s_device_map));
+    XASSERT_NEQ(iter, xh_end(s_device_map));
     xh_del(DEVICE_MAP, s_device_map, iter);
 error_device_map_put:
 error_conflicting_drivers:
@@ -305,7 +305,7 @@ hound_err driver_unregister(const char *path)
     }
 
     err = pthread_mutex_destroy(&drv->mutex);
-    HOUND_ASSERT_EQ(err, 0);
+    XASSERT_EQ(err, 0);
     xv_destroy(drv->active_data);
     free(drv);
 
@@ -360,7 +360,7 @@ hound_err driver_next(struct driver *drv, hound_data_id id)
 {
     hound_err err;
 
-    HOUND_ASSERT_NOT_NULL(drv);
+    XASSERT_NOT_NULL(drv);
 
     pthread_mutex_lock(&drv->mutex);
     err = drv->ops.next(id);
@@ -382,9 +382,9 @@ hound_err driver_ref(
     size_t i;
     size_t index;
 
-    HOUND_ASSERT_NOT_NULL(drv);
-    HOUND_ASSERT_NOT_NULL(queue);
-    HOUND_ASSERT_NOT_NULL(drv_data_list);
+    XASSERT_NOT_NULL(drv);
+    XASSERT_NOT_NULL(queue);
+    XASSERT_NOT_NULL(drv_data_list);
 
     pthread_mutex_lock(&drv->mutex);
 
@@ -399,7 +399,7 @@ hound_err driver_ref(
              * We can assert this because ctx_alloc should have failed if the
              * periods did not match.
              */
-            HOUND_ASSERT_EQ(data->data->period_ns, drv_data->period_ns);
+            XASSERT_EQ(data->data->period_ns, drv_data->period_ns);
             ++data->refcount;
         }
         else {
@@ -455,7 +455,7 @@ error_driver_setdata:
         drv_data = &drv_data_list->data[i];
         index = get_active_data_index(drv, drv_data, &found);
         /* We previously added this data, so it should be found. */
-        HOUND_ASSERT_TRUE(found);
+        XASSERT(found);
         data = &xv_A(drv->active_data, index);
         --data->refcount;
         if (data->refcount == 0) {
@@ -509,9 +509,9 @@ hound_err driver_unref(
     size_t i;
     size_t index;
 
-    HOUND_ASSERT_NOT_NULL(drv);
-    HOUND_ASSERT_NOT_NULL(queue);
-    HOUND_ASSERT_NOT_NULL(drv_data_list);
+    XASSERT_NOT_NULL(drv);
+    XASSERT_NOT_NULL(queue);
+    XASSERT_NOT_NULL(drv_data_list);
 
     pthread_mutex_lock(&drv->mutex);
 
@@ -524,7 +524,7 @@ hound_err driver_unref(
          * We should never unref a driver unless it was already reffed, so our
          * data should be in this last.
          */
-        HOUND_ASSERT_TRUE(found);
+        XASSERT(found);
         data = &xv_A(drv->active_data, index);
         --data->refcount;
         if (data->refcount == 0) {
@@ -599,7 +599,7 @@ bool driver_period_supported(
     size_t i;
     size_t j;
 
-    HOUND_ASSERT_NOT_NULL(drv);
+    XASSERT_NOT_NULL(drv);
 
     pthread_rwlock_rdlock(&s_driver_rwlock);
 

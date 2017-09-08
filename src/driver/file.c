@@ -9,11 +9,11 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <fcntl.h>
-#include <hound/error.h>
 #include <hound/hound.h>
 #include <hound/driver/file.h>
 #include <hound_private/api.h>
 #include <hound_private/driver.h>
+#include <hound_private/error.h>
 #include <linux/limits.h>
 #include <string.h>
 #include <unistd.h>
@@ -92,8 +92,8 @@ hound_err file_device_ids(
     const char ***device_ids,
     hound_device_id_count *count)
 {
-    HOUND_ASSERT_NOT_NULL(device_ids);
-    HOUND_ASSERT_NOT_NULL(count);
+    XASSERT_NOT_NULL(device_ids);
+    XASSERT_NOT_NULL(count);
 
     *device_ids = s_device_ids;
     *count = ARRAYLEN(s_device_ids);
@@ -105,8 +105,8 @@ hound_err file_datadesc(
     const struct hound_drv_datadesc **desc,
     hound_data_count *count)
 {
-    HOUND_ASSERT_NOT_NULL(desc);
-    HOUND_ASSERT_NOT_NULL(count);
+    XASSERT_NOT_NULL(desc);
+    XASSERT_NOT_NULL(count);
 
     *desc = &s_datadesc;
     *count = 1;
@@ -118,9 +118,9 @@ hound_err file_setdata(const struct hound_drv_data_list *data)
 {
     const struct hound_drv_data *drv_data;
 
-    HOUND_ASSERT_NOT_NULL(data);
-    HOUND_ASSERT_GT(data->len, 0);
-    HOUND_ASSERT_NOT_NULL(data->data);
+    XASSERT_NOT_NULL(data);
+    XASSERT_GT(data->len, 0);
+    XASSERT_NOT_NULL(data->data);
 
     drv_data = data->data;
     if (drv_data->id != s_datadesc.id) {
@@ -142,11 +142,11 @@ hound_err file_parse(
     struct timespec timestamp;
 
     err = clock_gettime(CLOCK_MONOTONIC, &timestamp);
-    HOUND_ASSERT_EQ(err, 0);
+    XASSERT_EQ(err, 0);
 
-    HOUND_ASSERT_NOT_NULL(buf);
-    HOUND_ASSERT_NOT_NULL(bytes);
-    HOUND_ASSERT_GT(*bytes, 0);
+    XASSERT_NOT_NULL(buf);
+    XASSERT_NOT_NULL(bytes);
+    XASSERT_GT(*bytes, 0);
 
     record->data = malloc(*bytes * sizeof(*buf));
     if (record->data == NULL) {
@@ -167,14 +167,14 @@ hound_err file_next(UNUSED hound_data_id id)
     ssize_t bytes;
 
 	bytes = read(s_fd, s_file_buf, ARRAYLEN(s_file_buf));
-	HOUND_ASSERT_NEQ(bytes, -1);
+	XASSERT_NEQ(bytes, -1);
 	if (bytes == 0) {
 		/* End of file. */
 		return HOUND_OK;
 	}
 
 	bytes = write(s_pipe[WRITE_END], s_file_buf, bytes);
-	HOUND_ASSERT_NEQ(bytes, -1);
+	XASSERT_NEQ(bytes, -1);
 
 	return HOUND_OK;
 }
@@ -183,9 +183,9 @@ hound_err file_start(int *out_fd)
 {
     hound_err err;
 
-    HOUND_ASSERT_NOT_NULL(out_fd);
-    HOUND_ASSERT_EQ(s_pipe[READ_END], FD_INVALID);
-    HOUND_ASSERT_EQ(s_pipe[WRITE_END], FD_INVALID);
+    XASSERT_NOT_NULL(out_fd);
+    XASSERT_EQ(s_pipe[READ_END], FD_INVALID);
+    XASSERT_EQ(s_pipe[WRITE_END], FD_INVALID);
 
     err = open(s_filepath, 0, O_RDONLY);
     if (err == -1) {
@@ -215,9 +215,9 @@ hound_err file_stop(void)
 {
     hound_err err;
 
-    HOUND_ASSERT_NEQ(s_fd, FD_INVALID);
-    HOUND_ASSERT_NEQ(s_pipe[READ_END], FD_INVALID);
-    HOUND_ASSERT_NEQ(s_pipe[WRITE_END], FD_INVALID);
+    XASSERT_NEQ(s_fd, FD_INVALID);
+    XASSERT_NEQ(s_pipe[READ_END], FD_INVALID);
+    XASSERT_NEQ(s_pipe[WRITE_END], FD_INVALID);
 
     err = close(s_fd);
     if (err != -1) {

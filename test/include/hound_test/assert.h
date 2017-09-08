@@ -1,22 +1,26 @@
 /**
- * @file      error.h
- * @brief     Private hound error code.
+ * @file      assert.h
+ * @brief     Test assert code.
  * @author    Martin Kelly <mkelly@xevo.com>
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
-#ifndef HOUND_PRIVATE_ERROR_H_
-#define HOUND_PRIVATE_ERROR_H_
+#ifndef HOUND_TEST_ASSERT_H_
+#define HOUND_TEST_ASSERT_H_
 
 #include <hound/hound.h>
-#include <hound_private/log.h>
+#include <stdio.h>
 #include <xlib/xassert.h>
 
-const char *error_strerror(hound_err err);
+static inline
+void print_assert_msg(const char *msg)
+{
+    fputs(msg, stderr);
+}
 
-XASSERT_DEFINE_ASSERTS(log_assert_msg)
+XASSERT_DEFINE_ASSERTS(print_assert_msg)
 
 #define XASSERT_ERRCODE(x, y) _XASSERT_ERRCODE(x, y, hound_strerror)
 #define XASSERT_OK(err) XASSERT_ERRCODE(err, HOUND_OK)
 
-#endif /* HOUND_PRIVATE_ERROR_H_ */
+#endif /* HOUND_TEST_ASSERT_H_ */
