@@ -63,7 +63,10 @@ valgrind_dep = dependency('valgrind')
 test_deps = [hound_dep] + [thread_dep] + [valgrind_dep] + [xlib_dep]
 test_include = include_directories('test/include')
 
-add_test_setup('valgrind', exe_wrapper: ['valgrind', '-v'])
+add_test_setup(
+    'valgrind',
+    exe_wrapper: ['valgrind', '-v'],
+    timeout_multiplier: 100)
 tests = [
     ['nop', ['test/driver/nop.c', 'test/nop.c'], [] ],
     ['counter', ['test/driver/counter.c', 'test/counter.c'], [] ],
@@ -76,7 +79,7 @@ foreach t : tests
         t.get(1),
         include_directories: test_include,
         dependencies: test_deps)
-    test(t.get(0), exe, args: t.get(2))
+    test(t.get(0), exe, args: t.get(2), timeout: 50)
 endforeach
 
 # Documentation.
