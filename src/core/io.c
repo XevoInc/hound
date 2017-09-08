@@ -15,6 +15,7 @@
 #include <hound_private/util.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <syslog.h>
