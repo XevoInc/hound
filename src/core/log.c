@@ -23,6 +23,11 @@ void log_vmsg(int priority, const char *fmt, va_list args)
     vsyslog(priority, fmt, args);
 }
 
+void log_assert_msg(const char *msg)
+{
+    log_msg(LOG_CRIT, msg);
+}
+
 void log_init(void)
 {
     /* TODO: Make log levels configurable. */

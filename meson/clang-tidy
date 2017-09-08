@@ -4,4 +4,5 @@ cd "$MESON_SOURCE_ROOT"
 exec clang-tidy $(find src test -name '*.c') -- \
   -std=c11 \
   -I include \
-  -I subprojects/xlib/include
+  -I subprojects/xlib/include \
+  -I test/include

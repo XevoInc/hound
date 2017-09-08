@@ -19,9 +19,10 @@ install_subdir('include/hound', install_dir: 'include')
 
 # Library.
 thread_dep = dependency('threads')
+xlib_dep = dependency('xlib', fallback: ['xlib', 'xlib_dep'])
 lib_deps = [
     dependency('threads'),
-    dependency('xlib', fallback: ['xlib', 'xlib_dep'])
+    xlib_dep
 ]
 
 src = [
@@ -59,7 +60,8 @@ run_target('can-setup', command: ['meson/vcan', 'setup'])
 run_target('can-destroy', command: ['meson/vcan', 'destroy'])
 
 valgrind_dep = dependency('valgrind')
-test_deps = [thread_dep] + [valgrind_dep]
+test_deps = [hound_dep] + [thread_dep] + [valgrind_dep] + [xlib_dep]
+test_include = include_directories('test/include')
 
 add_test_setup('valgrind', exe_wrapper: ['valgrind', '-v'])
 tests = [
@@ -72,8 +74,7 @@ foreach t : tests
     exe = executable(
         t.get(0),
         t.get(1),
-        include_directories: include,
-        link_with: lib,
+        include_directories: test_include,
         dependencies: test_deps)
     test(t.get(0), exe, args: t.get(2))
 endforeach

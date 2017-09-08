@@ -7,9 +7,9 @@
 
 #define _POSIX_C_SOURCE 200809L
 #include <fcntl.h>
-#include <hound/error.h>
 #include <hound/driver/file.h>
 #include <hound/hound.h>
+#include <hound_test/assert.h>
 #include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,14 +28,14 @@ void data_cb(struct hound_record *record, void *data)
     struct text *text;
     int ret;
 
-    HOUND_ASSERT_NOT_NULL(record);
-    HOUND_ASSERT_NOT_NULL(record->data);
-    HOUND_ASSERT_GT(record->size, 0);
-    HOUND_ASSERT_NOT_NULL(data);
+    XASSERT_NOT_NULL(record);
+    XASSERT_NOT_NULL(record->data);
+    XASSERT_GT(record->size, 0);
+    XASSERT_NOT_NULL(data);
 
     text = data;
     ret = memcmp(text->data + text->index, record->data, record->size);
-    HOUND_ASSERT_EQ(ret, 0);
+    XASSERT_EQ(ret, 0);
     text->index += record->size;
 }
 
@@ -48,17 +48,17 @@ char *slurp_file(const char *filepath, size_t *count)
     struct stat st;
 
     fd = open(filepath, 0, O_RDONLY);
-    HOUND_ASSERT_NEQ(fd, -1);
+    XASSERT_NEQ(fd, -1);
 
     ret = fstat(fd, &st);
-    HOUND_ASSERT_EQ(ret, 0);
+    XASSERT_EQ(ret, 0);
     data = malloc(st.st_size);
-    HOUND_ASSERT_NOT_NULL(data);
+    XASSERT_NOT_NULL(data);
 
     bytes = 0;
     do {
         ret = read(fd, data + bytes, st.st_size - bytes);
-        HOUND_ASSERT_GT(ret, 0);
+        XASSERT_GT(ret, 0);
         bytes += ret;
     } while (bytes < st.st_size);
 
@@ -96,31 +96,31 @@ int main(int argc, const char **argv)
     filepath = argv[1];
 
     err = hound_register_file_driver(filepath, data_rq.id);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     err = hound_alloc_ctx(&ctx, &rq);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     err = hound_start(ctx);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     text.data = slurp_file(filepath, &total_count);
     text.index = 0;
     while (text.index < total_count) {
         err = hound_read(ctx, 1);
-        HOUND_ASSERT_OK(err);
+        XASSERT_OK(err);
     }
-    HOUND_ASSERT_EQ(text.index, total_count);
+    XASSERT_EQ(text.index, total_count);
     free(text.data);
 
     err = hound_stop(ctx);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     err = hound_free_ctx(ctx);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     err = hound_unregister_driver(filepath);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     return 0;
 }

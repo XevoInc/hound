@@ -7,9 +7,9 @@
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
-#include <hound/error.h>
 #include <hound/hound.h>
 #include <hound_private/driver.h>
+#include <hound_test/assert.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -92,19 +92,19 @@ hound_err nop_parse(
     size_t *bytes,
     struct hound_record *record)
 {
-    HOUND_ASSERT_NOT_NULL(buf);
-    HOUND_ASSERT_NOT_NULL(bytes);
-    HOUND_ASSERT_GT(*bytes, 0);
-    HOUND_ASSERT_NOT_NULL(record);
+    XASSERT_NOT_NULL(buf);
+    XASSERT_NOT_NULL(bytes);
+    XASSERT_GT(*bytes, 0);
+    XASSERT_NOT_NULL(record);
 
     return HOUND_OK;
 }
 
 hound_err nop_start(int *fd)
 {
-    HOUND_ASSERT_EQ(s_fd, FD_INVALID);
+    XASSERT_EQ(s_fd, FD_INVALID);
     s_fd = open("/dev/null", 0);
-    HOUND_ASSERT_NEQ(s_fd, -1);
+    XASSERT_NEQ(s_fd, -1);
     *fd = s_fd;
 
     return HOUND_OK;
@@ -119,9 +119,9 @@ hound_err nop_stop(void)
 {
     hound_err err;
 
-    HOUND_ASSERT_NEQ(s_fd, FD_INVALID);
+    XASSERT_NEQ(s_fd, FD_INVALID);
     err = close(s_fd);
-    HOUND_ASSERT_NEQ(err, -1);
+    XASSERT_NEQ(err, -1);
 
     return HOUND_OK;
 }

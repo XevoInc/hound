@@ -6,10 +6,10 @@
  */
 
 #define _GNU_SOURCE
-#include <hound/error.h>
 #include <hound/hound.h>
-#include <hound/log.h>
 #include <hound_private/driver.h>
+#include <hound_private/error.h>
+#include <hound_private/log.h>
 #include <hound_private/util.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -258,7 +258,7 @@ hound_err ctx_free(struct hound_ctx *ctx)
     NULL_CHECK(ctx);
 
     err = pthread_rwlock_destroy(&ctx->rwlock);
-    HOUND_ASSERT_EQ(err, 0);
+    XASSERT_EQ(err, 0);
 
     free_driver_data_map(ctx->periodic_data_map);
     free_driver_data_map(ctx->on_demand_data_map);

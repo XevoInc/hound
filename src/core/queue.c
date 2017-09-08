@@ -9,7 +9,7 @@
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
-#include <hound/error.h>
+#include <hound_private/error.h>
 #include <hound_private/queue.h>
 #include <hound_private/util.h>
 #include <pthread.h>
@@ -31,7 +31,7 @@ hound_err queue_alloc(
 {
     struct queue *queue;
 
-    HOUND_ASSERT_NOT_NULL(out_queue);
+    XASSERT_NOT_NULL(out_queue);
 
     queue = malloc(sizeof(*queue) + sizeof(*queue->data)*max_len);
     if (queue == NULL) {
@@ -51,7 +51,7 @@ hound_err queue_alloc(
 
 void queue_destroy(struct queue *queue)
 {
-    HOUND_ASSERT_NOT_NULL(queue);
+    XASSERT_NOT_NULL(queue);
 
     pthread_mutex_destroy(&queue->mutex);
     pthread_cond_destroy(&queue->data_cond);
@@ -96,8 +96,8 @@ void queue_push(
     size_t back;
     hound_err err;
 
-    HOUND_ASSERT_NOT_NULL(queue);
-    HOUND_ASSERT_NOT_NULL(rec);
+    XASSERT_NOT_NULL(queue);
+    XASSERT_NOT_NULL(rec);
 
     pthread_mutex_lock(&queue->mutex);
     back = (queue->front + queue->len) % queue->max_len;
@@ -106,7 +106,7 @@ void queue_push(
         ++queue->len;
     }
     err = pthread_cond_signal(&queue->data_cond);
-    HOUND_ASSERT_EQ(err, 0);
+    XASSERT_EQ(err, 0);
     pthread_mutex_unlock(&queue->mutex);
 }
 
@@ -118,8 +118,8 @@ void queue_pop(
     size_t count;
     hound_err err;
 
-    HOUND_ASSERT_NOT_NULL(queue);
-    HOUND_ASSERT_NOT_NULL(buf);
+    XASSERT_NOT_NULL(queue);
+    XASSERT_NOT_NULL(buf);
 
     count = 0;
     do {
@@ -130,7 +130,7 @@ void queue_pop(
          * target. */
         while (queue->len < n) {
             err = pthread_cond_wait(&queue->data_cond, &queue->mutex);
-            HOUND_ASSERT_EQ(err, 0);
+            XASSERT_EQ(err, 0);
         }
 
         count += queue_pop_nolock(queue, buf + count, n - count);
@@ -146,8 +146,8 @@ size_t queue_pop_async(
 {
     size_t count;
 
-    HOUND_ASSERT_NOT_NULL(queue);
-    HOUND_ASSERT_NOT_NULL(buf);
+    XASSERT_NOT_NULL(queue);
+    XASSERT_NOT_NULL(buf);
 
     pthread_mutex_lock(&queue->mutex);
     count = queue_pop_nolock(queue, buf, n);
@@ -160,7 +160,7 @@ size_t queue_len(struct queue *queue)
 {
     size_t len;
 
-    HOUND_ASSERT_NOT_NULL(queue);
+    XASSERT_NOT_NULL(queue);
 
     pthread_mutex_lock(&queue->mutex);
     len = queue->len;
@@ -173,7 +173,7 @@ size_t queue_max_len(struct queue *queue)
 {
     size_t len;
 
-    HOUND_ASSERT_NOT_NULL(queue);
+    XASSERT_NOT_NULL(queue);
 
     pthread_mutex_lock(&queue->mutex);
     len = queue->max_len;

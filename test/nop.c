@@ -5,8 +5,8 @@
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
-#include <hound/error.h>
 #include <hound/hound.h>
+#include <hound_test/assert.h>
 #include <string.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
@@ -16,8 +16,8 @@ extern hound_err register_nop_driver(void);
 
 void data_cb(struct hound_record *rec, void *cb_ctx)
 {
-    HOUND_ASSERT_NOT_NULL(rec);
-    HOUND_ASSERT_NULL(cb_ctx);
+    XASSERT_NOT_NULL(rec);
+    XASSERT_NULL(cb_ctx);
 }
 
 static
@@ -26,7 +26,7 @@ void test_register(void)
     hound_err err;
 
     err = register_nop_driver();
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 }
 
 static
@@ -37,13 +37,13 @@ void test_datadesc(void)
     size_t desc_len;
 
     err = hound_get_datadesc(NULL, &desc_len);
-    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
+    XASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
     err = hound_get_datadesc(&desc, NULL);
-    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
+    XASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
     err = hound_get_datadesc(&desc, &desc_len);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     hound_free_datadesc(desc);
 }
@@ -66,7 +66,7 @@ void ctx_test(
     rq.rq_list.len = rq_len;
     rq.rq_list.data = data_rq;
     err = hound_alloc_ctx(ctx, &rq);
-    HOUND_ASSERT_ERRCODE(err, expected);
+    XASSERT_ERRCODE(err, expected);
 }
 
 static
@@ -80,7 +80,7 @@ void test_alloc_ctx(struct hound_ctx **ctx)
     struct hound_data_rq bad_data_rq[ARRAYLEN(data_rq)];
 
     err = hound_alloc_ctx(ctx, NULL);
-    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
+    XASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
     ctx_test(ctx, 0, data_cb, ARRAYLEN(data_rq), data_rq, HOUND_EMPTY_QUEUE);
     ctx_test(ctx, 5, data_cb, 0, NULL, HOUND_NO_DATA_REQUESTED);
@@ -117,13 +117,13 @@ void test_start_ctx(struct hound_ctx *ctx)
     hound_err err;
 
     err = hound_start(NULL);
-    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
+    XASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
     err = hound_start(ctx);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     err = hound_start(ctx);
-    HOUND_ASSERT_ERRCODE(err, HOUND_CTX_ALREADY_ACTIVE);
+    XASSERT_ERRCODE(err, HOUND_CTX_ALREADY_ACTIVE);
 }
 
 static
@@ -132,13 +132,13 @@ void test_stop_ctx(struct hound_ctx *ctx)
     hound_err err;
 
     err = hound_stop(NULL);
-    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
+    XASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
     err = hound_stop(ctx);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     err = hound_stop(ctx);
-    HOUND_ASSERT_ERRCODE(err, HOUND_CTX_NOT_ACTIVE);
+    XASSERT_ERRCODE(err, HOUND_CTX_NOT_ACTIVE);
 }
 
 static
@@ -147,10 +147,10 @@ void test_free_ctx(struct hound_ctx *ctx)
     hound_err err;
 
     err = hound_free_ctx(NULL);
-    HOUND_ASSERT_ERRCODE(err, HOUND_NULL_VAL);
+    XASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
     err = hound_free_ctx(ctx);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 }
 
 static
@@ -159,7 +159,7 @@ void test_unregister()
     hound_err err;
 
     err = hound_unregister_driver("/dev/nop");
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 }
 
 int main(void)

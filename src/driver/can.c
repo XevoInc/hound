@@ -8,12 +8,12 @@
 #define _POSIX_C_SOURCE 200809L
 #include <asm/sockios.h>
 #include <errno.h>
-#include <hound/error.h>
 #include <hound/hound.h>
 #include <hound/driver/can.h>
-#include <hound/log.h>
 #include <hound_private/api.h>
 #include <hound_private/driver.h>
+#include <hound_private/error.h>
+#include <hound_private/log.h>
 #include <linux/can.h>
 #include <linux/can/bcm.h>
 #include <linux/can/raw.h>
@@ -130,8 +130,8 @@ hound_err can_device_ids(
     const char ***device_ids,
     hound_device_id_count *count)
 {
-    HOUND_ASSERT_NOT_NULL(device_ids);
-    HOUND_ASSERT_NOT_NULL(count);
+    XASSERT_NOT_NULL(device_ids);
+    XASSERT_NOT_NULL(count);
 
     *count = s_device_id_count;
     *device_ids = s_device_id;
@@ -143,8 +143,8 @@ hound_err can_datadesc(
     const struct hound_drv_datadesc **desc,
     hound_data_count *count)
 {
-    HOUND_ASSERT_NOT_NULL(desc);
-    HOUND_ASSERT_NOT_NULL(count);
+    XASSERT_NOT_NULL(desc);
+    XASSERT_NOT_NULL(count);
 
     *count = 1;
     *desc = &s_datadesc;
@@ -192,7 +192,7 @@ hound_err make_raw_socket(int *out_fd)
                 CAN_RAW_RECV_OWN_MSGS,
                 &s_recv_own_msg,
                 sizeof(recv_own_msgs));
-        HOUND_ASSERT_EQ(err, 0);
+        XASSERT_EQ(err, 0);
     }
 
     err = populate_addr(fd, &addr, s_iface);
@@ -332,9 +332,9 @@ hound_err can_setdata(const struct hound_drv_data_list *data_list)
     const struct hound_drv_data *data;
     hound_err err;
 
-    HOUND_ASSERT_NOT_NULL(data_list);
-    HOUND_ASSERT_GT(data_list->len, 0);
-    HOUND_ASSERT_NOT_NULL(data_list->data);
+    XASSERT_NOT_NULL(data_list);
+    XASSERT_GT(data_list->len, 0);
+    XASSERT_NOT_NULL(data_list->data);
 
     if (data_list->len != 1) {
         return HOUND_DRIVER_UNSUPPORTED;
@@ -361,12 +361,12 @@ hound_err can_parse(
     hound_err err;
     struct timeval tv;
 
-    HOUND_ASSERT_NOT_NULL(buf);
-    HOUND_ASSERT_NOT_NULL(bytes);
-    HOUND_ASSERT_GT(*bytes, 0);
+    XASSERT_NOT_NULL(buf);
+    XASSERT_NOT_NULL(bytes);
+    XASSERT_GT(*bytes, 0);
 
     if (*bytes < sizeof(struct can_frame)) {
-        hound_log_msg(LOG_ERR, "incomplete CAN frame with %lu bytes", *bytes);
+        log_msg(LOG_ERR, "incomplete CAN frame with %lu bytes", *bytes);
         return HOUND_DRIVER_FAIL;
     }
 
@@ -380,7 +380,7 @@ hound_err can_parse(
 
     /* Get the kernel-provided timestamp for our last message. */
     err = ioctl(s_rx_fd, SIOCGSTAMP, &tv);
-    HOUND_ASSERT_NEQ(err, -1);
+    XASSERT_NEQ(err, -1);
     record->timestamp.tv_sec = tv.tv_sec;
     record->timestamp.tv_nsec = tv.tv_usec * (NS_PER_SEC/US_PER_SEC);
 
@@ -394,7 +394,7 @@ hound_err can_next(hound_data_id id)
     size_t i;
     hound_err err;
 
-    HOUND_ASSERT_EQ(id, HOUND_DEVICE_CAN);
+    XASSERT_EQ(id, HOUND_DEVICE_CAN);
 
     for (i = 0; i < s_tx_count; ++i) {
         err = write_loop(
@@ -415,8 +415,8 @@ hound_err can_start(int *out_fd)
     int rx_fd;
     int tx_fd;
 
-    HOUND_ASSERT_EQ(s_tx_fd, FD_INVALID);
-    HOUND_ASSERT_EQ(s_rx_fd, FD_INVALID);
+    XASSERT_EQ(s_tx_fd, FD_INVALID);
+    XASSERT_EQ(s_rx_fd, FD_INVALID);
 
     /*
      * Open the receive socket first so that it doesn't miss the immediate
@@ -455,8 +455,8 @@ hound_err can_stop(void)
 {
     hound_err err;
 
-    HOUND_ASSERT_NEQ(s_tx_fd, FD_INVALID);
-    HOUND_ASSERT_NEQ(s_rx_fd, FD_INVALID);
+    XASSERT_NEQ(s_tx_fd, FD_INVALID);
+    XASSERT_NEQ(s_rx_fd, FD_INVALID);
 
     err = close(s_tx_fd);
     err |= close(s_rx_fd);

@@ -6,9 +6,9 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
-#include <hound/error.h>
 #include <hound/driver/can.h>
 #include <hound/hound.h>
+#include <hound_test/assert.h>
 #include <linux/can.h>
 #include <stdio.h>
 #include <string.h>
@@ -52,17 +52,17 @@ void data_cb(struct hound_record *record, void *data)
     uint8_t *p;
     int ret;
 
-    HOUND_ASSERT_NOT_NULL(record);
-    HOUND_ASSERT_NOT_NULL(record->data);
-    HOUND_ASSERT_GT(record->size, 0);
-    HOUND_ASSERT_NOT_NULL(data);
+    XASSERT_NOT_NULL(record);
+    XASSERT_NOT_NULL(record->data);
+    XASSERT_GT(record->size, 0);
+    XASSERT_NOT_NULL(data);
 
-    HOUND_ASSERT_EQ(record->size % sizeof(*ctx->frames), 0);
+    XASSERT_EQ(record->size % sizeof(*ctx->frames), 0);
 
     ctx = data;
     for (p = record->data; p < record->data + record->size; p += sizeof(*ctx)) {
         ret = memcmp(p, ctx->frames + ctx->pos, sizeof(*ctx->frames));
-        HOUND_ASSERT_EQ(ret, 0);
+        XASSERT_EQ(ret, 0);
         ctx->pos = (ctx->pos+1) % ctx->count;
     }
 }
@@ -75,7 +75,7 @@ bool can_iface_exists(const char *iface)
     bool success;
 
     fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-    HOUND_ASSERT_NEQ(fd, -1);
+    XASSERT_NEQ(fd, -1);
 
     strcpy(ifr.ifr_name, iface); /* NOLINT, string size already checked */
     ret = ioctl(fd, SIOCGIFINDEX, &ifr);
@@ -103,10 +103,10 @@ void test_read(hound_data_period period_ns)
     };
 
     err = hound_alloc_ctx(&ctx, &rq);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     err = hound_start(ctx);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     data_rq.period_ns = period_ns;
     if (RUNNING_ON_VALGRIND) {
@@ -117,14 +117,14 @@ void test_read(hound_data_period period_ns)
     }
     for (i = 0; i < n; ++i) {
         err = hound_read(ctx, 1);
-        HOUND_ASSERT_OK(err);
+        XASSERT_OK(err);
     }
 
     err = hound_stop(ctx);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     err = hound_free_ctx(ctx);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 }
 
 int main(int argc, const char **argv)
@@ -156,7 +156,7 @@ int main(int argc, const char **argv)
     }
 
     err = hound_register_can_driver(&init);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     /* On-demand data. */
     test_read(0);
@@ -165,7 +165,7 @@ int main(int argc, const char **argv)
     test_read(1e9/1000);
 
     err = hound_unregister_driver(init.iface);
-    HOUND_ASSERT_OK(err);
+    XASSERT_OK(err);
 
     return 0;
 }
