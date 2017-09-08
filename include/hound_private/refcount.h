@@ -8,7 +8,6 @@
 #ifndef HOUND_PRIVATE_REFCOUNT_H__
 #define HOUND_PRIVATE_REFCOUNT_H__
 
-#include <pthread.h>
 #include <stdint.h>
 
 typedef uint_fast32_t refcount_val;
