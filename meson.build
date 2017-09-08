@@ -21,7 +21,7 @@ install_subdir('include/hound', install_dir: 'include')
 thread_dep = dependency('threads')
 xlib_dep = dependency('xlib', fallback: ['xlib', 'xlib_dep'])
 lib_deps = [
-    dependency('threads'),
+    thread_dep,
     xlib_dep
 ]
 
