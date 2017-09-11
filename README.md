@@ -12,24 +12,17 @@ issues, like queueing samples, minimizing latency, etc.
 ## Build
 
 ### Prerequisites
-- `meson` (recent). Unless your distro has a recent meson (probably 2016 or
-  later), you should install via pip: `pip3 install meson`, or get it from
-  source at http://mesonbuild.com/. If you install via `pip3` without sudo, then
-  you will also need to add `$HOME/.local/bin` to your `PATH` to find the
-  `meson` executable. You also may be able to get it from a later version
-  available in your distro (e.g. Debian sid as opposed to stable). If you
-  encounter strange errors when you run `meson`, it is likely you need a newer
-  version. At time of writing (August 22, 2017), version `0.41.2` works, but an
-  older version may work as well.
+- meson: `pip3 install meson`
 
-- `ninja` (>= 1.6). If your distro's version is older, the following directions
-  will download and install a more recent version:
-    - ```wget https://github.com/ninja-build/ninja/releases/download/v1.7.2/ninja-linux.zip```
-    - ```unzip ninja-linux.zip```
-    - ```sudo install -o root -g root -m755 ninja /usr/bin/ninja # or put it somewhere else in your PATH```
+- ninja: `pip3 install ninja`
 
 - (optional, for developers) `clang-tidy`. This is used for static analysis and
   is thus a build but not runtime requirement.
+
+- (optional, for developers) Python requirements, as documented in
+  `dev-requirements.txt`. These are some build-time tools that are not required
+  for runtime. They are used for sanity-checking OBD II schemas. You can install
+  them from your distro or via `pip install -r requirements.txt`.
 
 ### Custom requirements building
 
