@@ -18,10 +18,12 @@
 
 #define DEQUEUE_BUF_SIZE (128)
 
-/* TODO: add a pointer-based hash so we don't have to do casting? */
-
 /* driver --> list of data needed from that driver */
-XHASH_MAP_INIT_INT64(DRIVER_DATA_MAP, struct hound_drv_data_list)
+XHASH_MAP_INIT_PTR(DRIVER_DATA_MAP, struct driver *, struct hound_drv_data_list) /* NOLINT */
+/*
+ * TODO: We shouldn't have to add NOLINT here; it should be entirely contained
+ * in the xhash header. Strangely, that does not seem to be working.
+ */
 
 struct hound_ctx {
     pthread_rwlock_t rwlock;
@@ -142,8 +144,8 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
          * We want to process all the entries for a given driver all at once, so
          * if we've already seen this driver, just continue on.
          */
-        if (xh_found(DRIVER_DATA_MAP, ctx->periodic_data_map, (uint64_t) drv) ||
-            xh_found(DRIVER_DATA_MAP, ctx->on_demand_data_map, (uint64_t) drv)) {
+        if (xh_found(DRIVER_DATA_MAP, ctx->periodic_data_map, drv) ||
+            xh_found(DRIVER_DATA_MAP, ctx->on_demand_data_map, drv)) {
             continue;
         }
 
@@ -157,11 +159,7 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
         else {
             map = ctx->on_demand_data_map;
         }
-        iter = xh_put(
-            DRIVER_DATA_MAP,
-            map,
-            (uint64_t) drv,
-            &ret);
+        iter = xh_put(DRIVER_DATA_MAP, map, drv, &ret);
         if (ret == -1) {
             err = HOUND_OOM;
             goto error_ctx_loop;
@@ -278,7 +276,7 @@ hound_err ref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
     hound_err unref_err;
 
     xh_iter(map, iter,
-        drv = (__typeof__(drv)) xh_key(map, iter);
+        drv = xh_key(map, iter);
         drv_data_list = &xh_val(map, iter);
         ref_err = driver_ref(drv, ctx->queue, drv_data_list);
         if (ref_err != HOUND_OK) {
@@ -293,7 +291,7 @@ hound_err ref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
 error:
     /* Unref any drivers we reffed. */
     for (; iter < xh_end(map); --iter) {
-        drv = (__typeof__(drv)) xh_key(map, iter);
+        drv = xh_key(map, iter);
         drv_data_list = &xh_val(map, iter);
         unref_err = driver_unref(drv, ctx->queue, drv_data_list);
         if (unref_err != HOUND_OK) {
@@ -331,7 +329,7 @@ void unref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
     xhiter_t iter;
 
     xh_iter(map, iter,
-        drv = (__typeof__(drv)) xh_key(map, iter);
+        drv = xh_key(map, iter);
         drv_data_list = &xh_val(map, iter);
         err = driver_unref(drv, ctx->queue, drv_data_list);
         if (err != HOUND_OK) {
@@ -436,7 +434,7 @@ void ctx_next_nolock_single(struct hound_ctx *ctx)
     xhiter_t iter;
 
     xh_iter(ctx->on_demand_data_map, iter,
-        drv = (__typeof__(drv)) xh_key(ctx->on_demand_data_map, iter);
+        drv = xh_key(ctx->on_demand_data_map, iter);
         drv_data_list = &xh_val(ctx->on_demand_data_map, iter);
 
         for (i = 0; i < drv_data_list->len; ++i) {
