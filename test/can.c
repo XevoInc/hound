@@ -8,13 +8,13 @@
 #define _POSIX_C_SOURCE 200809L
 #include <hound/driver/can.h>
 #include <hound/hound.h>
+#include <hound_private/valgrind.h>
 #include <hound_test/assert.h>
 #include <linux/can.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include <valgrind.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 
