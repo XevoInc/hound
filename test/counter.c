@@ -99,10 +99,8 @@ int main(void)
 
     /* Do single async reads. */
     reset_counts(&stats);
-    for (count = 0; count < samples; ++count) {
-        err = hound_next(ctx, 1);
-        XASSERT_OK(err);
-    }
+    err = hound_next(ctx, samples);
+    XASSERT_OK(err);
     count = 0;
     while (count < samples) {
         /*
@@ -136,10 +134,8 @@ int main(void)
 
     /* Read all at once. */
     reset_counts(&stats);
-    for (count = 0; count < samples; ++count) {
-        hound_next(ctx, 1);
-        XASSERT_OK(err);
-    }
+    err = hound_next(ctx, samples);
+    XASSERT_OK(err);
     count = 0;
     while (count < samples) {
         /*
