@@ -30,15 +30,21 @@ void queue_push(
     struct queue *queue,
     struct record_info *rec);
 
-void queue_pop(
+void queue_pop_records_sync(
     struct queue *queue,
     struct record_info **buf,
     size_t n);
 
-size_t queue_pop_async(
+size_t queue_pop_bytes_async(
     struct queue *queue,
     struct record_info **buf,
-    size_t n);
+    size_t bytes,
+    size_t *records);
+
+size_t queue_pop_records_async(
+    struct queue *queue,
+    struct record_info **buf,
+    size_t records);
 
 size_t queue_pop_nolock(
     struct queue *queue,

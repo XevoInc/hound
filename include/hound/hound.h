@@ -152,13 +152,13 @@ hound_err hound_next(struct hound_ctx *ctx, size_t n);
  * for any pull-mode data.
  *
  * @param ctx a context
- * @param n the number of records to read. Reads the records as fast as
- *          possible, blocking when the queue is empty until a new item is
- *          available.
+ * @param records the number of records to read. Reads the records as fast as
+ *                possible, blocking when the queue is empty until a new item
+ *                is available.
  *
  * @return an error code
  */
-hound_err hound_read(struct hound_ctx *ctx, size_t n);
+hound_err hound_read(struct hound_ctx *ctx, size_t records);
 
 /**
  * Triggers callback invocations to process queued data. If fewer than n samples
@@ -168,13 +168,32 @@ hound_err hound_read(struct hound_ctx *ctx, size_t n);
  * hound_next(), so it is useless for pull-mode data.
  *
  * @param ctx a context
- * @param n trigger callbacks for up to count records. If fewer than n records
- *          are available, reads all available records.
+ * @param bytes trigger callbacks for up to the specified bytes. If fewer than
+ *              this count is available, reads all available records.
  * @param read filled in to indicate how many records were actually read.
  *
  * @return an error code
  */
-hound_err hound_read_async(struct hound_ctx *ctx, size_t n, size_t *read);
+hound_err hound_read_bytes_async(
+    struct hound_ctx *ctx,
+    size_t bytes,
+    size_t *read);
+
+/**
+ * Triggers callback invocations to process queued data. If fewer than n samples
+ * are available, processes callbacks on what is available instead of blocking
+ * until n samples are available. Callbacks for any available data are still
+ * guaranteed to have completed upon return. This function does not call
+ * hound_next(), so it is useless for pull-mode data.
+ *
+ * @param ctx a context
+ * @param records trigger callbacks for up to the specified records. If fewer
+ *                than this count is available, reads all available records.
+ * @param read filled in to indicate how many records were actually read.
+ *
+ * @return an error code
+ */
+hound_err hound_read_async(struct hound_ctx *ctx, size_t records, size_t *read);
 
 /**
  * Triggers callback invocations to process all currently available data. This

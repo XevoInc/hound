@@ -16,7 +16,7 @@
 #include <xlib/xhash.h>
 #include <xlib/xvec.h>
 
-#define DEQUEUE_BUF_SIZE (128)
+#define DEQUEUE_BUF_SIZE (4096 / sizeof(struct hound_record *))
 
 /* driver --> list of data needed from that driver */
 XHASH_MAP_INIT_PTR(DRIVER_DATA_MAP, struct driver *, struct hound_drv_data_list) /* NOLINT */
@@ -236,7 +236,7 @@ void destroy_cb_queue(struct queue *queue)
     size_t read;
 
     /* First drain the queue. */
-    read = queue_pop_async(queue, buf, SIZE_MAX);
+    read = queue_pop_records_async(queue, buf, SIZE_MAX);
     for (i = 0; i < read; ++i) {
         rec_info = buf[i];
         count = atomic_ref_dec(&rec_info->refcount);
@@ -443,12 +443,15 @@ void ctx_next_nolock_single(struct hound_ctx *ctx)
             if (err != HOUND_OK) {
                 hound_log_err(
                     err,
-                    "ctx %p: driver %p failed next() call", (void *) ctx, (void *) drv);
+                    "ctx %p: driver %p failed next() call",
+                    (void *) ctx,
+                    (void *) drv);
             }
         }
     );
 }
 
+static
 void ctx_next_nolock(struct hound_ctx *ctx, size_t n)
 {
     size_t i;
@@ -469,7 +472,7 @@ hound_err ctx_next(struct hound_ctx *ctx, size_t n)
     return HOUND_OK;
 }
 
-hound_err ctx_read(struct hound_ctx *ctx, size_t n)
+hound_err ctx_read(struct hound_ctx *ctx, size_t records)
 {
     struct record_info *buf[DEQUEUE_BUF_SIZE];
     hound_err err;
@@ -480,22 +483,22 @@ hound_err ctx_read(struct hound_ctx *ctx, size_t n)
 
     pthread_rwlock_rdlock(&ctx->rwlock);
 
-    if (n > queue_max_len(ctx->queue)) {
+    if (records > queue_max_len(ctx->queue)) {
         err = HOUND_QUEUE_TOO_SMALL;
         goto out;
     }
 
     /* Request data from any on-demand data types. */
-    ctx_next_nolock(ctx, n);
+    ctx_next_nolock(ctx, records);
 
     /* Dequeue and process callbacks. */
     total = 0;
     do {
-        target = min(n - total, ARRAYLEN(buf));
-        queue_pop(ctx->queue, buf, target);
+        target = min(records - total, ARRAYLEN(buf));
+        queue_pop_records_sync(ctx->queue, buf, target);
         process_callbacks(ctx, buf, target);
         total += target;
-    } while (total < n);
+    } while (total < records);
 
     err = HOUND_OK;
 
@@ -504,7 +507,37 @@ out:
     return err;
 }
 
-hound_err ctx_read_async(struct hound_ctx *ctx, size_t n, size_t *read)
+/*
+ * NB: There is no ctx_read_bytes function; this is deliberate. The
+ * problem with such a function is that records are not guaranteed to be a fixed
+ * size, and until a record is delivered, the driver does not necessarily know
+ * how large the record for a given data ID will be. Thus there is no good way
+ * to call driver_next for a given number of bytes.
+ *
+ * That said, it would be possible to implement a queue_pop_bytes_sync function.
+ * You could do something like this:
+    - add a new property to each context indicating a guess of how many bytes
+      per sample. initially set this property to something reasonably small but
+      arbitrary. call this property "guess".
+    - when doing ctx_read_bytes:
+        - sync read target bytes / "guess" number of samples.
+        - block waiting for that read to finish
+        - check how many bytes you got. adjust "guess" according to this, erring
+          on the low side because you don't want to read more bytes than
+          requested. you would want to figure out a heuristic for how to adjust
+          "guess" (always take the most recent guess, average the new guess and
+          the old one, or something else?)
+        - keep reading until you're done, continually adjusting "guess" based on
+          how many bytes are in the samples you're getting.
+
+   Considering that the heuristic requered is non-obvious, this is clearly
+   complex, and you risk reading more samples than requested, let's not
+   implement ctx_read_bytes until there is a clear need for it. At that point,
+   perhaps concrete requirements will make it more obvious how it should be
+   implemented.
+*/
+
+hound_err ctx_read_async(struct hound_ctx *ctx, size_t records, size_t *read)
 {
     struct record_info *buf[DEQUEUE_BUF_SIZE];
     size_t count;
@@ -517,17 +550,41 @@ hound_err ctx_read_async(struct hound_ctx *ctx, size_t n, size_t *read)
 
     total = 0;
     do {
-        if (n - total < ARRAYLEN(buf)) {
-            target = n - total;
-        }
-        else {
-            target = ARRAYLEN(buf);
-        }
+        target = min(records - total, ARRAYLEN(buf));
 
-        count = queue_pop_async(ctx->queue, buf, target);
+        count = queue_pop_records_async(ctx->queue, buf, target);
         process_callbacks(ctx, buf, count);
+
         total += count;
-    } while (count == target && total < n);
+    } while (count == target && total < records);
+    *read = total;
+
+    pthread_rwlock_unlock(&ctx->rwlock);
+
+    return HOUND_OK;
+}
+
+hound_err ctx_read_bytes_async(struct hound_ctx *ctx, size_t bytes, size_t *read)
+{
+    struct record_info *buf[DEQUEUE_BUF_SIZE];
+    size_t count;
+    size_t records;
+    size_t total;
+    size_t target;
+
+    NULL_CHECK(ctx);
+
+    pthread_rwlock_rdlock(&ctx->rwlock);
+
+    total = 0;
+    do {
+        target = min(bytes - total, sizeof(buf));
+
+        count = queue_pop_bytes_async(ctx->queue, buf, target, &records);
+        process_callbacks(ctx, buf, records);
+
+        total += count;
+    } while (count == target && total < bytes);
     *read = total;
 
     pthread_rwlock_unlock(&ctx->rwlock);

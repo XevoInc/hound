@@ -55,15 +55,24 @@ hound_err hound_next(struct hound_ctx *ctx, size_t n)
 }
 
 PUBLIC_API
-hound_err hound_read(struct hound_ctx *ctx, size_t n)
+hound_err hound_read(struct hound_ctx *ctx, size_t records)
 {
-    return ctx_read(ctx, n);
+    return ctx_read(ctx, records);
 }
 
 PUBLIC_API
-hound_err hound_read_async(struct hound_ctx *ctx, size_t n, size_t *read)
+hound_err hound_read_async(struct hound_ctx *ctx, size_t records, size_t *read)
 {
-    return ctx_read_async(ctx, n, read);
+    return ctx_read_async(ctx, records, read);
+}
+
+PUBLIC_API
+hound_err hound_read_bytes_async(
+    struct hound_ctx *ctx,
+    size_t bytes,
+    size_t *read)
+{
+    return ctx_read_bytes_async(ctx, bytes, read);
 }
 
 PUBLIC_API
