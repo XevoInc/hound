@@ -123,10 +123,6 @@ int main(void)
     }
     count = 0;
     while (count < total_samples) {
-        /*
-         * A tight loop like this is not efficient, but it may help stress the
-         * multithreaded code.
-         */
         err = hound_read_async(ctx, total_samples, &read);
         XASSERT_OK(err);
         count += read;
@@ -140,10 +136,6 @@ int main(void)
     XASSERT_OK(err);
     count = 0;
     while (count < total_samples) {
-        /*
-         * A tight loop like this is not efficient, but it may help stress the
-         * multithreaded code.
-         */
         err = hound_read_all(ctx, &read);
         XASSERT_OK(err);
         count += read;
@@ -156,10 +148,6 @@ int main(void)
     hound_next(ctx, total_samples);
     count = 0;
     while (count < total_bytes) {
-        /*
-         * A tight loop like this is not efficient, but it may help stress the
-         * multithreaded code.
-         */
         err = hound_read_bytes_async(ctx, total_bytes, &read);
         XASSERT_OK(err);
         count += read;
