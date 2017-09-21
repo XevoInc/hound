@@ -48,12 +48,13 @@ int main(void)
     struct hound_ctx *ctx;
     hound_err err;
     size_t count;
-    size_t read;
-    struct hound_rq rq;
-    size_t samples;
-    struct stats stats;
     struct hound_data_rq data_rq =
         { .id = HOUND_DEVICE_TEMPERATURE, .period_ns = 0 };
+    size_t read;
+    struct hound_rq rq;
+    struct stats stats;
+    size_t total_bytes;
+    size_t total_samples;
 
     /*
      * Valgrind substantially slows down runtime performance, so reduce the
@@ -61,18 +62,19 @@ int main(void)
      * time.
      */
     if (RUNNING_ON_VALGRIND) {
-        samples = 3;
+        total_samples = 3;
     }
     else {
-        samples = 4217;
+        total_samples = 4217;
     }
+    total_bytes = total_samples * sizeof(size_t);
 
     count = 0;
     err = register_counter_driver(&count);
     XASSERT_OK(err);
 
     stats.seqno = 0;
-    rq.queue_len = samples;
+    rq.queue_len = total_samples;
     rq.cb = data_cb;
     rq.cb_ctx = &stats;
     rq.rq_list.len = 1;
@@ -85,7 +87,7 @@ int main(void)
 
     /* Do individual, sync reads. */
     reset_counts(&stats);
-    for (count = 0; count < samples; ++count) {
+    for (count = 0; count < total_samples; ++count) {
         err = hound_read(ctx, 1);
         XASSERT_OK(err);
     }
@@ -93,16 +95,16 @@ int main(void)
 
     /* Do one larger, sync read. */
     reset_counts(&stats);
-    err = hound_read(ctx, samples);
+    err = hound_read(ctx, total_samples);
     XASSERT_OK(err);
     XASSERT_EQ(stats.count, count);
 
     /* Do single async reads. */
     reset_counts(&stats);
-    err = hound_next(ctx, samples);
+    err = hound_next(ctx, total_samples);
     XASSERT_OK(err);
     count = 0;
-    while (count < samples) {
+    while (count < total_samples) {
         /*
          * A tight loop like this is not efficient, but it may help stress the
          * multithreaded code.
@@ -115,29 +117,29 @@ int main(void)
 
     /* Do large async reads. */
     reset_counts(&stats);
-    for (count = 0; count < samples; ++count) {
+    for (count = 0; count < total_samples; ++count) {
         hound_next(ctx, 1);
         XASSERT_OK(err);
     }
     count = 0;
-    while (count < samples) {
+    while (count < total_samples) {
         /*
          * A tight loop like this is not efficient, but it may help stress the
          * multithreaded code.
          */
-        err = hound_read_async(ctx, samples, &read);
+        err = hound_read_async(ctx, total_samples, &read);
         XASSERT_OK(err);
         count += read;
     }
-    XASSERT_EQ(count, samples);
+    XASSERT_EQ(count, total_samples);
     XASSERT_EQ(stats.count, count);
 
     /* Read all at once. */
     reset_counts(&stats);
-    err = hound_next(ctx, samples);
+    err = hound_next(ctx, total_samples);
     XASSERT_OK(err);
     count = 0;
-    while (count < samples) {
+    while (count < total_samples) {
         /*
          * A tight loop like this is not efficient, but it may help stress the
          * multithreaded code.
@@ -146,8 +148,24 @@ int main(void)
         XASSERT_OK(err);
         count += read;
     }
-    XASSERT_EQ(count, samples);
+    XASSERT_EQ(count, total_samples);
     XASSERT_EQ(stats.count, count);
+
+    /* Do async byte reads. */
+    reset_counts(&stats);
+    hound_next(ctx, total_samples);
+    count = 0;
+    while (count < total_bytes) {
+        /*
+         * A tight loop like this is not efficient, but it may help stress the
+         * multithreaded code.
+         */
+        err = hound_read_bytes_async(ctx, total_bytes, &read);
+        XASSERT_OK(err);
+        count += read;
+    }
+    XASSERT_EQ(count, total_bytes);
+    XASSERT_EQ(stats.count, total_samples);
 
     err = hound_stop(ctx);
     XASSERT_OK(err);

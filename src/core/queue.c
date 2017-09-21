@@ -16,6 +16,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * Push to back, pop from front. Back is calculated implicitly as front + len
+ * with wraparound.
+ */
 struct queue {
     pthread_mutex_t mutex;
     pthread_cond_t data_cond;
@@ -58,22 +62,19 @@ void queue_destroy(struct queue *queue)
     free(queue);
 }
 
-size_t queue_pop_nolock(
+static
+void pop_helper(
     struct queue *queue,
     struct record_info **buf,
-    size_t n)
+    size_t records)
 {
     size_t right_records;
-    size_t target;
-
-    /* Clamp the number of items to pop at the queue length. */
-    target = min(n, queue->len);
 
     right_records = queue->max_len - queue->front;
-    if (target < right_records) {
+    if (records < right_records) {
         /* All records we need are between [front, back]. */
-        memcpy(buf, queue->data + queue->front, target * sizeof(*buf));
-        queue->front += target;
+        memcpy(buf, queue->data + queue->front, records * sizeof(*buf));
+        queue->front += records;
     }
     else {
         /* We need records from both [front, end] and [start, back]. */
@@ -81,13 +82,66 @@ size_t queue_pop_nolock(
         memcpy(
             buf + right_records,
             queue->data,
-            (target - right_records) * sizeof(*buf));
-        queue->front = target - right_records;
+            (records - right_records) * sizeof(*buf));
+        queue->front = records - right_records;
     }
-    queue->len -= target;
+    queue->len -= records;
+}
+
+static
+size_t pop_bytes(
+    struct queue *queue,
+    struct record_info **buf,
+    size_t bytes,
+    size_t *out_records)
+{
+    size_t i;
+    size_t remainder;
+    size_t records;
+    size_t size;
+
+    records = 0;
+    remainder = bytes;
+    i = queue->front;
+    while (true) {
+        if (records == queue->len) {
+            break;
+        }
+
+        size = queue->data[i]->record.size;
+        if (remainder < size) {
+            break;
+        }
+        remainder -= size;
+
+        ++records;
+        ++i;
+        if (i == queue->max_len) {
+            i = 0;
+        }
+    }
+
+    pop_helper(queue, buf, records);
+    *out_records = records;
+
+    return bytes - remainder;
+}
+
+static
+size_t pop_records(
+    struct queue *queue,
+    struct record_info **buf,
+    size_t records)
+{
+    size_t target;
+
+    /* Clamp the number of items to pop at the queue length. */
+    target = min(records, queue->len);
+    pop_helper(queue, buf, target);
 
     return target;
 }
+
 
 void queue_push(
     struct queue *queue,
@@ -110,10 +164,10 @@ void queue_push(
     pthread_mutex_unlock(&queue->mutex);
 }
 
-void queue_pop(
+void queue_pop_records_sync(
    struct queue *queue,
    struct record_info **buf,
-   size_t n)
+   size_t records)
 {
     size_t count;
     hound_err err;
@@ -124,25 +178,45 @@ void queue_pop(
     count = 0;
     do {
         pthread_mutex_lock(&queue->mutex);
-        /* TODO: Possible optimization: wake up only when n records are ready,
-         * rather than when 1 is ready. Probably would need to use a heap
+        /* TODO: Possible optimization: wake up only when n records/bytes are
+         * ready, rather than when 1 is ready. Probably would need to use a heap
          * structure for this, to always wait for the smallest next wakeup
          * target. */
-        while (queue->len < n) {
+        while (queue->len < records) {
             err = pthread_cond_wait(&queue->data_cond, &queue->mutex);
             XASSERT_EQ(err, 0);
         }
 
-        count += queue_pop_nolock(queue, buf + count, n - count);
-    } while (count < n);
+        count += pop_records(queue, buf + count, records - count);
+    } while (count < records);
 
     pthread_mutex_unlock(&queue->mutex);
+
 }
 
-size_t queue_pop_async(
+size_t queue_pop_bytes_async(
     struct queue *queue,
     struct record_info **buf,
-    size_t n)
+    size_t bytes,
+    size_t *records)
+{
+    size_t count;
+
+    XASSERT_NOT_NULL(queue);
+    XASSERT_NOT_NULL(buf);
+    XASSERT_NOT_NULL(records);
+
+    pthread_mutex_lock(&queue->mutex);
+    count = pop_bytes(queue, buf, bytes, records);
+    pthread_mutex_unlock(&queue->mutex);
+
+    return count;
+}
+
+size_t queue_pop_records_async(
+    struct queue *queue,
+    struct record_info **buf,
+    size_t records)
 {
     size_t count;
 
@@ -150,7 +224,7 @@ size_t queue_pop_async(
     XASSERT_NOT_NULL(buf);
 
     pthread_mutex_lock(&queue->mutex);
-    count = queue_pop_nolock(queue, buf, n);
+    count = pop_records(queue, buf, records);
     pthread_mutex_unlock(&queue->mutex);
 
     return count;
