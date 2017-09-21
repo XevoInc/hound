@@ -147,9 +147,9 @@ hound_err hound_stop(struct hound_ctx *ctx);
 hound_err hound_next(struct hound_ctx *ctx, size_t n);
 
 /**
- * Triggers callback invocations to process queued data, blocking all the
- * requested data has been processed by callbacks. Also calls hound_next() for
- * any pull-mode data.
+ * Triggers callback invocations to process queued data, blocking until all
+ * requested data has finished a callback invocation.  Also calls hound_next()
+ * for any pull-mode data.
  *
  * @param ctx a context
  * @param n the number of records to read. Reads the records as fast as
@@ -161,8 +161,11 @@ hound_err hound_next(struct hound_ctx *ctx, size_t n);
 hound_err hound_read(struct hound_ctx *ctx, size_t n);
 
 /**
- * Triggers callback invocations to process queued data without blocking. This
- * function does not call hound_next(), so it is useless for pull-mode data.
+ * Triggers callback invocations to process queued data. If fewer than n samples
+ * are available, processes callbacks on what is available instead of blocking
+ * until n samples are available. Callbacks for any available data are still
+ * guaranteed to have completed upon return. This function does not call
+ * hound_next(), so it is useless for pull-mode data.
  *
  * @param ctx a context
  * @param n trigger callbacks for up to count records. If fewer than n records
@@ -174,7 +177,8 @@ hound_err hound_read(struct hound_ctx *ctx, size_t n);
 hound_err hound_read_async(struct hound_ctx *ctx, size_t n, size_t *read);
 
 /**
- * Triggers callback invocations to process all currently available data.
+ * Triggers callback invocations to process all currently available data. This
+ * is equivalent to calling hound_read_async(ctx, INFINITY).
  *
  * @param ctx a context
  * @param read filled in to indicate how many records were actually read.
