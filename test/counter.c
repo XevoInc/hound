@@ -93,11 +93,11 @@ int main(void)
 
     /* Do one larger, sync read. */
     reset_counts(&stats);
-    err = hound_read(ctx, count);
+    err = hound_read(ctx, samples);
     XASSERT_OK(err);
     XASSERT_EQ(stats.count, count);
 
-    /* Do individual, async reads. */
+    /* Do single async reads. */
     reset_counts(&stats);
     for (count = 0; count < samples; ++count) {
         err = hound_next(ctx, 1);
