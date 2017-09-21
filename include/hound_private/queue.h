@@ -19,8 +19,6 @@ struct record_info {
 
 struct queue;
 
-typedef void (*queue_drain_cb)(struct record_info *rec);
-
 hound_err queue_alloc(
     struct queue **queue,
     size_t max_len);
