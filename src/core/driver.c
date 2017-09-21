@@ -356,16 +356,24 @@ hound_err push_drv_data(struct driver *drv, struct hound_drv_data *drv_data)
 }
 
 
-hound_err driver_next(struct driver *drv, hound_data_id id)
+hound_err driver_next(struct driver *drv, hound_data_id id, size_t n)
 {
     hound_err err;
+    size_t i;
 
     XASSERT_NOT_NULL(drv);
 
     pthread_mutex_lock(&drv->mutex);
-    err = drv->ops.next(id);
+    for (i = 0; i < n; ++i) {
+        err = drv->ops.next(id);
+        if (err != HOUND_OK) {
+            goto out;
+        }
+    }
     pthread_mutex_unlock(&drv->mutex);
+    err = HOUND_OK;
 
+out:
     return err;
 }
 
