@@ -424,7 +424,8 @@ void process_callbacks(
     }
 }
 
-void ctx_next_nolock_single(struct hound_ctx *ctx)
+static
+void ctx_next_nolock(struct hound_ctx *ctx, size_t n)
 {
     const struct hound_drv_data *data;
     struct driver *drv;
@@ -439,7 +440,7 @@ void ctx_next_nolock_single(struct hound_ctx *ctx)
 
         for (i = 0; i < drv_data_list->len; ++i) {
             data = &drv_data_list->data[i];
-            err = driver_next(drv, data->id);
+            err = driver_next(drv, data->id, n);
             if (err != HOUND_OK) {
                 hound_log_err(
                     err,
@@ -449,16 +450,6 @@ void ctx_next_nolock_single(struct hound_ctx *ctx)
             }
         }
     );
-}
-
-static
-void ctx_next_nolock(struct hound_ctx *ctx, size_t n)
-{
-    size_t i;
-
-    for (i = 0; i < n; ++i) {
-        ctx_next_nolock_single(ctx);
-    }
 }
 
 hound_err ctx_next(struct hound_ctx *ctx, size_t n)

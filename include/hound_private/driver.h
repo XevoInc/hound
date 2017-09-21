@@ -132,7 +132,7 @@ hound_err driver_register(
     void *data);
 hound_err driver_unregister(const char *path);
 
-hound_err driver_next(struct driver *drv, hound_data_id id);
+hound_err driver_next(struct driver *drv, hound_data_id id, size_t n);
 
 hound_err driver_ref(
     struct driver *drv,
