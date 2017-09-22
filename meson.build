@@ -72,7 +72,7 @@ configure_file(
 
 add_test_setup(
     'valgrind',
-    exe_wrapper: ['valgrind', '-v'],
+    exe_wrapper: ['valgrind'],
     timeout_multiplier: 100)
 tests = [
     ['nop', ['test/driver/nop.c', 'test/nop.c'], [] ],
