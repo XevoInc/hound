@@ -137,7 +137,7 @@ int main(int argc, const char **argv)
         exit(EXIT_FAILURE);
     }
     if (strnlen(argv[1], IFNAMSIZ) == IFNAMSIZ) {
-        fprintf(stderr, "File argument is longer than IFNAMSIZ\n");
+        fprintf(stderr, "Device argument is longer than IFNAMSIZ\n");
         exit(EXIT_FAILURE);
     }
     strcpy(init.iface, argv[1]); /* NOLINT, string size already checked */
