@@ -170,14 +170,16 @@ hound_err hound_read(struct hound_ctx *ctx, size_t records);
  * @param ctx a context
  * @param bytes trigger callbacks for up to the specified bytes. If fewer than
  *              this count is available, reads all available records.
- * @param read filled in to indicate how many records were actually read.
+ * @param records_read filled in to indicate how many records were actually read.
+ * @param read filled in to indicate how many bytes were actually read.
  *
  * @return an error code
  */
 hound_err hound_read_bytes_async(
     struct hound_ctx *ctx,
     size_t bytes,
-    size_t *read);
+    size_t *records_read,
+    size_t *bytes_read);
 
 /**
  * Triggers callback invocations to process queued data. If fewer than n samples
