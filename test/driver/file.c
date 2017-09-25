@@ -1,7 +1,6 @@
 /**
  * @file      file.c
- * @brief     File driver implementation. This driver outputs a sample for each
- *            line in a given file at a configured period.
+ * @brief     Test file driver implementation.
  * @author    Martin Kelly <mkelly@xevo.com>
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
@@ -10,10 +9,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <hound/hound.h>
-#include <hound/driver/file.h>
 #include <hound_private/api.h>
 #include <hound_private/driver.h>
-#include <hound_private/error.h>
+#include <hound_test/assert.h>
 #include <linux/limits.h>
 #include <string.h>
 #include <unistd.h>
