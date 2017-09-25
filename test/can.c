@@ -142,10 +142,6 @@ int main(int argc, const char **argv)
     }
     strcpy(init.iface, argv[1]); /* NOLINT, string size already checked */
 
-    init.tx_count = ARRAYLEN(s_tx_frames);
-    init.tx_frames = s_tx_frames;
-    init.recv_own_msg = 1;
-
     if (!can_iface_exists(init.iface)) {
         fprintf(
             stderr,
@@ -154,6 +150,10 @@ int main(int argc, const char **argv)
             init.iface);
         exit(EXIT_FAILURE);
     }
+
+    init.tx_count = ARRAYLEN(s_tx_frames);
+    init.tx_frames = s_tx_frames;
+    init.recv_own_msg = 1;
 
     err = hound_register_can_driver(&init);
     XASSERT_OK(err);
