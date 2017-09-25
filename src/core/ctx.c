@@ -555,28 +555,37 @@ hound_err ctx_read_async(struct hound_ctx *ctx, size_t records, size_t *read)
     return HOUND_OK;
 }
 
-hound_err ctx_read_bytes_async(struct hound_ctx *ctx, size_t bytes, size_t *read)
+hound_err ctx_read_bytes_async(
+    struct hound_ctx *ctx,
+    size_t bytes,
+    size_t *records_read,
+    size_t *bytes_read)
 {
     struct record_info *buf[DEQUEUE_BUF_SIZE];
     size_t count;
     size_t records;
-    size_t total;
+    size_t total_bytes;
+    size_t total_records;
     size_t target;
 
     NULL_CHECK(ctx);
 
     pthread_rwlock_rdlock(&ctx->rwlock);
 
-    total = 0;
+    total_bytes = 0;
+    total_records = 0;
     do {
-        target = min(bytes - total, sizeof(buf));
+        target = min(bytes - total_bytes, sizeof(buf));
 
         count = queue_pop_bytes_async(ctx->queue, buf, target, &records);
         process_callbacks(ctx, buf, records);
 
-        total += count;
-    } while (count == target && total < bytes);
-    *read = total;
+        total_records += records;
+        total_bytes += count;
+    } while (count == target && total_bytes < bytes);
+
+    *bytes_read = total_bytes;
+    *records_read = total_records;
 
     pthread_rwlock_unlock(&ctx->rwlock);
 
