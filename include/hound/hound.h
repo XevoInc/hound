@@ -161,30 +161,9 @@ hound_err hound_next(struct hound_ctx *ctx, size_t n);
 hound_err hound_read(struct hound_ctx *ctx, size_t records);
 
 /**
- * Triggers callback invocations to process queued data. If fewer than n samples
+ * Triggers callback invocations to process queued data. If fewer than n records
  * are available, processes callbacks on what is available instead of blocking
- * until n samples are available. Callbacks for any available data are still
- * guaranteed to have completed upon return. This function does not call
- * hound_next(), so it is useless for pull-mode data.
- *
- * @param ctx a context
- * @param bytes trigger callbacks for up to the specified bytes. If fewer than
- *              this count is available, reads all available records.
- * @param records_read filled in to indicate how many records were actually read.
- * @param read filled in to indicate how many bytes were actually read.
- *
- * @return an error code
- */
-hound_err hound_read_bytes_async(
-    struct hound_ctx *ctx,
-    size_t bytes,
-    size_t *records_read,
-    size_t *bytes_read);
-
-/**
- * Triggers callback invocations to process queued data. If fewer than n samples
- * are available, processes callbacks on what is available instead of blocking
- * until n samples are available. Callbacks for any available data are still
+ * until n records are available. Callbacks for any available data are still
  * guaranteed to have completed upon return. This function does not call
  * hound_next(), so it is useless for pull-mode data.
  *
@@ -196,6 +175,32 @@ hound_err hound_read_bytes_async(
  * @return an error code
  */
 hound_err hound_read_async(struct hound_ctx *ctx, size_t records, size_t *read);
+
+/**
+ * Triggers callback invocations to process queued data. If fewer than n records
+ * are available, processes callbacks on what is available instead of blocking
+ * until n records are available. Callbacks for any available data are still
+ * guaranteed to have completed upon return. This function does not call
+ * hound_next(), so it is useless for pull-mode data.
+ *
+ * This form of read_async will trigger callbacks on up to the specified number
+ * of bytes of records. The callback will take the same form as usual,
+ * triggering on a per-record basis. However, the sum of the record sizes
+ * triggered will not exceed the specified number of bytes.
+ *
+ * @param ctx a context
+ * @param bytes trigger callbacks for up to the specified bytes of records. If
+ *              fewer than this count is available, reads all available records.
+ * @param records_read filled in to indicate how many records were actually read.
+ * @param read filled in to indicate how many bytes were actually read.
+ *
+ * @return an error code
+ */
+hound_err hound_read_bytes_async(
+    struct hound_ctx *ctx,
+    size_t bytes,
+    size_t *records_read,
+    size_t *bytes_read);
 
 /**
  * Triggers callback invocations to process all currently available data. This
