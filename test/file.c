@@ -7,7 +7,6 @@
 
 #define _POSIX_C_SOURCE 200809L
 #include <fcntl.h>
-#include <hound/driver/file.h>
 #include <hound/hound.h>
 #include <hound_test/assert.h>
 #include <linux/limits.h>
@@ -17,6 +16,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+extern hound_err hound_register_file_driver(
+    const char *filepath, hound_data_id id);
 
 struct text {
     char *data;

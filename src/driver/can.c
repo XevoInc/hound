@@ -54,6 +54,7 @@ static uint32_t s_tx_count;
 static size_t s_payload_size;
 static struct bcm_payload *s_payload;
 
+static
 hound_err write_loop(int fd, void *data, size_t n)
 {
     ssize_t bytes;
