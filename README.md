@@ -1,5 +1,5 @@
 # Hound
-Hound -- named after the dog with excellent sense of small -- is a library for
+Hound -- named after the dog with excellent sense of smell -- is a library for
 Linux intended to easily and performantly read data from sensors on embedded
 devices.  Common sensors handled include CAN and many analog sensors (e.g.
 accelerometer, gyroscope, and anything else handled by the Linux Kernel
