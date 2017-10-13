@@ -1,5 +1,5 @@
 /**
- * @file      file.c
+ * @file      can.c
  * @brief     Unit test for the file driver.
  * @author    Martin Kelly <mkelly@xevo.com>
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
