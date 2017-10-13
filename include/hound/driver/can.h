@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+#include <linux/can.h>
 #include <hound/hound.h>
 /*
  * This breaks the normal alphabetized-headers rule; <sys/socket.h> must come
@@ -22,7 +23,7 @@ extern "C" {
 
 struct hound_can_driver_init {
     char iface[IFNAMSIZ];
-    int recv_own_msg;
+    canid_t rx_can_id;
     uint32_t tx_count;
     struct can_frame *tx_frames;
 };

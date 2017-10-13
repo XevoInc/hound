@@ -45,7 +45,7 @@ static struct hound_drv_datadesc s_datadesc = {
 
 static bool s_active;
 static char s_iface[IFNAMSIZ];
-static int s_recv_own_msg;
+static canid_t s_rx_can_id;
 static hound_data_period s_period_ns;
 static hound_alloc *s_alloc;
 static int s_tx_fd;
@@ -108,7 +108,7 @@ hound_err can_init(hound_alloc alloc, void *data)
     memcpy(s_payload->tx_frames, init->tx_frames, frames_size);
 
     strcpy(s_iface, init->iface); /* NOLINT, string size already checked */
-    s_recv_own_msg = init->recv_own_msg;
+    s_rx_can_id = init->rx_can_id;
     s_tx_count = init->tx_count;
     s_alloc = alloc;
     s_tx_fd = FD_INVALID;
@@ -177,23 +177,12 @@ hound_err make_raw_socket(int *out_fd)
     struct sockaddr_can addr;
     hound_err err;
     int fd;
-    int recv_own_msgs;
 
     fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (fd == -1) {
         *out_fd = FD_INVALID;
         err = errno;
         goto out;
-    }
-
-    if (s_recv_own_msg) {
-        err = setsockopt(
-                fd,
-                SOL_CAN_RAW,
-                CAN_RAW_RECV_OWN_MSGS,
-                &s_recv_own_msg,
-                sizeof(recv_own_msgs));
-        XASSERT_EQ(err, 0);
     }
 
     err = populate_addr(fd, &addr, s_iface);
@@ -413,6 +402,7 @@ hound_err can_next(hound_data_id id)
 hound_err can_start(int *out_fd)
 {
     hound_err err;
+    struct can_filter filter;
     int rx_fd;
     int tx_fd;
 
@@ -426,6 +416,21 @@ hound_err can_start(int *out_fd)
     err = make_raw_socket(&rx_fd);
     if (err != HOUND_OK) {
         goto out;
+    }
+
+    /* Filter by the given CAN ID. CAN ID == 0 implies allow all traffic. */
+    if (s_rx_can_id != 0) {
+        filter.can_id = s_rx_can_id;
+        filter.can_mask = CAN_SFF_MASK;
+        err = setsockopt(
+            rx_fd,
+            SOL_CAN_RAW,
+            CAN_RAW_FILTER,
+            &filter,
+            sizeof(filter));
+        if (err != HOUND_OK) {
+            goto out;
+        }
     }
 
     if (s_period_ns == 0) {

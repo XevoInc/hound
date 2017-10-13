@@ -153,7 +153,8 @@ int main(int argc, const char **argv)
 
     init.tx_count = ARRAYLEN(s_tx_frames);
     init.tx_frames = s_tx_frames;
-    init.recv_own_msg = 1;
+    /* Don't filter responses; we want to receive our own queries. */
+    init.rx_can_id = 0;
 
     err = hound_register_can_driver(&init);
     XASSERT_OK(err);
