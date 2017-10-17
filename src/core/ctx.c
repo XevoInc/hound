@@ -304,23 +304,6 @@ out:
     return ref_err;
 }
 
-hound_err ref_drivers(struct hound_ctx *ctx)
-{
-    hound_err err;
-
-    err = ref_driver_map(ctx, ctx->periodic_data_map);
-    if (err != HOUND_OK) {
-        return err;
-    }
-
-    err = ref_driver_map(ctx, ctx->on_demand_data_map);
-    if (err != HOUND_OK) {
-        return err;
-    }
-
-    return HOUND_OK;
-}
-
 void unref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
 {
     struct driver *drv;
@@ -338,6 +321,28 @@ void unref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
                 "ctx %p: failed to unref driver %p", (void *) ctx, (void *) drv);
         }
     );
+}
+
+hound_err ref_drivers(struct hound_ctx *ctx)
+{
+    hound_err err;
+
+    err = ref_driver_map(ctx, ctx->periodic_data_map);
+    if (err != HOUND_OK) {
+        goto error_periodic;
+    }
+
+    err = ref_driver_map(ctx, ctx->on_demand_data_map);
+    if (err != HOUND_OK) {
+        goto error_on_demand;
+    }
+
+    return HOUND_OK;
+
+error_on_demand:
+    unref_driver_map(ctx, ctx->periodic_data_map);
+error_periodic:
+    return err;
 }
 
 void unref_drivers(struct hound_ctx *ctx)
