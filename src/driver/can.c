@@ -79,6 +79,9 @@ hound_err write_loop(int fd, void *data, size_t n)
 
 hound_err can_init(hound_alloc alloc, void *data)
 {
+    struct ifreq ifr;
+    hound_err err;
+    int fd;
     size_t frames_size;
     struct hound_can_driver_init *init;
 
@@ -97,6 +100,17 @@ hound_err can_init(hound_alloc alloc, void *data)
 
     if (strnlen(init->iface, IFNAMSIZ) == IFNAMSIZ) {
         return HOUND_INVALID_VAL;
+    }
+
+    /* Verify the interface exists and is usable. */
+    fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    if (fd == -1) {
+        return fd;
+    }
+    strcpy(ifr.ifr_name, init->iface); /* NOLINT, string size already checked */
+    err = ioctl(fd, SIOCGIFINDEX, &ifr);
+    if (err == -1) {
+        return errno;
     }
 
     frames_size = init->tx_count*sizeof(*s_payload->tx_frames);
