@@ -266,6 +266,7 @@ hound_err ctx_free(struct hound_ctx *ctx)
     return HOUND_OK;
 }
 
+static
 hound_err ref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
 {
 
@@ -309,6 +310,7 @@ out:
     return ref_err;
 }
 
+static
 void unref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
 {
     struct driver *drv;
@@ -328,6 +330,7 @@ void unref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
     );
 }
 
+static
 hound_err ref_drivers(struct hound_ctx *ctx)
 {
     hound_err err;
@@ -350,6 +353,7 @@ error_periodic:
     return err;
 }
 
+static
 void unref_drivers(struct hound_ctx *ctx)
 {
     unref_driver_map(ctx, ctx->periodic_data_map);
