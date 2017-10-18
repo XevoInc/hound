@@ -271,16 +271,16 @@ hound_err ref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
 
     struct driver *drv;
     const struct hound_drv_data_list *drv_data_list;
-    xhiter_t iter;
     hound_err ref_err;
+    xhiter_t ref_iter;
     hound_err unref_err;
+    xhiter_t unref_iter;
 
-    xh_iter(map, iter,
-        drv = xh_key(map, iter);
-        drv_data_list = &xh_val(map, iter);
+    xh_iter(map, ref_iter,
+        drv = xh_key(map, ref_iter);
+        drv_data_list = &xh_val(map, ref_iter);
         ref_err = driver_ref(drv, ctx->queue, drv_data_list);
         if (ref_err != HOUND_OK) {
-            --iter;
             goto error;
         }
     );
@@ -290,16 +290,21 @@ hound_err ref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
 
 error:
     /* Unref any drivers we reffed. */
-    for (; iter < xh_end(map); --iter) {
-        drv = xh_key(map, iter);
-        drv_data_list = &xh_val(map, iter);
+    xh_iter(map, unref_iter,
+        /* We have hit the the driver that failed to ref, so stop here. */
+        if (unref_iter == ref_iter) {
+            break;
+        }
+
+        drv = xh_key(map, unref_iter);
+        drv_data_list = &xh_val(map, unref_iter);
         unref_err = driver_unref(drv, ctx->queue, drv_data_list);
         if (unref_err != HOUND_OK) {
             hound_log_err(
                 unref_err,
                 "ctx %p: failed to unref driver %p", (void *) ctx, (void *) drv);
         }
-    }
+    );
 out:
     return ref_err;
 }
