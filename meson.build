@@ -11,6 +11,8 @@ project('hound', 'c',
 cflags = ['-Wshadow', '-fvisibility=hidden']
 add_project_arguments(cflags, language: 'c')
 
+pkg = import('pkgconfig')
+
 # Includes.
 include = include_directories('include')
 install_subdir('include/hound', install_dir: 'include')
@@ -45,7 +47,6 @@ lib = library(
     install: true,
     dependencies: lib_deps,
     version: meson.project_version())
-pkg = import('pkgconfig')
 pkg.generate(
     name: 'hound',
     description: 'A generic, performant sensor gathering library',
@@ -57,17 +58,9 @@ hound_dep = declare_dependency(link_with: lib, include_directories: include)
 run_target('can-setup', command: ['meson/vcan', 'setup'])
 run_target('can-destroy', command: ['meson/vcan', 'destroy'])
 
-valgrind_dep = dependency('valgrind', required: false)
+valgrind_dep = dependency('valgrind')
 test_deps = [hound_dep] + [thread_dep] + [valgrind_dep] + [xlib_dep]
 test_include = include_directories('test/include')
-
-# Generated configuration data.
-conf = configuration_data()
-conf.set('CONFIG_HAVE_VALGRIND', valgrind_dep.found())
-configure_file(
-    input: 'include/hound_private/config.h.in',
-    output: 'config.h',
-    configuration: conf)
 
 add_test_setup(
     'valgrind',
