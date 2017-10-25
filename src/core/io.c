@@ -172,7 +172,7 @@ void *io_poll(UNUSED void *data)
         io_wait_for_ready();
 
         /* Wait for I/O. */
-        err = poll(xv_data(s_ios.fds), xv_size(s_ios.fds), 0);
+        err = poll(xv_data(s_ios.fds), xv_size(s_ios.fds), -1);
         if (err == -1) {
             if (errno == EINTR) {
                 /* We got a signal; probably need to pause the loop. */
