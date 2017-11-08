@@ -23,7 +23,7 @@
 #include <xlib/xvec.h>
 
 #define PAUSE_SIGNAL SIGUSR1
-#define POLL_BUF_SIZE (1024*1024*1024)
+#define POLL_BUF_SIZE (100*1024)
 #define POLL_HAS_DATA (POLLIN|POLLPRI)
 
 /**
