@@ -166,14 +166,15 @@ void *io_poll(UNUSED void *data)
     struct fdctx *ctx;
     hound_err err;
     size_t i;
+    int fds;
     struct pollfd *pfd;
 
     while (true) {
         io_wait_for_ready();
 
         /* Wait for I/O. */
-        err = poll(xv_data(s_ios.fds), xv_size(s_ios.fds), -1);
-        if (err == -1) {
+        fds = poll(xv_data(s_ios.fds), xv_size(s_ios.fds), -1);
+        if (fds == -1) {
             if (errno == EINTR) {
                 /* We got a signal; probably need to pause the loop. */
                 continue;
@@ -189,9 +190,10 @@ void *io_poll(UNUSED void *data)
                 XASSERT_ERROR;
             }
         }
+        XASSERT_GT (fds, 0);
 
-        /* Read any fds that have data. */
-        for (i = 0; i < xv_size(s_ios.fds); ++i) {
+        /* Read all fds that have data. */
+        for (i = 0; fds > 0 && i < xv_size(s_ios.fds); ++i) {
             pfd = &xv_A(s_ios.fds, i);
             if (pfd->revents == 0) {
                 continue;
@@ -200,6 +202,7 @@ void *io_poll(UNUSED void *data)
 
             ctx = xv_A(s_ios.ctx, i);
             err = io_read(pfd->fd, ctx);
+            --fds;
             if (err != HOUND_OK) {
                 hound_log_err(err, "Failed to grab record from fd %d", pfd->fd);
                 continue;
