@@ -193,6 +193,7 @@ hound_err make_raw_socket(int *out_fd)
     hound_err err;
     int fd;
 
+    memset(&addr, 0, sizeof(addr));
     fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (fd == -1) {
         *out_fd = FD_INVALID;
@@ -239,6 +240,7 @@ hound_err make_bcm_socket(int *out_fd)
     hound_err err;
     int fd;
 
+    memset(&addr, 0, sizeof(addr));
     fd = socket(PF_CAN, SOCK_DGRAM, CAN_BCM);
     if (fd == -1) {
         *out_fd = FD_INVALID;
