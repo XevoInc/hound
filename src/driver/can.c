@@ -112,6 +112,7 @@ hound_err can_init(hound_alloc alloc, void *data)
     if (err == -1) {
         return errno;
     }
+    close(fd);
 
     frames_size = init->tx_count*sizeof(*s_payload->tx_frames);
     s_payload_size = sizeof(*s_payload) + frames_size;
