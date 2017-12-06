@@ -174,5 +174,5 @@ int main(void)
     test_free_ctx(ctx);
     test_unregister();
 
-    return 0;
+    return EXIT_SUCCESS;
 }

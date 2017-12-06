@@ -168,5 +168,5 @@ int main(int argc, const char **argv)
     err = hound_unregister_driver(init.iface);
     XASSERT_OK(err);
 
-    return 0;
+    return EXIT_SUCCESS;
 }

@@ -173,5 +173,5 @@ int main(void)
     err = hound_unregister_driver("/dev/counter");
     XASSERT_OK(err);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
