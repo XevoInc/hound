@@ -339,18 +339,10 @@ hound_err can_setdata(const struct hound_drv_data_list *data_list)
     hound_err err;
 
     XASSERT_NOT_NULL(data_list);
-    XASSERT_GT(data_list->len, 0);
+    XASSERT_EQ(data_list->len, 1);
     XASSERT_NOT_NULL(data_list->data);
 
-    if (data_list->len != 1) {
-        return HOUND_DRIVER_UNSUPPORTED;
-    }
     data = data_list->data;
-
-    if (data->id != HOUND_DEVICE_CAN) {
-        return HOUND_DRIVER_UNSUPPORTED;
-    }
-
     err = set_period(data->period_ns);
     if (err != HOUND_OK) {
         return err;

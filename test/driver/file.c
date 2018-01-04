@@ -117,16 +117,12 @@ hound_err file_setdata(const struct hound_drv_data_list *data)
     const struct hound_drv_data *drv_data;
 
     XASSERT_NOT_NULL(data);
-    XASSERT_GT(data->len, 0);
+    XASSERT_EQ(data->len, 1);
     XASSERT_NOT_NULL(data->data);
 
     drv_data = data->data;
-    if (drv_data->id != s_datadesc.id) {
-        return HOUND_DRIVER_UNSUPPORTED;
-    }
-    if (drv_data->period_ns != s_datadesc.avail_periods[0]) {
-        return HOUND_DRIVER_UNSUPPORTED;
-    }
+    XASSERT_EQ(drv_data->id, s_datadesc.id);
+    XASSERT_EQ(drv_data->period_ns, s_datadesc.avail_periods[0]);
 
     return HOUND_OK;
 }
