@@ -122,9 +122,9 @@ hound_err can_init(hound_alloc alloc, void *data)
     memcpy(s_payload->tx_frames, init->tx_frames, frames_size);
 
     strcpy(s_iface, init->iface); /* NOLINT, string size already checked */
+    s_alloc = alloc;
     s_rx_can_id = init->rx_can_id;
     s_tx_count = init->tx_count;
-    s_alloc = alloc;
     s_tx_fd = FD_INVALID;
     s_rx_fd = FD_INVALID;
     s_active = false;
@@ -376,7 +376,7 @@ hound_err can_parse(
         return HOUND_DRIVER_FAIL;
     }
 
-    record->data = malloc(*bytes);
+    record->data = s_alloc(*bytes);
     if (record->data == NULL) {
         return HOUND_OOM;
     }
