@@ -142,7 +142,7 @@ hound_err file_parse(
     XASSERT_NOT_NULL(bytes);
     XASSERT_GT(*bytes, 0);
 
-    record->data = malloc(*bytes * sizeof(*buf));
+    record->data = s_alloc(*bytes * sizeof(*buf));
     if (record->data == NULL) {
         return HOUND_OOM;
     }
