@@ -38,13 +38,12 @@ static struct hound_drv_datadesc s_datadesc = {
     .avail_periods = &s_period_ns
 };
 
-static hound_alloc *s_alloc;
 
 static int s_fd;
 static int s_pipe[2];
 static char s_file_buf[4096];
 
-hound_err file_init(hound_alloc alloc, void *data)
+hound_err file_init(void *data)
 {
     struct driver_init *init;
 
@@ -65,23 +64,21 @@ hound_err file_init(hound_alloc alloc, void *data)
     s_fd = FD_INVALID;
     s_pipe[READ_END] = FD_INVALID;
     s_pipe[WRITE_END] = FD_INVALID;
-    s_alloc = alloc;
 
     return HOUND_OK;
 }
 
 hound_err file_destroy(void)
 {
-    s_alloc = NULL;
     s_filepath = NULL;
 
     return HOUND_OK;
 }
 
-hound_err file_reset(hound_alloc alloc, void *data)
+hound_err file_reset(void *data)
 {
     file_destroy();
-    file_init(alloc, data);
+    file_init(data);
 
     return HOUND_OK;
 }
@@ -142,7 +139,7 @@ hound_err file_parse(
     XASSERT_NOT_NULL(bytes);
     XASSERT_GT(*bytes, 0);
 
-    record->data = s_alloc(*bytes * sizeof(*buf));
+    record->data = drv_alloc(*bytes * sizeof(*buf));
     if (record->data == NULL) {
         return HOUND_OOM;
     }

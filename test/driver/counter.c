@@ -34,19 +34,17 @@ static const struct hound_drv_datadesc s_datadesc[] = {
     }
 };
 
-static hound_alloc *s_alloc;
 int s_pipe[2] = { FD_INVALID, FD_INVALID };
 static size_t s_count;
 static uint8_t s_buf[sizeof(s_count)];
 static size_t s_buf_bytes;
 
-hound_err counter_init(hound_alloc alloc, void *data)
+hound_err counter_init(void *data)
 {
     if (data == NULL) {
         return HOUND_NULL_VAL;
     }
     s_count = *((__typeof__(s_count) *) data);
-    s_alloc = alloc;
     s_buf_bytes = 0;
 
     return HOUND_OK;
@@ -57,10 +55,10 @@ hound_err counter_destroy(void)
     return HOUND_OK;
 }
 
-hound_err counter_reset(hound_alloc alloc, void *data)
+hound_err counter_reset(void *data)
 {
     counter_destroy();
-    counter_init(alloc, data);
+    counter_init(data);
 
     return HOUND_OK;
 }
@@ -113,7 +111,7 @@ hound_err counter_parse(
         /* We have at least a full record. */
         err = clock_gettime(CLOCK_MONOTONIC, &record->timestamp);
         XASSERT_EQ(err, 0);
-        record->data = (*s_alloc)(sizeof(s_count));
+        record->data = drv_alloc(sizeof(s_count));
         if (record->data == NULL) {
             return HOUND_OOM;
         }

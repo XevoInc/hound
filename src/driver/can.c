@@ -46,7 +46,6 @@ static bool s_active;
 static char s_iface[IFNAMSIZ];
 static canid_t s_rx_can_id;
 static hound_data_period s_period_ns;
-static hound_alloc *s_alloc;
 static int s_tx_fd;
 static int s_rx_fd;
 static uint32_t s_tx_count;
@@ -76,7 +75,7 @@ hound_err write_loop(int fd, void *data, size_t n)
     return HOUND_OK;
 }
 
-hound_err can_init(hound_alloc alloc, void *data)
+hound_err can_init(void *data)
 {
     struct ifreq ifr;
     hound_err err;
@@ -115,14 +114,13 @@ hound_err can_init(hound_alloc alloc, void *data)
 
     frames_size = init->tx_count*sizeof(*s_payload->tx_frames);
     s_payload_size = sizeof(*s_payload) + frames_size;
-    s_payload = malloc(s_payload_size);
+    s_payload = drv_alloc(s_payload_size);
     if (s_payload == NULL) {
         return HOUND_OOM;
     }
     memcpy(s_payload->tx_frames, init->tx_frames, frames_size);
 
     strcpy(s_iface, init->iface); /* NOLINT, string size already checked */
-    s_alloc = alloc;
     s_rx_can_id = init->rx_can_id;
     s_tx_count = init->tx_count;
     s_tx_fd = FD_INVALID;
@@ -135,7 +133,6 @@ hound_err can_init(hound_alloc alloc, void *data)
 hound_err can_destroy(void)
 {
     s_iface[0] = '\0';
-    s_alloc = NULL;
     free(s_payload);
 
     return HOUND_OK;
@@ -368,7 +365,7 @@ hound_err can_parse(
         return HOUND_DRIVER_FAIL;
     }
 
-    record->data = s_alloc(*bytes);
+    record->data = drv_alloc(*bytes);
     if (record->data == NULL) {
         return HOUND_OOM;
     }
@@ -481,13 +478,13 @@ hound_err can_stop(void)
     return err;
 }
 
-hound_err can_reset(hound_alloc alloc, void *data)
+hound_err can_reset(void *data)
 {
     if (s_active) {
         can_stop();
     }
     can_destroy();
-    can_init(alloc, data);
+    can_init(data);
 
     return HOUND_OK;
 }

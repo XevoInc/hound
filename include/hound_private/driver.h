@@ -35,13 +35,11 @@ struct hound_drv_data_list {
     struct hound_drv_data *data;
 };
 
-typedef void *(hound_alloc)(size_t);
-
 struct driver_ops {
-    hound_err (*init)(hound_alloc alloc, void *data);
+    hound_err (*init)(void *data);
 
     hound_err (*destroy)(void);
-    hound_err (*reset)(hound_alloc alloc, void *data);
+    hound_err (*reset)(void *data);
 
     /**
      * Get the device IDs advertised by this driver.
@@ -90,9 +88,8 @@ struct driver_ops {
      *              driver needs to reference the unconsumed bytes, it must
      *              store them itself.
      * @param record a record to be filled in. The record's data should be
-     *               allocated by the driver using the allocator function passed
-     *               to the driver at initialization time, and the allocated
-     *               memory is owned by the driver core.
+     *               allocated using drv_alloc. The allocated memory is owned by
+     *               the driver core.
      *
      * @return an error code
      */
@@ -106,6 +103,13 @@ struct driver_ops {
     hound_err (*next_bytes)(hound_data_id id, size_t bytes);
     hound_err (*stop)(void);
 };
+
+/**
+ * A function that drivers should use for any allocations they need to do.
+ *
+ * @return a pointer to the allocated memory, or NULL if the allocation failed.
+ */
+void *drv_alloc(size_t bytes);
 
 void driver_init(void);
 void driver_destroy(void);

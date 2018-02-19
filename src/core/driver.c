@@ -15,6 +15,7 @@
 #include <hound_private/util.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include <xlib/xhash.h>
 #include <xlib/xvec.h>
@@ -53,6 +54,12 @@ XHASH_MAP_INIT_INT64(DATA_MAP, struct driver *)
 static xhash_t(DATA_MAP) *s_data_map;
 
 static pthread_rwlock_t s_driver_rwlock = PTHREAD_RWLOCK_INITIALIZER;
+
+PUBLIC_API
+void *drv_alloc(size_t bytes)
+{
+    return malloc(bytes);
+}
 
 void driver_init(void)
 {
@@ -156,7 +163,7 @@ hound_err driver_register(
     NULL_CHECK(ops->stop);
 
     /* Init. */
-    err = ops->init(malloc, init_data);
+    err = ops->init(init_data);
     if (err != HOUND_OK) {
         goto out;
     }
