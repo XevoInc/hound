@@ -13,13 +13,13 @@
 #include <hound_private/log.h>
 
 PUBLIC_API
-hound_err hound_get_datadesc(const struct hound_datadesc **desc, size_t *len)
+hound_err hound_get_datadesc(struct hound_datadesc **desc, size_t *len)
 {
     return driver_get_datadesc(desc, len);
 }
 
 PUBLIC_API
-void hound_free_datadesc(const struct hound_datadesc *desc)
+void hound_free_datadesc(struct hound_datadesc *desc)
 {
     driver_free_datadesc(desc);
 }

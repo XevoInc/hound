@@ -73,7 +73,7 @@ void driver_destroy(void)
     xh_destroy(DATA_MAP, s_data_map);
 }
 
-hound_err driver_get_datadesc(const struct hound_datadesc **desc, size_t *len)
+hound_err driver_get_datadesc(struct hound_datadesc **desc, size_t *len)
 {
     struct driver *drv;
     hound_err err;
@@ -123,9 +123,9 @@ out:
     return err;
 }
 
-void driver_free_datadesc(const struct hound_datadesc *desc)
+void driver_free_datadesc(struct hound_datadesc *desc)
 {
-    free((void *) desc);
+    free(desc);
 }
 
 PUBLIC_API
