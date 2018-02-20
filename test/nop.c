@@ -44,6 +44,10 @@ void test_datadesc(void)
 
     err = hound_get_datadesc(&desc, &desc_len);
     XASSERT_OK(err);
+    err = strcmp(desc[0].name, "super-extra-accelerometer");
+    XASSERT_EQ(err, 0);
+    err = strcmp(desc[1].name, "oneshot-gyroscope");
+    XASSERT_EQ(err, 0);
 
     hound_free_datadesc(desc);
 }
