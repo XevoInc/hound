@@ -80,12 +80,14 @@ struct hound_record {
 };
 
 typedef void (*hound_cb)(struct hound_record *rec, void *cb_ctx);
+typedef uint_fast8_t hound_period_count;
 typedef uint_fast64_t hound_data_period;
 
 struct hound_datadesc {
     hound_data_id id;
     const char *name;
-    hound_data_period period_ns;
+    hound_period_count period_count;
+    const hound_data_period *avail_periods;
 };
 
 struct hound_data_rq {

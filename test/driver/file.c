@@ -32,7 +32,7 @@ struct driver_init {
 static const char *s_device_ids[] = {"file"};
 static hound_data_period s_period_ns = 0;
 static const char *s_filepath = NULL;
-static struct hound_drv_datadesc s_datadesc = {
+static struct hound_datadesc s_datadesc = {
     .name = "file-data",
     .period_count = 1,
     .avail_periods = &s_period_ns
@@ -97,7 +97,7 @@ hound_err file_device_ids(
 }
 
 hound_err file_datadesc(
-    const struct hound_drv_datadesc **desc,
+    const struct hound_datadesc **desc,
     hound_data_count *count)
 {
     XASSERT_NOT_NULL(desc);
@@ -109,17 +109,17 @@ hound_err file_datadesc(
     return HOUND_OK;
 }
 
-hound_err file_setdata(const struct hound_drv_data_list *data)
+hound_err file_setdata(const struct hound_data_rq_list *data)
 {
-    const struct hound_drv_data *drv_data;
+    const struct hound_data_rq *rq;
 
     XASSERT_NOT_NULL(data);
     XASSERT_EQ(data->len, 1);
     XASSERT_NOT_NULL(data->data);
 
-    drv_data = data->data;
-    XASSERT_EQ(drv_data->id, s_datadesc.id);
-    XASSERT_EQ(drv_data->period_ns, s_datadesc.avail_periods[0]);
+    rq = data->data;
+    XASSERT_EQ(rq->id, s_datadesc.id);
+    XASSERT_EQ(rq->period_ns, s_datadesc.avail_periods[0]);
 
     return HOUND_OK;
 }

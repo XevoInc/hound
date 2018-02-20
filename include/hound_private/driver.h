@@ -18,23 +18,6 @@ typedef uint_least8_t hound_data_count;
 typedef uint_least8_t hound_device_id_count;
 typedef uint_least8_t hound_period_count;
 
-struct hound_drv_datadesc {
-    hound_data_id id;
-    const char *name;
-    hound_period_count period_count;
-    const hound_data_period *avail_periods;
-};
-
-struct hound_drv_data {
-    hound_data_id id;
-    hound_data_period period_ns;
-};
-
-struct hound_drv_data_list {
-    hound_data_count len;
-    struct hound_drv_data *data;
-};
-
 struct driver_ops {
     hound_err (*init)(void *data);
 
@@ -66,10 +49,10 @@ struct driver_ops {
      * @return an error code
      */
     hound_err (*datadesc)(
-            const struct hound_drv_datadesc **desc,
+            const struct hound_datadesc **desc,
             hound_data_count *count);
 
-    hound_err (*setdata)(const struct hound_drv_data_list *data);
+    hound_err (*setdata)(const struct hound_data_rq_list *data);
 
     /**
      * Parse the raw data from the I/O layer and produce a record.
@@ -141,11 +124,11 @@ hound_err driver_next(struct driver *drv, hound_data_id id, size_t n);
 hound_err driver_ref(
     struct driver *drv,
     struct queue *queue,
-    const struct hound_drv_data_list *drv_data_list);
+    const struct hound_data_rq_list *data_rq_list);
 hound_err driver_unref(
     struct driver *drv,
     struct queue *queue,
-    const struct hound_drv_data_list *drv_data_list);
+    const struct hound_data_rq_list *data_rq_list);
 
 hound_err driver_get(hound_data_id id, struct driver **drv);
 

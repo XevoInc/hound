@@ -35,7 +35,7 @@ struct bcm_payload {
 
 static const hound_device_id_count s_device_id_count = 1;
 static const char *s_device_id[] = { "can-device" };
-static struct hound_drv_datadesc s_datadesc = {
+static struct hound_datadesc s_datadesc = {
     .name = "can-data",
     .id = HOUND_DEVICE_CAN,
     .period_count = 0,
@@ -152,7 +152,7 @@ hound_err can_device_ids(
 }
 
 hound_err can_datadesc(
-    const struct hound_drv_datadesc **desc,
+    const struct hound_datadesc **desc,
     hound_data_count *count)
 {
     XASSERT_NOT_NULL(desc);
@@ -330,17 +330,17 @@ hound_err set_period(hound_data_period period_ns)
     return err;
 }
 
-hound_err can_setdata(const struct hound_drv_data_list *data_list)
+hound_err can_setdata(const struct hound_data_rq_list *data_list)
 {
-    const struct hound_drv_data *data;
+    const struct hound_data_rq *rq;
     hound_err err;
 
     XASSERT_NOT_NULL(data_list);
     XASSERT_EQ(data_list->len, 1);
     XASSERT_NOT_NULL(data_list->data);
 
-    data = data_list->data;
-    err = set_period(data->period_ns);
+    rq = data_list->data;
+    err = set_period(rq->period_ns);
     if (err != HOUND_OK) {
         return err;
     }

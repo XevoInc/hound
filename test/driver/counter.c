@@ -25,7 +25,7 @@
 
 static const char *s_device_ids[] = {"counter"};
 static const hound_data_period s_period = 0;
-static const struct hound_drv_datadesc s_datadesc[] = {
+static const struct hound_datadesc s_datadesc[] = {
     {
         .id = HOUND_DEVICE_TEMPERATURE,
         .name = "increasing-temperature-counter",
@@ -74,7 +74,7 @@ hound_err counter_device_ids(
 }
 
 hound_err counter_datadesc(
-    const struct hound_drv_datadesc **desc,
+    const struct hound_datadesc **desc,
     hound_data_count *count)
 {
     *count = ARRAYLEN(s_datadesc);
@@ -83,7 +83,7 @@ hound_err counter_datadesc(
     return HOUND_OK;
 }
 
-hound_err counter_setdata(UNUSED const struct hound_drv_data_list *data)
+hound_err counter_setdata(UNUSED const struct hound_data_rq_list *data)
 {
     return HOUND_OK;
 }

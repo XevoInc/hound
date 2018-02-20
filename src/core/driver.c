@@ -26,7 +26,7 @@
 
 struct data {
     refcount_val refcount;
-    struct hound_drv_data *data;
+    struct hound_data_rq *data;
 };
 
 struct driver {
@@ -34,7 +34,7 @@ struct driver {
     refcount_val refcount;
 
     hound_data_count datacount;
-    const struct hound_drv_datadesc *data;
+    const struct hound_datadesc *data;
 
     xvec_t(struct data) active_data;
 
@@ -325,7 +325,7 @@ out:
 static
 size_t get_active_data_index(
     const struct driver *drv,
-    const struct hound_drv_data *drv_data,
+    const struct hound_data_rq *drv_data,
     bool *found)
 {
     const struct data *data;
@@ -344,7 +344,7 @@ size_t get_active_data_index(
 }
 
 static
-hound_err push_drv_data(struct driver *drv, struct hound_drv_data *drv_data)
+hound_err push_drv_data(struct driver *drv, struct hound_data_rq *drv_data)
 {
     struct data *data;
 
@@ -387,11 +387,11 @@ out:
 hound_err driver_ref(
     struct driver *drv,
     struct queue *queue,
-    const struct hound_drv_data_list *drv_data_list)
+    const struct hound_data_rq_list *drv_data_list)
 {
     bool changed;
     struct data *data;
-    struct hound_drv_data *drv_data;
+    struct hound_data_rq *drv_data;
     hound_err err;
     bool found;
     size_t i;
@@ -485,10 +485,10 @@ out:
 static
 void cleanup_drv_data(
     struct driver *drv,
-    const struct hound_drv_data_list *drv_data_list)
+    const struct hound_data_rq_list *drv_data_list)
 {
     struct data *data;
-    struct hound_drv_data *drv_data;
+    struct hound_data_rq *drv_data;
     hound_err err;
     bool found;
     size_t i;
@@ -514,11 +514,11 @@ void cleanup_drv_data(
 hound_err driver_unref(
     struct driver *drv,
     struct queue *queue,
-    const struct hound_drv_data_list *drv_data_list)
+    const struct hound_data_rq_list *drv_data_list)
 {
     bool changed;
     struct data *data;
-    struct hound_drv_data *drv_data;
+    struct hound_data_rq *drv_data;
     hound_err err;
     bool found;
     size_t i;
@@ -609,7 +609,7 @@ bool driver_period_supported(
     hound_data_id id,
     hound_data_period period)
 {
-    const struct hound_drv_datadesc *desc;
+    const struct hound_datadesc *desc;
     bool found;
     size_t i;
     size_t j;

@@ -30,7 +30,7 @@ static const hound_data_period s_accel_period[] = {
     NS_PER_SEC/2000
 };
 static const hound_data_period s_gyro_period[] = { 0 };
-static const struct hound_drv_datadesc s_datadesc[] = {
+static const struct hound_datadesc s_datadesc[] = {
     {
         .id = HOUND_DEVICE_ACCELEROMETER,
         .name = "super-extra-accelerometer",
@@ -73,7 +73,7 @@ hound_err nop_device_ids(
 }
 
 hound_err nop_datadesc(
-        const struct hound_drv_datadesc **desc,
+        const struct hound_datadesc **desc,
         hound_data_count *count)
 {
     *count = ARRAYLEN(s_datadesc);
@@ -82,7 +82,7 @@ hound_err nop_datadesc(
     return HOUND_OK;
 }
 
-hound_err nop_setdata(UNUSED const struct hound_drv_data_list *data)
+hound_err nop_setdata(UNUSED const struct hound_data_rq_list *data)
 {
     return HOUND_OK;
 }
