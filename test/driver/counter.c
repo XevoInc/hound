@@ -24,7 +24,7 @@
 #define READ_END (0)
 #define WRITE_END (1)
 
-static const char *s_device_ids[] = {"counter"};
+static const char *s_device_id = "counter";
 static const hound_data_period s_period = 0;
 static const struct hound_datadesc s_datadesc = {
     .id = HOUND_DEVICE_TEMPERATURE,
@@ -62,12 +62,9 @@ hound_err counter_reset(void *data)
     return HOUND_OK;
 }
 
-hound_err counter_device_ids(
-    const char ***device_ids,
-    hound_device_id_count *count)
+hound_err counter_device_id(char *device_id)
 {
-    *count = ARRAYLEN(s_device_ids);
-    *device_ids = s_device_ids;
+    strcpy(device_id, s_device_id);
 
     return HOUND_OK;
 }
@@ -199,7 +196,7 @@ struct driver_ops counter_driver = {
     .init = counter_init,
     .destroy = counter_destroy,
     .reset = counter_reset,
-    .device_ids = counter_device_ids,
+    .device_id = counter_device_id,
     .datadesc = counter_datadesc,
     .setdata = counter_setdata,
     .parse = counter_parse,

@@ -34,8 +34,7 @@ struct bcm_payload {
     struct can_frame tx_frames[];
 };
 
-static const hound_device_id_count s_device_id_count = 1;
-static const char *s_device_id[] = { "can-device" };
+static const char *s_device_id = "can-device";
 static struct hound_datadesc s_datadesc = {
     .name = "can-data",
     .id = HOUND_DEVICE_CAN,
@@ -139,15 +138,11 @@ hound_err can_destroy(void)
     return HOUND_OK;
 }
 
-hound_err can_device_ids(
-    const char ***device_ids,
-    hound_device_id_count *count)
+hound_err can_device_id(char *device_id)
 {
-    XASSERT_NOT_NULL(device_ids);
-    XASSERT_NOT_NULL(count);
+    XASSERT_NOT_NULL(device_id);
 
-    *count = s_device_id_count;
-    *device_ids = s_device_id;
+    strcpy(device_id, s_device_id);
 
     return HOUND_OK;
 }
@@ -505,7 +500,7 @@ static struct driver_ops can_driver = {
     .init = can_init,
     .destroy = can_destroy,
     .reset = can_reset,
-    .device_ids = can_device_ids,
+    .device_id = can_device_id,
     .datadesc = can_datadesc,
     .setdata = can_setdata,
     .parse = can_parse,

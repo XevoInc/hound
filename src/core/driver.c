@@ -34,13 +34,11 @@ struct driver {
     pthread_mutex_t mutex;
     refcount_val refcount;
 
+    char device_id[HOUND_DEVICE_ID_MAX];
     hound_data_count datacount;
     struct hound_datadesc *data;
 
     xvec_t(struct data) active_data;
-
-    hound_device_id_count device_id_count;
-    const char **device_ids;
 
     int fd;
     struct driver_ops ops;
@@ -166,7 +164,7 @@ hound_err driver_register(
     NULL_CHECK(ops->init);
     NULL_CHECK(ops->destroy);
     NULL_CHECK(ops->reset);
-    NULL_CHECK(ops->device_ids);
+    NULL_CHECK(ops->device_id);
     NULL_CHECK(ops->datadesc);
     NULL_CHECK(ops->setdata);
     NULL_CHECK(ops->parse);
@@ -188,22 +186,14 @@ hound_err driver_register(
     }
 
     /* Device IDs. */
-    err = ops->device_ids(&drv->device_ids, &drv->device_id_count);
+    err = ops->device_id(drv->device_id);
     if (err != HOUND_OK) {
-        goto error_device_ids;
+        goto error_device_id;
     }
 
-    for (i = 0; i < drv->device_id_count; ++i) {
-        if (drv->device_ids[i] == NULL) {
-            err = HOUND_MISSING_DEVICE_IDS;
-            goto error_device_ids;
-        }
-
-        if (strnlen(drv->device_ids[i], HOUND_DEVICE_ID_MAX)
-            == HOUND_DEVICE_ID_MAX-1) {
-            err = HOUND_INVALID_STRING;
-            goto error_device_ids;
-        }
+    if (strnlen(drv->device_id, HOUND_DEVICE_ID_MAX) == HOUND_DEVICE_ID_MAX) {
+        err = HOUND_INVALID_STRING;
+        goto error_device_id;
     }
 
     /* Get all the supported data for the driver. */
@@ -218,7 +208,7 @@ hound_err driver_register(
             goto error_datadesc;
         }
         if (strnlen(drv->data[i].name, HOUND_DEVICE_NAME_MAX) ==
-            HOUND_DEVICE_NAME_MAX-1) {
+            HOUND_DEVICE_NAME_MAX) {
             err = HOUND_INVALID_STRING;
             goto error_datadesc;
         }
@@ -269,7 +259,7 @@ error_data_map_put:
 error_device_map_put:
 error_conflicting_drivers:
 error_datadesc:
-error_device_ids:
+error_device_id:
     free(drv);
 out:
     pthread_rwlock_unlock(&s_driver_rwlock);

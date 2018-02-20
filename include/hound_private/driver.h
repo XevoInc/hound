@@ -18,7 +18,6 @@
 #define HOUND_DEVICE_ID_MAX (32)
 
 typedef uint_least8_t hound_data_count;
-typedef uint_least8_t hound_device_id_count;
 typedef uint_least8_t hound_period_count;
 
 struct driver_ops {
@@ -28,18 +27,16 @@ struct driver_ops {
     hound_err (*reset)(void *data);
 
     /**
-     * Get the device IDs advertised by this driver.
+     * Get the device ID for the backing device.
      *
-     * @param device_ids a pointer to an array of data descriptors. The memory
-     *                   for this array is owned by the driver and must not be
-     *                   modified.
-     * @param count the length of the array.
+     * @param device_id a pointer to a string with length HOUND_DEVICE_ID_MAX,
+     * including the '\0' character. The driver must fill this in with a device
+     * ID and include the '\0' character. If the driver does not have or cannot
+     * find a device ID, it should fill in an empty string of just '0'.
      *
      * @return an error code
      */
-    hound_err (*device_ids)(
-            const char ***device_ids,
-            hound_device_id_count *count);
+    hound_err (*device_id)(char *device_id);
 
     /**
      * Get the data descriptors supported by this driver. These descriptors must

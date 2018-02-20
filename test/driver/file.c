@@ -30,7 +30,7 @@ struct driver_init {
     hound_data_id data_id;
 };
 
-static const char *s_device_ids[] = {"file"};
+static const char *s_device_id = "file";
 static hound_data_period s_period_ns = 0;
 static const char *s_filepath = NULL;
 static struct hound_datadesc s_datadesc = {
@@ -85,15 +85,11 @@ hound_err file_reset(void *data)
     return HOUND_OK;
 }
 
-hound_err file_device_ids(
-    const char ***device_ids,
-    hound_device_id_count *count)
+hound_err file_device_id(char *device_id)
 {
-    XASSERT_NOT_NULL(device_ids);
-    XASSERT_NOT_NULL(count);
+    XASSERT_NOT_NULL(device_id);
 
-    *device_ids = s_device_ids;
-    *count = ARRAYLEN(s_device_ids);
+    strcpy(device_id, s_device_id);
 
     return HOUND_OK;
 }
@@ -235,7 +231,7 @@ static struct driver_ops file_driver = {
     .init = file_init,
     .destroy = file_destroy,
     .reset = file_reset,
-    .device_ids = file_device_ids,
+    .device_id = file_device_id,
     .datadesc = file_datadesc,
     .setdata = file_setdata,
     .parse = file_parse,

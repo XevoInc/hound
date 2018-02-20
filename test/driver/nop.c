@@ -11,6 +11,7 @@
 #include <hound_private/driver.h>
 #include <hound_private/driver/util.h>
 #include <hound_test/assert.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -21,7 +22,7 @@
 #define FD_INVALID (-1)
 #define UNUSED __attribute__((unused))
 
-static const char *s_device_ids[] = {"dummy", "fake"};
+static const char *s_device_id = "dummy";
 static const hound_data_period s_accel_period[] = {
     0,
     NS_PER_SEC,
@@ -62,12 +63,11 @@ hound_err nop_reset(UNUSED void *data)
     return HOUND_OK;
 }
 
-hound_err nop_device_ids(
-        const char ***device_ids,
-        hound_device_id_count *count)
+hound_err nop_device_id(char *device_id)
 {
-    *count = ARRAYLEN(s_device_ids);
-    *device_ids = s_device_ids;
+    XASSERT_NOT_NULL(device_id);
+
+    strcpy(device_id, s_device_id);
 
     return HOUND_OK;
 }
@@ -157,7 +157,7 @@ struct driver_ops nop_driver = {
     .init = nop_init,
     .destroy = nop_destroy,
     .reset = nop_reset,
-    .device_ids = nop_device_ids,
+    .device_id = nop_device_id,
     .datadesc = nop_datadesc,
     .setdata = nop_setdata,
     .parse = nop_parse,
