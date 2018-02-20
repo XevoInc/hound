@@ -87,7 +87,7 @@ hound_err driver_get_datadesc(const struct hound_datadesc ***desc, size_t *len)
 
     /* Find the required data size. */
     size = 0;
-    xh_foreach_value(s_data_map, drv,
+    xh_foreach_value(s_device_map, drv,
         size += drv->datacount;
     );
 
@@ -111,7 +111,7 @@ hound_err driver_get_datadesc(const struct hound_datadesc ***desc, size_t *len)
     }
 
     pos = *desc;
-    xh_foreach_value(s_data_map, drv,
+    xh_foreach_value(s_device_map, drv,
         memcpy((void *) pos, drv->data, drv->datacount*sizeof(drv->data));
         pos += drv->datacount;
     );
