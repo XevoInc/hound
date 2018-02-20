@@ -100,8 +100,8 @@ void driver_destroy(void);
 /** Opaque pointer. */
 struct driver;
 
-hound_err driver_get_datadesc(const struct hound_datadesc ***desc, size_t *len);
-void driver_free_datadesc(const struct hound_datadesc **desc);
+hound_err driver_get_datadesc(const struct hound_datadesc **desc, size_t *len);
+void driver_free_datadesc(const struct hound_datadesc *desc);
 
 /**
  * Registers a new driver at the given path. A copy of the driver description is

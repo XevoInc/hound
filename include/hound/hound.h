@@ -112,8 +112,8 @@ struct hound_rq {
 /** Opaque pointer to an I/O context. */
 struct hound_ctx;
 
-hound_err hound_get_datadesc(const struct hound_datadesc ***desc, size_t *len);
-void hound_free_datadesc(const struct hound_datadesc **desc);
+hound_err hound_get_datadesc(const struct hound_datadesc **desc, size_t *len);
+void hound_free_datadesc(const struct hound_datadesc *desc);
 
 hound_err hound_alloc_ctx(struct hound_ctx **ctx, const struct hound_rq *rq);
 hound_err hound_free_ctx(struct hound_ctx *ctx);

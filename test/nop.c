@@ -33,7 +33,7 @@ static
 void test_datadesc(void)
 {
     hound_err err;
-    const struct hound_datadesc **desc;
+    const struct hound_datadesc *desc;
     size_t desc_len;
 
     err = hound_get_datadesc(NULL, &desc_len);

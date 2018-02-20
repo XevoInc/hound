@@ -73,11 +73,11 @@ void driver_destroy(void)
     xh_destroy(DATA_MAP, s_data_map);
 }
 
-hound_err driver_get_datadesc(const struct hound_datadesc ***desc, size_t *len)
+hound_err driver_get_datadesc(const struct hound_datadesc **desc, size_t *len)
 {
     struct driver *drv;
     hound_err err;
-    const struct hound_datadesc **pos;
+    const struct hound_datadesc *pos;
     size_t size;
 
     NULL_CHECK(len);
@@ -112,7 +112,7 @@ hound_err driver_get_datadesc(const struct hound_datadesc ***desc, size_t *len)
 
     pos = *desc;
     xh_foreach_value(s_device_map, drv,
-        memcpy((void *) pos, drv->data, drv->datacount*sizeof(drv->data));
+        memcpy((void *) pos, drv->data, drv->datacount*sizeof(*drv->data));
         pos += drv->datacount;
     );
 
@@ -123,9 +123,9 @@ out:
     return err;
 }
 
-void driver_free_datadesc(const struct hound_datadesc **desc)
+void driver_free_datadesc(const struct hound_datadesc *desc)
 {
-    free(desc);
+    free((void *) desc);
 }
 
 PUBLIC_API
