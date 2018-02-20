@@ -10,6 +10,7 @@
 #define _GNU_SOURCE
 #include <hound/hound.h>
 #include <hound_private/driver.h>
+#include <hound_private/driver/util.h>
 #include <hound_test/assert.h>
 #include <fcntl.h>
 #include <string.h>
@@ -25,13 +26,11 @@
 
 static const char *s_device_ids[] = {"counter"};
 static const hound_data_period s_period = 0;
-static const struct hound_datadesc s_datadesc[] = {
-    {
-        .id = HOUND_DEVICE_TEMPERATURE,
-        .name = "increasing-temperature-counter",
-        .period_count = 1,
-        .avail_periods = &s_period
-    }
+static const struct hound_datadesc s_datadesc = {
+    .id = HOUND_DEVICE_TEMPERATURE,
+    .name = "increasing-temperature-counter",
+    .period_count = 1,
+    .avail_periods = &s_period
 };
 
 int s_pipe[2] = { FD_INVALID, FD_INVALID };
@@ -74,13 +73,27 @@ hound_err counter_device_ids(
 }
 
 hound_err counter_datadesc(
-    const struct hound_datadesc **desc,
+    struct hound_datadesc **out,
     hound_data_count *count)
 {
-    *count = ARRAYLEN(s_datadesc);
-    *desc = s_datadesc;
+    struct hound_datadesc *desc;
+    hound_err err;
 
-    return HOUND_OK;
+    XASSERT_NOT_NULL(out);
+    XASSERT_NOT_NULL(count);
+
+    *count = 1;
+    desc = drv_alloc(sizeof(*desc));
+    if (desc == NULL) {
+        return HOUND_OOM;
+    }
+    err = drv_deepcopy_desc(desc, &s_datadesc);
+    if (err != HOUND_OK) {
+        drv_free(desc);
+    }
+
+    *out = desc;
+    return err;
 }
 
 hound_err counter_setdata(UNUSED const struct hound_data_rq_list *data)

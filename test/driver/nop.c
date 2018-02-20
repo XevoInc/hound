@@ -9,6 +9,7 @@
 
 #include <hound/hound.h>
 #include <hound_private/driver.h>
+#include <hound_private/driver/util.h>
 #include <hound_test/assert.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -37,7 +38,6 @@ static const struct hound_datadesc s_datadesc[] = {
         .period_count = ARRAYLEN(s_accel_period),
         .avail_periods = s_accel_period
     },
-
     {
         .id = HOUND_DEVICE_GYROSCOPE,
         .name = "oneshot-gyroscope",
@@ -73,13 +73,40 @@ hound_err nop_device_ids(
 }
 
 hound_err nop_datadesc(
-        const struct hound_datadesc **desc,
+        struct hound_datadesc **out,
         hound_data_count *count)
 {
-    *count = ARRAYLEN(s_datadesc);
-    *desc = s_datadesc;
+    struct hound_datadesc *desc;
+    hound_err err;
+    size_t i;
 
+    XASSERT_NOT_NULL(out);
+    XASSERT_NOT_NULL(count);
+
+    *count = ARRAYLEN(s_datadesc);
+    desc = drv_alloc(*count*sizeof(*desc));
+    if (desc == NULL) {
+        err = HOUND_OOM;
+        goto error_desc;
+    }
+
+    for (i = 0; i < ARRAYLEN(s_datadesc); ++i) {
+        err = drv_deepcopy_desc(&desc[i], &s_datadesc[i]);
+        if (err != HOUND_OK) {
+            goto error_deepcopy;
+        }
+    }
+
+    *out = desc;
     return HOUND_OK;
+
+error_deepcopy:
+    for (; i < *count; --i) {
+        drv_destroy_desc(&desc[i]);
+    }
+    drv_free(desc);
+error_desc:
+    return err;
 }
 
 hound_err nop_setdata(UNUSED const struct hound_data_rq_list *data)

@@ -12,7 +12,10 @@
 #include <hound_private/queue.h>
 #include <stdbool.h>
 
-#define HOUND_DEVICE_ID_MAX_LEN (33)
+/** Max length for a device name, including '\0'. */
+#define HOUND_DEVICE_NAME_MAX (32)
+/** Max length for a device ID, including '\0'. */
+#define HOUND_DEVICE_ID_MAX (32)
 
 typedef uint_least8_t hound_data_count;
 typedef uint_least8_t hound_device_id_count;
@@ -39,7 +42,8 @@ struct driver_ops {
             hound_device_id_count *count);
 
     /**
-     * Get the data descriptors supported by this driver.
+     * Get the data descriptors supported by this driver. These descriptors must
+     * be allocated with drv_alloc. Their memory is owned by the driver core.
      *
      * @param desc a pointer to an array of data descriptors. The memory for
      *             for this array is owned by the driver and must not be
@@ -49,7 +53,7 @@ struct driver_ops {
      * @return an error code
      */
     hound_err (*datadesc)(
-            const struct hound_datadesc **desc,
+            struct hound_datadesc **desc,
             hound_data_count *count);
 
     hound_err (*setdata)(const struct hound_data_rq_list *data);
@@ -93,11 +97,12 @@ struct driver_ops {
  * @return a pointer to the allocated memory, or NULL if the allocation failed.
  */
 void *drv_alloc(size_t bytes);
+void drv_free(void *p);
 
 void driver_init(void);
 void driver_destroy(void);
 
-/** Opaque pointer. */
+/** Forward declaration for use as opaque pointer. */
 struct driver;
 
 hound_err driver_get_datadesc(struct hound_datadesc **desc, size_t *len);

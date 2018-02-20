@@ -9,6 +9,7 @@
 #include <hound/hound.h>
 #include <hound_private/api.h>
 #include <hound_private/driver.h>
+#include <hound_private/driver/util.h>
 #include <hound_private/error.h>
 #include <hound_private/io.h>
 #include <hound_private/log.h>
@@ -34,7 +35,7 @@ struct driver {
     refcount_val refcount;
 
     hound_data_count datacount;
-    const struct hound_datadesc *data;
+    struct hound_datadesc *data;
 
     xvec_t(struct data) active_data;
 
@@ -59,6 +60,12 @@ PUBLIC_API
 void *drv_alloc(size_t bytes)
 {
     return malloc(bytes);
+}
+
+PUBLIC_API
+void drv_free(void *p)
+{
+    free(p);
 }
 
 void driver_init(void)
@@ -125,6 +132,11 @@ out:
 
 void driver_free_datadesc(struct hound_datadesc *desc)
 {
+    /*
+     * Note: This frees the user-facing data descriptor but not the descriptor
+     * allocated by the driver, which we store and free only when the driver
+     * unregisters.
+     */
     free(desc);
 }
 
@@ -187,8 +199,8 @@ hound_err driver_register(
             goto error_device_ids;
         }
 
-        if (strnlen(drv->device_ids[i], HOUND_DEVICE_ID_MAX_LEN) ==
-            HOUND_DEVICE_ID_MAX_LEN) {
+        if (strnlen(drv->device_ids[i], HOUND_DEVICE_ID_MAX)
+            == HOUND_DEVICE_ID_MAX-1) {
             err = HOUND_INVALID_STRING;
             goto error_device_ids;
         }
@@ -205,8 +217,8 @@ hound_err driver_register(
             err = HOUND_NULL_VAL;
             goto error_datadesc;
         }
-        if (strnlen(drv->data[i].name, HOUND_DEVICE_ID_MAX_LEN) ==
-            HOUND_DEVICE_ID_MAX_LEN) {
+        if (strnlen(drv->data[i].name, HOUND_DEVICE_NAME_MAX) ==
+            HOUND_DEVICE_NAME_MAX-1) {
             err = HOUND_INVALID_STRING;
             goto error_datadesc;
         }
@@ -269,6 +281,7 @@ hound_err driver_unregister(const char *path)
     struct driver *drv;
     struct driver *drv_iter;
     hound_err err;
+    size_t i;
     xhiter_t iter;
 
     NULL_CHECK(path);
@@ -309,6 +322,11 @@ hound_err driver_unregister(const char *path)
     err = drv->ops.destroy();
     if (err != HOUND_OK) {
         hound_log_err(err, "driver %p failed to destroy", (void *) drv);
+    }
+
+    /* Free the driver-allocated data descriptor. */
+    for (i = 0; i < drv->datacount; ++i) {
+        drv_destroy_desc(&drv->data[i]);
     }
 
     err = pthread_mutex_destroy(&drv->mutex);

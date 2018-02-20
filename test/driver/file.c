@@ -11,6 +11,7 @@
 #include <hound/hound.h>
 #include <hound_private/api.h>
 #include <hound_private/driver.h>
+#include <hound_private/driver/util.h>
 #include <hound_test/assert.h>
 #include <linux/limits.h>
 #include <string.h>
@@ -33,6 +34,7 @@ static const char *s_device_ids[] = {"file"};
 static hound_data_period s_period_ns = 0;
 static const char *s_filepath = NULL;
 static struct hound_datadesc s_datadesc = {
+    .id = HOUND_DEVICE_ACCELEROMETER,
     .name = "file-data",
     .period_count = 1,
     .avail_periods = &s_period_ns
@@ -97,16 +99,27 @@ hound_err file_device_ids(
 }
 
 hound_err file_datadesc(
-    const struct hound_datadesc **desc,
+    struct hound_datadesc **out,
     hound_data_count *count)
 {
-    XASSERT_NOT_NULL(desc);
+    struct hound_datadesc *desc;
+    hound_err err;
+
+    XASSERT_NOT_NULL(out);
     XASSERT_NOT_NULL(count);
 
-    *desc = &s_datadesc;
     *count = 1;
+    desc = drv_alloc(sizeof(*desc));
+    if (desc == NULL) {
+        return HOUND_OOM;
+    }
+    err = drv_deepcopy_desc(desc, &s_datadesc);
+    if (err != HOUND_OK) {
+        drv_free(desc);
+    }
 
-    return HOUND_OK;
+    *out = desc;
+    return err;
 }
 
 hound_err file_setdata(const struct hound_data_rq_list *data)

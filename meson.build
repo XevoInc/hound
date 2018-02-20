@@ -38,6 +38,7 @@ src = [
     'src/core/refcount.c',
     'src/core/util.c',
     'src/driver/can.c',
+    'src/driver/util.c',
 ]
 
 lib = library(
