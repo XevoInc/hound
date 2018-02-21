@@ -101,6 +101,20 @@ void *drv_alloc(size_t bytes);
  */
 void drv_free(void *p);
 
+/**
+ * Gets the currently set driver context.
+ *
+ * @return the currently set driver context pointer, or NULL if no context has
+ * been set.
+ */
+void *drv_ctx(void);
+/**
+ * Set a driver context void * for private driver context.
+ *
+ * @return a driver context pointer
+ */
+void drv_set_ctx(void *ctx);
+
 void driver_init(void);
 void driver_destroy(void);
 

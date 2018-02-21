@@ -18,6 +18,7 @@
 #include <unistd.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
+#define CTX_MAGIC ((void *) 0x1ceb00da)
 #define NS_PER_SEC (1e9)
 #define FD_INVALID (-1)
 #define UNUSED __attribute__((unused))
@@ -50,6 +51,12 @@ static int s_fd = FD_INVALID;
 
 hound_err nop_init(UNUSED void *data)
 {
+    void *ctx;
+
+    ctx = drv_ctx();
+    XASSERT_NULL(ctx);
+    drv_set_ctx(CTX_MAGIC);
+
     return HOUND_OK;
 }
 
@@ -127,10 +134,16 @@ hound_err nop_parse(
 
 hound_err nop_start(int *fd)
 {
+    void *ctx;
+
     XASSERT_EQ(s_fd, FD_INVALID);
     s_fd = open("/dev/null", 0);
     XASSERT_NEQ(s_fd, -1);
     *fd = s_fd;
+
+    /* Make sure the context we set in init is still set. */
+    ctx = drv_ctx();
+    XASSERT_EQ(ctx, CTX_MAGIC);
 
     return HOUND_OK;
 }

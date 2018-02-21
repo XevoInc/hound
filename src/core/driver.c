@@ -42,6 +42,7 @@ struct driver {
 
     int fd;
     struct driver_ops ops;
+    void *ctx;
 };
 
 /* device path --> driver ID */
@@ -66,14 +67,101 @@ void drv_free(void *p)
     free(p);
 }
 
+/**
+ * This thread-local key points to the driver struct for whatever driver is
+ * actively processing a callback. We can use it to get and set the driver
+ * context without having to explicitly pass a void *ctx to each driver
+ * callback. Thus it is very important to reset this pointer prior to calling
+ * any driver callback, which should be done using the DRV_OP macro.
+ */
+static pthread_key_t active_drv;
+
+static
+void set_active_drv(const struct driver *drv)
+{
+    int ret;
+
+    ret = pthread_setspecific(active_drv, drv);
+    XASSERT_EQ(ret, 0);
+}
+
+static
+void *get_active_drv(void)
+{
+    return pthread_getspecific(active_drv);
+}
+
+PUBLIC_API
+void *drv_ctx(void)
+{
+    const struct driver *drv;
+
+    /*
+     * This should be called only from a driver's callback, so we should already
+     * hold the driver's mutex.
+     */
+    drv = get_active_drv();
+    XASSERT_NOT_NULL(drv);
+    return drv->ctx;
+}
+
+PUBLIC_API
+void drv_set_ctx(void *ctx)
+{
+    struct driver *drv;
+
+    /*
+     * This should be called only from a driver's callback, so we should already
+     * hold the driver's mutex.
+     */
+    drv = get_active_drv();
+    XASSERT_NOT_NULL(drv);
+    drv->ctx = ctx;
+}
+
+#define TOKENIZE(...) __VA_ARGS__
+
+#define _DEFINE_DRV_OP(name, prototype, args) \
+    static inline \
+    hound_err drv_op_##name(prototype) \
+    { \
+        set_active_drv(drv); \
+        return drv->ops.name(args); \
+    }
+
+#define DEFINE_DRV_OP(name, prototype, args) \
+    _DEFINE_DRV_OP(name, TOKENIZE(struct driver *drv, prototype), TOKENIZE(args))
+
+#define DEFINE_DRV_OP_VOID(name) _DEFINE_DRV_OP(name, struct driver *drv,)
+
+DEFINE_DRV_OP(init, void *data, data)
+DEFINE_DRV_OP_VOID(destroy)
+DEFINE_DRV_OP(reset, void *data, data)
+DEFINE_DRV_OP(device_id, char *device_id, device_id)
+DEFINE_DRV_OP(datadesc, TOKENIZE(struct hound_datadesc **desc, hound_data_count *count), TOKENIZE(desc, count))
+DEFINE_DRV_OP(setdata, const struct hound_data_rq_list *data, data)
+DEFINE_DRV_OP(parse, TOKENIZE(const uint8_t *buf, size_t *bytes, struct hound_record *record), TOKENIZE(buf, bytes, record))
+DEFINE_DRV_OP(start, int *fd, fd)
+DEFINE_DRV_OP(next, hound_data_id id, id)
+DEFINE_DRV_OP(next_bytes, TOKENIZE(hound_data_id id, size_t bytes), TOKENIZE(id, bytes))
+DEFINE_DRV_OP_VOID(stop)
+
 void driver_init(void)
 {
+    int ret;
+
     s_data_map = xh_init(DATA_MAP);
     s_device_map = xh_init(DEVICE_MAP);
+    ret = pthread_key_create(&active_drv, NULL);
+    XASSERT_EQ(ret, 0);
 }
 
 void driver_destroy(void)
 {
+    int ret;
+
+    ret = pthread_key_delete(active_drv);
+    XASSERT_EQ(ret, 0);
     xh_destroy(DEVICE_MAP, s_device_map);
     xh_destroy(DATA_MAP, s_data_map);
 }
@@ -172,12 +260,6 @@ hound_err driver_register(
     NULL_CHECK(ops->next);
     NULL_CHECK(ops->stop);
 
-    /* Init. */
-    err = ops->init(init_data);
-    if (err != HOUND_OK) {
-        goto out;
-    }
-
     /* Allocate. */
     drv = malloc(sizeof(*drv));
     if (drv == NULL) {
@@ -185,8 +267,23 @@ hound_err driver_register(
         goto out;
     }
 
+    /* Initialize driver fields. */
+    pthread_mutex_init(&drv->mutex, NULL);
+    drv->refcount = 0;
+    drv->fd = FD_INVALID;
+    xv_init(drv->active_data);
+    drv->ops = *ops;
+    drv->ctx = NULL;
+
+    /* Init. */
+    drv->ctx = NULL;
+    err = drv_op_init(drv, init_data);
+    if (err != HOUND_OK) {
+        goto error_init;
+    }
+
     /* Device IDs. */
-    err = ops->device_id(drv->device_id);
+    err = drv_op_device_id(drv, drv->device_id);
     if (err != HOUND_OK) {
         goto error_device_id;
     }
@@ -197,7 +294,7 @@ hound_err driver_register(
     }
 
     /* Get all the supported data for the driver. */
-    err = ops->datadesc(&drv->data, &drv->datacount);
+    err = drv_op_datadesc(drv, &drv->data, &drv->datacount);
     if (err != HOUND_OK) {
         goto error_datadesc;
     }
@@ -213,13 +310,6 @@ hound_err driver_register(
             goto error_datadesc;
         }
     }
-
-    /* Set the rest of the driver fields. */
-    pthread_mutex_init(&drv->mutex, NULL);
-    drv->refcount = 0;
-    drv->fd = FD_INVALID;
-    xv_init(drv->active_data);
-    drv->ops = *ops;
 
     /* Verify that all descriptors are sane. */
     for (i = 0; i < drv->datacount; ++i) {
@@ -260,6 +350,7 @@ error_device_map_put:
 error_conflicting_drivers:
 error_datadesc:
 error_device_id:
+error_init:
     free(drv);
 out:
     pthread_rwlock_unlock(&s_driver_rwlock);
@@ -309,7 +400,7 @@ hound_err driver_unregister(const char *path)
     pthread_rwlock_unlock(&s_driver_rwlock);
 
     /* Finally, stop and free the driver. */
-    err = drv->ops.destroy();
+    err = drv_op_destroy(drv);
     if (err != HOUND_OK) {
         hound_log_err(err, "driver %p failed to destroy", (void *) drv);
     }
@@ -380,7 +471,7 @@ hound_err driver_next(struct driver *drv, hound_data_id id, size_t n)
 
     pthread_mutex_lock(&drv->mutex);
     for (i = 0; i < n; ++i) {
-        err = drv->ops.next(id);
+        err = drv_op_next(drv, id);
         if (err != HOUND_OK) {
             goto out;
         }
@@ -440,7 +531,7 @@ hound_err driver_ref(
 
     /* Tell the driver to change what data it generates. */
     if (changed) {
-        err = drv->ops.setdata(drv_data_list);
+        err = drv_op_setdata(drv, drv_data_list);
         if (err != HOUND_OK) {
             goto error_driver_setdata;
         }
@@ -449,7 +540,7 @@ hound_err driver_ref(
     /* Start the driver if needed, and tell the I/O layer what we need. */
     ++drv->refcount;
     if (drv->refcount == 1) {
-        err = drv->ops.start(&drv->fd);
+        err = drv_op_start(drv, &drv->fd);
         if (err != HOUND_OK) {
             goto error_driver_start;
         }
@@ -558,7 +649,7 @@ hound_err driver_unref(
 
     /* Tell the driver to change what data it generates. */
     if (changed) {
-        err = drv->ops.setdata(drv_data_list);
+        err = drv_op_setdata(drv, drv_data_list);
         if (err != HOUND_OK) {
             goto error_driver_setdata;
         }
@@ -572,7 +663,7 @@ hound_err driver_unref(
     if (drv->refcount == 0) {
         io_remove_fd(drv->fd);
 
-        err = drv->ops.stop();
+        err = drv_op_stop(drv);
         if (err != HOUND_OK) {
             goto error_driver_stop;
         }
