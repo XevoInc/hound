@@ -94,6 +94,11 @@ struct driver_ops {
  * @return a pointer to the allocated memory, or NULL if the allocation failed.
  */
 void *drv_alloc(size_t bytes);
+/**
+ * Free a pointer allocated by drv_alloc.
+ *
+ * @param p a pointer to free
+ */
 void drv_free(void *p);
 
 void driver_init(void);
