@@ -94,9 +94,7 @@ hound_err file_device_id(char *device_id)
     return HOUND_OK;
 }
 
-hound_err file_datadesc(
-    struct hound_datadesc **out,
-    hound_data_count *count)
+hound_err file_datadesc(struct hound_datadesc **out, hound_data_count *count)
 {
     struct hound_datadesc *desc;
     hound_err err;
