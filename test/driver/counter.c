@@ -27,8 +27,8 @@
 static const char *s_device_id = "counter";
 static const hound_data_period s_period = 0;
 static const struct hound_datadesc s_datadesc = {
-    .id = HOUND_DEVICE_TEMPERATURE,
-    .name = "increasing-temperature-counter",
+    .id = HOUND_DEVICE_GYROSCOPE,
+    .name = "increasing-gyroscope-counter",
     .period_count = 1,
     .avail_periods = &s_period
 };
@@ -123,7 +123,7 @@ hound_err counter_parse(
         if (record->data == NULL) {
             return HOUND_OOM;
         }
-        record->id = HOUND_DEVICE_TEMPERATURE;
+        record->id = s_datadesc.id;
         record->size = sizeof(s_count);
         consumed_bytes = sizeof(s_count) - s_buf_bytes;
         memcpy(record->data, s_buf, s_buf_bytes);

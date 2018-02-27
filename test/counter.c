@@ -51,7 +51,7 @@ int main(void)
     size_t count_bytes;
     size_t count_records;
     struct hound_data_rq data_rq =
-        { .id = HOUND_DEVICE_TEMPERATURE, .period_ns = 0 };
+        { .id = HOUND_DEVICE_GYROSCOPE, .period_ns = 0 };
     size_t records_read;
     struct hound_rq rq;
     struct stats stats;

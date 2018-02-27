@@ -51,18 +51,15 @@ enum hound_err_enum {
  * libc strerror class of functions. */
 const char *hound_strerror(hound_err err);
 
-/* Data. */
+/*
+ * Current list of supported datatypes. IIO supports many more, which we can add
+ * as needed when we have devices to test.
+ */
 enum hound_datatype {
-  HOUND_DEVICE_TEMPERATURE = 0,
-  HOUND_DEVICE_ORIENTATION = 1,
-  HOUND_DEVICE_PRESSURE = 2,
-  HOUND_DEVICE_HYGROMETER = 3,
-  HOUND_DEVICE_LIGHT = 4,
-  HOUND_DEVICE_ACCELEROMETER = 5,
-  HOUND_DEVICE_MAGNEMOMETER = 6,
-  HOUND_DEVICE_GYROSCOPE = 7,
-  HOUND_DEVICE_CAN = 8,
-  HOUND_DEVICE_MAX = 9
+  HOUND_DEVICE_CAN = 0,
+  HOUND_DEVICE_ACCELEROMETER = 1,
+  HOUND_DEVICE_GYROSCOPE = 2,
+  HOUND_DEVICE_MAX = 3,
 };
 
 /* Data. */
