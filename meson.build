@@ -39,6 +39,7 @@ src = [
     'src/core/refcount.c',
     'src/core/util.c',
     'src/driver/can.c',
+    'src/driver/iio.c',
     'src/driver/util.c',
 ]
 
@@ -82,6 +83,13 @@ foreach t : tests
         dependencies: test_deps)
     test(t.get(0), exe, args: t.get(2), timeout: 50)
 endforeach
+
+# The iio test is manual.
+executable(
+    'iio_test',
+    'test/iio.c',
+    include_directories: test_include,
+    dependencies: test_deps)
 
 # Documentation.
 run_target('docs', command: 'meson/makedoc')

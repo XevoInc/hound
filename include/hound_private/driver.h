@@ -13,7 +13,7 @@
 #include <stdbool.h>
 
 /** Maximum number of records a driver can produce from a single parse call. */
-#define HOUND_DRIVER_MAX_RECORDS 20
+#define HOUND_DRIVER_MAX_RECORDS 1000
 
 /** Max length for a device name, including '\0'. */
 #define HOUND_DEVICE_NAME_MAX 32
