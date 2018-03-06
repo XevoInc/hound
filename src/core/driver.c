@@ -151,7 +151,9 @@ void driver_init(void)
     int ret;
 
     s_data_map = xh_init(DATA_MAP);
+    XASSERT_NOT_NULL(s_data_map);
     s_device_map = xh_init(DEVICE_MAP);
+    XASSERT_NOT_NULL(s_device_map);
     ret = pthread_key_create(&active_drv, NULL);
     XASSERT_EQ(ret, 0);
 }
