@@ -38,6 +38,7 @@ static size_t s_count;
 static uint8_t s_buf[sizeof(s_count)];
 static size_t s_buf_bytes;
 
+static
 hound_err counter_init(void *data)
 {
     if (data == NULL) {
@@ -49,11 +50,13 @@ hound_err counter_init(void *data)
     return HOUND_OK;
 }
 
+static
 hound_err counter_destroy(void)
 {
     return HOUND_OK;
 }
 
+static
 hound_err counter_reset(void *data)
 {
     counter_destroy();
@@ -62,6 +65,7 @@ hound_err counter_reset(void *data)
     return HOUND_OK;
 }
 
+static
 hound_err counter_device_id(char *device_id)
 {
     strcpy(device_id, s_device_id);
@@ -69,6 +73,7 @@ hound_err counter_device_id(char *device_id)
     return HOUND_OK;
 }
 
+static
 hound_err counter_datadesc(struct hound_datadesc **out, hound_data_count *count)
 {
     struct hound_datadesc *desc;
@@ -91,11 +96,13 @@ hound_err counter_datadesc(struct hound_datadesc **out, hound_data_count *count)
     return err;
 }
 
+static
 hound_err counter_setdata(UNUSED const struct hound_data_rq_list *data)
 {
     return HOUND_OK;
 }
 
+static
 hound_err counter_parse(
     const uint8_t *buf,
     size_t *bytes,
@@ -139,6 +146,7 @@ hound_err counter_parse(
     return HOUND_OK;
 }
 
+static
 hound_err counter_start(int *fd)
 {
     hound_err err;
@@ -155,6 +163,7 @@ hound_err counter_start(int *fd)
     return HOUND_OK;
 }
 
+static
 hound_err counter_stop(void)
 {
     hound_err err;
@@ -173,6 +182,7 @@ hound_err counter_stop(void)
     return HOUND_OK;
 }
 
+static
 hound_err counter_next(UNUSED hound_data_id id)
 {
     size_t written;
@@ -190,7 +200,7 @@ void counter_zero(void)
     s_count = 0;
 }
 
-struct driver_ops counter_driver = {
+static struct driver_ops counter_driver = {
     .init = counter_init,
     .destroy = counter_destroy,
     .reset = counter_reset,

@@ -75,6 +75,7 @@ hound_err write_loop(int fd, void *data, size_t n)
     return HOUND_OK;
 }
 
+static
 hound_err can_init(void *data)
 {
     struct ifreq ifr;
@@ -130,6 +131,7 @@ hound_err can_init(void *data)
     return HOUND_OK;
 }
 
+static
 hound_err can_destroy(void)
 {
     s_iface[0] = '\0';
@@ -138,6 +140,7 @@ hound_err can_destroy(void)
     return HOUND_OK;
 }
 
+static
 hound_err can_device_id(char *device_id)
 {
     XASSERT_NOT_NULL(device_id);
@@ -147,6 +150,7 @@ hound_err can_device_id(char *device_id)
     return HOUND_OK;
 }
 
+static
 hound_err can_datadesc(struct hound_datadesc **out, hound_data_count *count)
 {
     struct hound_datadesc *desc;
@@ -335,6 +339,7 @@ hound_err set_period(hound_data_period period_ns)
     return err;
 }
 
+static
 hound_err can_setdata(const struct hound_data_rq_list *data_list)
 {
     const struct hound_data_rq *rq;
@@ -353,6 +358,7 @@ hound_err can_setdata(const struct hound_data_rq_list *data_list)
     return HOUND_OK;
 }
 
+static
 hound_err can_parse(
     const uint8_t *buf,
     size_t *bytes,
@@ -389,6 +395,7 @@ hound_err can_parse(
     return HOUND_OK;
 }
 
+static
 hound_err can_next(hound_data_id id)
 {
     size_t i;
@@ -409,6 +416,7 @@ hound_err can_next(hound_data_id id)
     return HOUND_OK;
 }
 
+static
 hound_err can_start(int *out_fd)
 {
     hound_err err;
@@ -467,6 +475,7 @@ out:
     return err;
 }
 
+static
 hound_err can_stop(void)
 {
     hound_err err;
@@ -483,6 +492,7 @@ hound_err can_stop(void)
     return err;
 }
 
+static
 hound_err can_reset(void *data)
 {
     if (s_active) {

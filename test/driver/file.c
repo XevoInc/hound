@@ -45,6 +45,7 @@ static int s_fd;
 static int s_pipe[2];
 static char s_file_buf[4096];
 
+static
 hound_err file_init(void *data)
 {
     struct driver_init *init;
@@ -70,6 +71,7 @@ hound_err file_init(void *data)
     return HOUND_OK;
 }
 
+static
 hound_err file_destroy(void)
 {
     s_filepath = NULL;
@@ -77,6 +79,7 @@ hound_err file_destroy(void)
     return HOUND_OK;
 }
 
+static
 hound_err file_reset(void *data)
 {
     file_destroy();
@@ -85,6 +88,7 @@ hound_err file_reset(void *data)
     return HOUND_OK;
 }
 
+static
 hound_err file_device_id(char *device_id)
 {
     XASSERT_NOT_NULL(device_id);
@@ -94,6 +98,7 @@ hound_err file_device_id(char *device_id)
     return HOUND_OK;
 }
 
+static
 hound_err file_datadesc(struct hound_datadesc **out, hound_data_count *count)
 {
     struct hound_datadesc *desc;
@@ -116,6 +121,7 @@ hound_err file_datadesc(struct hound_datadesc **out, hound_data_count *count)
     return err;
 }
 
+static
 hound_err file_setdata(const struct hound_data_rq_list *data)
 {
     const struct hound_data_rq *rq;
@@ -131,6 +137,7 @@ hound_err file_setdata(const struct hound_data_rq_list *data)
     return HOUND_OK;
 }
 
+static
 hound_err file_parse(
     const uint8_t *buf,
     size_t *bytes,
@@ -160,6 +167,7 @@ hound_err file_parse(
     return HOUND_OK;
 }
 
+static
 hound_err file_next(UNUSED hound_data_id id)
 {
     ssize_t bytes;
@@ -177,6 +185,7 @@ hound_err file_next(UNUSED hound_data_id id)
 	return HOUND_OK;
 }
 
+static
 hound_err file_start(int *out_fd)
 {
     hound_err err;
@@ -209,6 +218,7 @@ out:
     return err;
 }
 
+static
 hound_err file_stop(void)
 {
     hound_err err;

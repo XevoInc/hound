@@ -60,16 +60,19 @@ hound_err nop_init(UNUSED void *data)
     return HOUND_OK;
 }
 
+static
 hound_err nop_destroy(void)
 {
     return HOUND_OK;
 }
 
+static
 hound_err nop_reset(UNUSED void *data)
 {
     return HOUND_OK;
 }
 
+static
 hound_err nop_device_id(char *device_id)
 {
     XASSERT_NOT_NULL(device_id);
@@ -79,6 +82,7 @@ hound_err nop_device_id(char *device_id)
     return HOUND_OK;
 }
 
+static
 hound_err nop_datadesc(struct hound_datadesc **out, hound_data_count *count)
 {
     struct hound_datadesc *desc;
@@ -114,11 +118,13 @@ error_desc:
     return err;
 }
 
+static
 hound_err nop_setdata(UNUSED const struct hound_data_rq_list *data)
 {
     return HOUND_OK;
 }
 
+static
 hound_err nop_parse(
     const uint8_t *buf,
     size_t *bytes,
@@ -132,6 +138,7 @@ hound_err nop_parse(
     return HOUND_OK;
 }
 
+static
 hound_err nop_start(int *fd)
 {
     void *ctx;
@@ -148,11 +155,13 @@ hound_err nop_start(int *fd)
     return HOUND_OK;
 }
 
+static
 hound_err nop_next(UNUSED hound_data_id id)
 {
 	return HOUND_OK;
 }
 
+static
 hound_err nop_stop(void)
 {
     hound_err err;
@@ -164,7 +173,7 @@ hound_err nop_stop(void)
     return HOUND_OK;
 }
 
-struct driver_ops nop_driver = {
+static struct driver_ops nop_driver = {
     .init = nop_init,
     .destroy = nop_destroy,
     .reset = nop_reset,
