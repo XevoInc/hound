@@ -138,12 +138,21 @@ DEFINE_DRV_OP(init, void *data, data)
 DEFINE_DRV_OP_VOID(destroy)
 DEFINE_DRV_OP(reset, void *data, data)
 DEFINE_DRV_OP(device_id, char *device_id, device_id)
-DEFINE_DRV_OP(datadesc, TOKENIZE(struct hound_datadesc **desc, hound_data_count *count), TOKENIZE(desc, count))
+DEFINE_DRV_OP(
+    datadesc,
+    TOKENIZE(struct hound_datadesc **desc, hound_data_count *count),
+    TOKENIZE(desc, count))
 DEFINE_DRV_OP(setdata, const struct hound_data_rq_list *data, data)
-DEFINE_DRV_OP(parse, TOKENIZE(const uint8_t *buf, size_t *bytes, struct hound_record *record), TOKENIZE(buf, bytes, record))
+DEFINE_DRV_OP(
+    parse,
+    TOKENIZE(const uint8_t *buf, size_t *bytes, struct hound_record *record),
+    TOKENIZE(buf, bytes, record))
 DEFINE_DRV_OP(start, int *fd, fd)
 DEFINE_DRV_OP(next, hound_data_id id, id)
-DEFINE_DRV_OP(next_bytes, TOKENIZE(hound_data_id id, size_t bytes), TOKENIZE(id, bytes))
+DEFINE_DRV_OP(
+    next_bytes,
+    TOKENIZE(hound_data_id id, size_t bytes),
+    TOKENIZE(id, bytes))
 DEFINE_DRV_OP_VOID(stop)
 
 void driver_init(void)
