@@ -18,7 +18,6 @@
 #define HOUND_DEVICE_ID_MAX (32)
 
 typedef uint_least8_t hound_data_count;
-typedef uint_least8_t hound_period_count;
 
 struct driver_ops {
     hound_err (*init)(void *data);
