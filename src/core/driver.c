@@ -9,6 +9,7 @@
 #include <hound/hound.h>
 #include <hound_private/api.h>
 #include <hound_private/driver.h>
+#include <hound_private/driver_ops.h>
 #include <hound_private/driver/util.h>
 #include <hound_private/error.h>
 #include <hound_private/io.h>
@@ -24,26 +25,6 @@
 /* TODO: make logging consistent everywhere */
 
 #define FD_INVALID (-1)
-
-struct data {
-    refcount_val refcount;
-    struct hound_data_rq *data;
-};
-
-struct driver {
-    pthread_mutex_t mutex;
-    refcount_val refcount;
-
-    char device_id[HOUND_DEVICE_ID_MAX];
-    hound_data_count datacount;
-    struct hound_datadesc *data;
-
-    xvec_t(struct data) active_data;
-
-    int fd;
-    struct driver_ops ops;
-    void *ctx;
-};
 
 /* device path --> driver ID */
 XHASH_MAP_INIT_STR(DEVICE_MAP, struct driver *)
@@ -65,30 +46,6 @@ PUBLIC_API
 void drv_free(void *p)
 {
     free(p);
-}
-
-/**
- * This thread-local key points to the driver struct for whatever driver is
- * actively processing a callback. We can use it to get and set the driver
- * context without having to explicitly pass a void *ctx to each driver
- * callback. Thus it is very important to reset this pointer prior to calling
- * any driver callback, which should be done using the DRV_OP macro.
- */
-static pthread_key_t active_drv;
-
-static
-void set_active_drv(const struct driver *drv)
-{
-    int ret;
-
-    ret = pthread_setspecific(active_drv, drv);
-    XASSERT_EQ(ret, 0);
-}
-
-static
-void *get_active_drv(void)
-{
-    return pthread_getspecific(active_drv);
 }
 
 PUBLIC_API
@@ -119,60 +76,18 @@ void drv_set_ctx(void *ctx)
     drv->ctx = ctx;
 }
 
-#define TOKENIZE(...) __VA_ARGS__
-
-#define _DEFINE_DRV_OP(name, prototype, args) \
-    static inline \
-    hound_err drv_op_##name(prototype) \
-    { \
-        set_active_drv(drv); \
-        return drv->ops.name(args); \
-    }
-
-#define DEFINE_DRV_OP(name, prototype, args) \
-    _DEFINE_DRV_OP(name, TOKENIZE(struct driver *drv, prototype), TOKENIZE(args))
-
-#define DEFINE_DRV_OP_VOID(name) _DEFINE_DRV_OP(name, struct driver *drv,)
-
-DEFINE_DRV_OP(init, void *data, data)
-DEFINE_DRV_OP_VOID(destroy)
-DEFINE_DRV_OP(reset, void *data, data)
-DEFINE_DRV_OP(device_id, char *device_id, device_id)
-DEFINE_DRV_OP(
-    datadesc,
-    TOKENIZE(struct hound_datadesc **desc, hound_data_count *count),
-    TOKENIZE(desc, count))
-DEFINE_DRV_OP(setdata, const struct hound_data_rq_list *data, data)
-DEFINE_DRV_OP(
-    parse,
-    TOKENIZE(const uint8_t *buf, size_t *bytes, struct hound_record *record),
-    TOKENIZE(buf, bytes, record))
-DEFINE_DRV_OP(start, int *fd, fd)
-DEFINE_DRV_OP(next, hound_data_id id, id)
-DEFINE_DRV_OP(
-    next_bytes,
-    TOKENIZE(hound_data_id id, size_t bytes),
-    TOKENIZE(id, bytes))
-DEFINE_DRV_OP_VOID(stop)
-
 void driver_init(void)
 {
-    int ret;
-
     s_data_map = xh_init(DATA_MAP);
     XASSERT_NOT_NULL(s_data_map);
     s_device_map = xh_init(DEVICE_MAP);
     XASSERT_NOT_NULL(s_device_map);
-    ret = pthread_key_create(&active_drv, NULL);
-    XASSERT_EQ(ret, 0);
+    driver_ops_init();
 }
 
 void driver_destroy(void)
 {
-    int ret;
-
-    ret = pthread_key_delete(active_drv);
-    XASSERT_EQ(ret, 0);
+    driver_ops_destroy();
     xh_destroy(DEVICE_MAP, s_device_map);
     xh_destroy(DATA_MAP, s_data_map);
 }
@@ -556,7 +471,7 @@ hound_err driver_ref(
             goto error_driver_start;
         }
 
-        err = io_add_fd(drv->fd, &drv->ops);
+        err = io_add_fd(drv->fd, drv);
         if (err != HOUND_OK) {
             goto error_io_add_fd;
         }

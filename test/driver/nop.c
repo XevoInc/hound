@@ -130,10 +130,15 @@ hound_err nop_parse(
     size_t *bytes,
     struct hound_record *record)
 {
+    void *ctx;
+
     XASSERT_NOT_NULL(buf);
     XASSERT_NOT_NULL(bytes);
     XASSERT_GT(*bytes, 0);
     XASSERT_NOT_NULL(record);
+
+    ctx = drv_ctx();
+    XASSERT_EQ(ctx, CTX_MAGIC);
 
     return HOUND_OK;
 }

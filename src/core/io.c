@@ -8,6 +8,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <hound_private/driver.h>
+#include <hound_private/driver_ops.h>
 #include <hound_private/error.h>
 #include <hound_private/log.h>
 #include <hound_private/queue.h>
@@ -33,7 +34,7 @@
  * pollfd's passed in be contiguous in memory.
  */
 struct fdctx {
-    struct driver_ops *drv_ops;
+    const struct driver *drv;
     hound_seqno next_seqno;
     xvec_t(struct queue *) queues;
 };
@@ -105,7 +106,7 @@ hound_err io_read(int fd, struct fdctx *ctx)
     bytes_left = bytes_total;
     while (bytes_left > 0) {
         bytes_total = bytes_left;
-        err = ctx->drv_ops->parse(pos, &bytes_left, &record);
+        err = drv_op_parse(ctx->drv, pos, &bytes_left, &record);
         if (err != HOUND_OK) {
             hound_log_err(
                 err,
@@ -310,14 +311,14 @@ void io_stop_poll(void)
     XASSERT_EQ(ret, PTHREAD_CANCELED);
 }
 
-hound_err io_add_fd(int fd, struct driver_ops *drv_ops)
+hound_err io_add_fd(int fd, const struct driver *drv)
 {
     struct fdctx *ctx;
     hound_err err;
     int flags;
     struct pollfd *pfd;
 
-    XASSERT_NOT_NULL(drv_ops);
+    XASSERT_NOT_NULL(drv);
     XASSERT_NEQ(fd, 0);
 
     /* Our fds must be non-blocking for the poll loop to work. */
@@ -341,7 +342,7 @@ hound_err io_add_fd(int fd, struct driver_ops *drv_ops)
         err = HOUND_OOM;
         goto error_ctx_alloc;
     }
-    ctx->drv_ops = drv_ops;
+    ctx->drv = drv;
     ctx->next_seqno = 0;
     xv_init(ctx->queues);
 

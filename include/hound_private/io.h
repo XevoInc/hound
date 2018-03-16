@@ -16,7 +16,7 @@
 void io_init(void);
 void io_destroy(void);
 
-hound_err io_add_fd(int fd, struct driver_ops *drv_ops);
+hound_err io_add_fd(int fd, struct driver *drv);
 void io_remove_fd(int fd);
 
 hound_err io_add_queue(int fd, struct queue *queue);
