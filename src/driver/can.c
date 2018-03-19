@@ -520,5 +520,9 @@ static struct driver_ops can_driver = {
 PUBLIC_API
 hound_err hound_register_can_driver(struct hound_can_driver_init *init)
 {
+    if (init == NULL) {
+        return HOUND_NULL_VAL;
+    }
+
     return driver_register(init->iface, &can_driver, init);
 }
