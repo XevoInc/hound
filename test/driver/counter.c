@@ -124,7 +124,7 @@ hound_err counter_parse(
     }
     else {
         /* We have at least a full record. */
-        err = clock_gettime(CLOCK_MONOTONIC, &record->timestamp);
+        err = clock_gettime(CLOCK_REALTIME, &record->timestamp);
         XASSERT_EQ(err, 0);
         record->data = drv_alloc(sizeof(s_count));
         if (record->data == NULL) {
