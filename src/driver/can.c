@@ -370,7 +370,6 @@ hound_err can_parse(
     size_t i;
     const uint8_t *pos;
     struct hound_record *record;
-    size_t remainder;
     struct timeval tv;
 
     XASSERT_NOT_NULL(buf);
@@ -383,12 +382,7 @@ hound_err can_parse(
     if (count > HOUND_DRIVER_MAX_RECORDS) {
         count = HOUND_DRIVER_MAX_RECORDS;
     }
-
-    remainder = *bytes % sizeof(struct can_frame);
-    if (remainder != 0) {
-        log_msg(LOG_ERR, "incomplete CAN frame with %lu bytes", remainder);
-        return HOUND_DRIVER_FAIL;
-    }
+    XASSERT_EQ(*bytes % sizeof(struct can_frame), 0);
 
     pos = buf;
     for (i = 0; i < count; ++i) {
