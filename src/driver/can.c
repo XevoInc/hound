@@ -376,13 +376,13 @@ hound_err can_parse(
         return HOUND_DRIVER_FAIL;
     }
 
-    record->data = drv_alloc(*bytes);
+    record->data = drv_alloc(sizeof(struct can_frame));
     if (record->data == NULL) {
         return HOUND_OOM;
     }
-    memcpy(record->data, buf, *bytes);
+    memcpy(record->data, buf, sizeof(struct can_frame));
     record->size = *bytes;
-    *bytes = 0;
+    *bytes -= sizeof(struct can_frame);
 
     /* Get the kernel-provided timestamp for our last message. */
     err = ioctl(s_rx_fd, SIOCGSTAMP, &tv);
