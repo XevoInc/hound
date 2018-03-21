@@ -125,7 +125,7 @@ hound_err io_read(int fd, struct fdctx *ctx)
         pos += bytes_total - bytes_left;
 
         /* Add to all user queues. */
-        rec_info = malloc(sizeof(*rec_info));
+        rec_info = drv_alloc(sizeof(*rec_info));
         if (rec_info == NULL) {
             hound_log_err_nofmt(
                 HOUND_OOM,

@@ -222,8 +222,8 @@ out:
 static
 void free_record_info(struct record_info *info)
 {
-    free(info->record.data);
-    free(info);
+    drv_free(info->record.data);
+    drv_free(info);
 }
 
 static
