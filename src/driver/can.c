@@ -362,37 +362,66 @@ static
 hound_err can_parse(
     const uint8_t *buf,
     size_t *bytes,
-    struct hound_record *record)
+    struct hound_record *records,
+    size_t *record_count)
 {
+    size_t count;
     hound_err err;
+    size_t i;
+    const uint8_t *pos;
+    struct hound_record *record;
+    size_t remainder;
     struct timeval tv;
 
     XASSERT_NOT_NULL(buf);
     XASSERT_NOT_NULL(bytes);
     XASSERT_GT(*bytes, 0);
+    XASSERT_NOT_NULL(records);
+    XASSERT_NOT_NULL(record_count);
 
-    if (*bytes < sizeof(struct can_frame)) {
-        log_msg(LOG_ERR, "incomplete CAN frame with %lu bytes", *bytes);
+    count = *bytes / sizeof(struct can_frame);
+    if (count > HOUND_DRIVER_MAX_RECORDS) {
+        count = HOUND_DRIVER_MAX_RECORDS;
+    }
+
+    remainder = *bytes % sizeof(struct can_frame);
+    if (remainder != 0) {
+        log_msg(LOG_ERR, "incomplete CAN frame with %lu bytes", remainder);
         return HOUND_DRIVER_FAIL;
     }
 
-    record->data = drv_alloc(sizeof(struct can_frame));
-    if (record->data == NULL) {
-        return HOUND_OOM;
+    pos = buf;
+    for (i = 0; i < count; ++i) {
+        record = &records[i];
+        record->data = drv_alloc(sizeof(struct can_frame));
+        if (record->data == NULL) {
+            err = HOUND_OOM;
+            goto error_drv_alloc;
+        }
+        memcpy(record->data, pos, sizeof(struct can_frame));
+        record->size = sizeof(struct can_frame);
+
+        /* Get the kernel-provided timestamp for our last message. */
+        err = ioctl(s_rx_fd, SIOCGSTAMP, &tv);
+        XASSERT_NEQ(err, -1);
+        record->timestamp.tv_sec = tv.tv_sec;
+        record->timestamp.tv_nsec = tv.tv_usec * (NS_PER_SEC/US_PER_SEC);
+
+        record->id = HOUND_DEVICE_CAN;
+
+        pos += sizeof(struct can_frame);
     }
-    memcpy(record->data, buf, sizeof(struct can_frame));
-    record->size = *bytes;
-    *bytes -= sizeof(struct can_frame);
 
-    /* Get the kernel-provided timestamp for our last message. */
-    err = ioctl(s_rx_fd, SIOCGSTAMP, &tv);
-    XASSERT_NEQ(err, -1);
-    record->timestamp.tv_sec = tv.tv_sec;
-    record->timestamp.tv_nsec = tv.tv_usec * (NS_PER_SEC/US_PER_SEC);
-
-    record->id = HOUND_DEVICE_CAN;
+    *record_count = count;
+    *bytes -= count * sizeof(struct can_frame);
 
     return HOUND_OK;
+
+error_drv_alloc:
+    for (--i; i < count; --i) {
+        drv_free(records[i].data);
+    }
+    return err;
 }
 
 static

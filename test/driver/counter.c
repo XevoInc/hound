@@ -35,8 +35,6 @@ static const struct hound_datadesc s_datadesc = {
 
 int s_pipe[2] = { FD_INVALID, FD_INVALID };
 static size_t s_count;
-static uint8_t s_buf[sizeof(s_count)];
-static size_t s_buf_bytes;
 
 static
 hound_err counter_init(void *data)
@@ -45,7 +43,6 @@ hound_err counter_init(void *data)
         return HOUND_NULL_VAL;
     }
     s_count = *((__typeof__(s_count) *) data);
-    s_buf_bytes = 0;
 
     return HOUND_OK;
 }
@@ -106,44 +103,58 @@ static
 hound_err counter_parse(
     const uint8_t *buf,
     size_t *bytes,
-    struct hound_record *record)
+    struct hound_record *records,
+    size_t *record_count)
 {
-    size_t consumed_bytes;
+    size_t count;
     hound_err err;
+    size_t i;
+    struct hound_record *record;
+    const uint8_t *pos;
 
     XASSERT_NOT_NULL(buf);
     XASSERT_NOT_NULL(bytes);
     XASSERT_GT(*bytes, 0);
-    XASSERT_NOT_NULL(record);
+    XASSERT_NOT_NULL(records);
 
-    if (*bytes + s_buf_bytes < sizeof(s_count)) {
-        /* We have less than a full record. */
-        memcpy(s_buf+s_buf_bytes, buf, *bytes);
-        s_buf_bytes = *bytes;
-        return HOUND_OK;
+    /* We write full counts, so we should not get partial reads. */
+    if (*bytes % sizeof(s_count) != 0) {
+        return HOUND_DRIVER_FAIL;
     }
-    else {
+
+    count = *bytes / sizeof(s_count);
+    if (count > HOUND_DRIVER_MAX_RECORDS) {
+        count = HOUND_DRIVER_MAX_RECORDS;
+    }
+
+    pos = buf;
+    for (i = 0; i < count; ++i) {
+        record = &records[i];
+        record->data = drv_alloc(sizeof(s_count));
+        if (record->data == NULL) {
+            err = HOUND_OOM;
+            goto error_drv_alloc;
+        }
+
         /* We have at least a full record. */
         err = clock_gettime(CLOCK_REALTIME, &record->timestamp);
         XASSERT_EQ(err, 0);
-        record->data = drv_alloc(sizeof(s_count));
-        if (record->data == NULL) {
-            return HOUND_OOM;
-        }
         record->id = s_datadesc.id;
         record->size = sizeof(s_count);
-        consumed_bytes = sizeof(s_count) - s_buf_bytes;
-        memcpy(record->data, s_buf, s_buf_bytes);
-        memcpy(
-            record->data+s_buf_bytes,
-            buf+s_buf_bytes,
-            consumed_bytes);
-
-        s_buf_bytes = 0;
-        *bytes -= consumed_bytes;
+        memcpy(record->data, pos, sizeof(s_count));
+        pos += sizeof(s_count);
     }
 
+    *record_count = count;
+    *bytes -= count * sizeof(s_count);
+
     return HOUND_OK;
+
+error_drv_alloc:
+    for (--i; i < count; --i) {
+        drv_free(record[i].data);
+    }
+    return err;
 }
 
 static

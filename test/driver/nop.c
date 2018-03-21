@@ -128,17 +128,21 @@ static
 hound_err nop_parse(
     const uint8_t *buf,
     size_t *bytes,
-    struct hound_record *record)
+    struct hound_record *records,
+    size_t *record_count)
 {
     void *ctx;
 
     XASSERT_NOT_NULL(buf);
     XASSERT_NOT_NULL(bytes);
     XASSERT_EQ(*bytes, 0);
-    XASSERT_NOT_NULL(record);
+    XASSERT_NOT_NULL(records);
+    XASSERT_NOT_NULL(record_count);
 
     ctx = drv_ctx();
     XASSERT_EQ(ctx, CTX_MAGIC);
+
+    *record_count = 0;
 
     return HOUND_OK;
 }

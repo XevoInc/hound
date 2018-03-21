@@ -19,6 +19,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <string.h>
 #include <syslog.h>
 #include <unistd.h>
 #include <xlib/xvec.h>
@@ -50,6 +51,7 @@ static pthread_cond_t s_poll_cond = PTHREAD_COND_INITIALIZER;
 static volatile bool s_poll_active_target = false;
 static volatile bool s_poll_active_current = false;
 static uint8_t s_read_buf[POLL_BUF_SIZE];
+static struct hound_record s_records[HOUND_DRIVER_MAX_RECORDS];
 
 static inline
 size_t get_fd_index(int fd)
@@ -79,11 +81,13 @@ hound_err io_read(int fd, struct fdctx *ctx)
 {
     ssize_t bytes_total;
     size_t bytes_left;
+    const struct hound_record *end;
     hound_err err;
     size_t i;
     uint8_t *pos;
-    struct hound_record record;
+    struct hound_record *record;
     struct record_info *rec_info;
+    size_t record_count;
 
     bytes_total = read(fd, s_read_buf, ARRAYLEN(s_read_buf));
     if (bytes_total == -1) {
@@ -106,12 +110,18 @@ hound_err io_read(int fd, struct fdctx *ctx)
     bytes_left = bytes_total;
     while (bytes_left > 0) {
         bytes_total = bytes_left;
-        err = drv_op_parse(ctx->drv, pos, &bytes_left, &record);
+        record_count = 0;
+        err = drv_op_parse(
+            ctx->drv,
+            pos,
+            &bytes_left,
+            s_records,
+            &record_count);
         if (err != HOUND_OK) {
             hound_log_err(
                 err,
-                "Driver failed to parse record with id %lu, size %u",
-                record.id, record.size);
+                "Driver failed to parse records (size = %zu, drv = 0x%p)",
+                bytes_total, ctx->drv);
             return err;
         }
         XASSERT_LTE(bytes_left, (size_t) bytes_total);
@@ -120,25 +130,28 @@ hound_err io_read(int fd, struct fdctx *ctx)
             /* Driver can't make more records from this buffer. We're done. */
             break;
         }
-        XASSERT_GT(record.size, 0);
-        XASSERT_NOT_NULL(record.data);
+
+        XASSERT_GT(record_count, 0);
         pos += bytes_total - bytes_left;
 
         /* Add to all user queues. */
-        rec_info = drv_alloc(sizeof(*rec_info));
-        if (rec_info == NULL) {
-            hound_log_err_nofmt(
-                HOUND_OOM,
-                "Failed to malloc a rec_info; can't add record to user queue");
-            continue;
-        }
+        end = s_records + record_count;
+        for (record = s_records; record < end; ++record) {
+            rec_info = drv_alloc(sizeof(*rec_info));
+            if (rec_info == NULL) {
+                hound_log_err_nofmt(
+                    HOUND_OOM,
+                    "Failed to malloc a rec_info; can't add record to user queue");
+                continue;
+            }
+            record->seqno = ctx->next_seqno;
+            ++ctx->next_seqno;
+            memcpy(&rec_info->record, record, sizeof(*record));
+            atomic_ref_init(&rec_info->refcount, xv_size(ctx->queues));
 
-        atomic_ref_init(&rec_info->refcount, xv_size(ctx->queues));
-        rec_info->record = record;
-        rec_info->record.seqno = ctx->next_seqno;
-        ++ctx->next_seqno;
-        for (i = 0; i < xv_size(ctx->queues); ++i) {
-            queue_push(xv_A(ctx->queues, i), rec_info);
+            for (i = 0; i < xv_size(ctx->queues); ++i) {
+                queue_push(xv_A(ctx->queues, i), rec_info);
+            }
         }
     }
 

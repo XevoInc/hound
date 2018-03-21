@@ -12,10 +12,13 @@
 #include <hound_private/queue.h>
 #include <stdbool.h>
 
+/** Maximum number of records a driver can produce from a single parse call. */
+#define HOUND_DRIVER_MAX_RECORDS 20
+
 /** Max length for a device name, including '\0'. */
-#define HOUND_DEVICE_NAME_MAX (32)
+#define HOUND_DEVICE_NAME_MAX 32
 /** Max length for a device ID, including '\0'. */
-#define HOUND_DEVICE_ID_MAX (32)
+#define HOUND_DEVICE_ID_MAX 32
 
 typedef uint_least8_t hound_data_count;
 
@@ -70,16 +73,23 @@ struct driver_ops {
      *              unconsumed data will *not* be in the buffer, so if the
      *              driver needs to reference the unconsumed bytes, it must
      *              store them itself.
-     * @param record a record to be filled in. The record's data should be
-     *               allocated using drv_alloc. The allocated memory is owned by
-     *               the driver core.
+     * @param records a pointer to a block of records that the driver may use,
+     *                up to a maximum of HOUND_DRIVER_MAX_RECORDS. Each record
+     *                data should be allocated via drv_alloc. driver via
+     *                drv_alloc.  All record fields -- except the sequence
+     *                number -- shall be filled in by the driver. Each record
+     *                data should be allocated via drv_alloc, and the memory for
+     *                it shall be owned by the driver core.
+     * @param record_count the driver shall set this to the number of records
+     *                     produced.
      *
      * @return an error code
      */
     hound_err (*parse)(
         const uint8_t *buf,
         size_t *bytes,
-        struct hound_record *record);
+        struct hound_record *records,
+        size_t *record_count);
 
     hound_err (*start)(int *fd);
     hound_err (*next)(hound_data_id id);

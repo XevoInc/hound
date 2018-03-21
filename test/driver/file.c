@@ -141,10 +141,12 @@ static
 hound_err file_parse(
     const uint8_t *buf,
     size_t *bytes,
-    struct hound_record *record)
+    struct hound_record *records,
+    size_t *record_count)
 {
     hound_err err;
     struct timespec timestamp;
+    struct hound_record *record;
 
     err = clock_gettime(CLOCK_MONOTONIC, &timestamp);
     XASSERT_EQ(err, 0);
@@ -153,15 +155,18 @@ hound_err file_parse(
     XASSERT_NOT_NULL(bytes);
     XASSERT_GT(*bytes, 0);
 
+    record = records;
     record->data = drv_alloc(*bytes * sizeof(*buf));
     if (record->data == NULL) {
         return HOUND_OOM;
     }
+
     memcpy(record->data, buf, *bytes);
     record->id = s_datadesc.id;
     record->timestamp = timestamp;
     record->size = *bytes;
 
+    *record_count = 1;
     *bytes = 0;
 
     return HOUND_OK;
