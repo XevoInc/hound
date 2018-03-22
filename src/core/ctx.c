@@ -263,6 +263,10 @@ hound_err ctx_free(struct hound_ctx *ctx)
 
     NULL_CHECK(ctx);
 
+    if (ctx->active) {
+        return HOUND_CTX_ACTIVE;
+    }
+
     err = pthread_rwlock_destroy(&ctx->rwlock);
     XASSERT_EQ(err, 0);
 
@@ -378,7 +382,7 @@ hound_err ctx_start(struct hound_ctx *ctx)
 
     /* We must not double-ref the drivers. */
     if (ctx->active) {
-        err = HOUND_CTX_ALREADY_ACTIVE;
+        err = HOUND_CTX_ACTIVE;
         goto out;
     }
 

@@ -127,13 +127,16 @@ void test_start_ctx(struct hound_ctx *ctx)
     XASSERT_OK(err);
 
     err = hound_start(ctx);
-    XASSERT_ERRCODE(err, HOUND_CTX_ALREADY_ACTIVE);
+    XASSERT_ERRCODE(err, HOUND_CTX_ACTIVE);
 }
 
 static
 void test_stop_ctx(struct hound_ctx *ctx)
 {
     hound_err err;
+
+    err = hound_free_ctx(ctx);
+    XASSERT_ERRCODE(err, HOUND_CTX_ACTIVE);
 
     err = hound_stop(NULL);
     XASSERT_ERRCODE(err, HOUND_NULL_VAL);

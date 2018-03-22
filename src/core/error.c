@@ -41,8 +41,8 @@ const char *error_strerror(hound_err err)
             return "context does not request any data";
         case HOUND_DATA_ID_DOES_NOT_EXIST:
             return "context requests data ID not registered with a driver";
-        case HOUND_CTX_ALREADY_ACTIVE:
-            return "context has already been started";
+        case HOUND_CTX_ACTIVE:
+            return "context is active";
         case HOUND_CTX_NOT_ACTIVE:
             return "context has not been started";
         case HOUND_EMPTY_QUEUE:
