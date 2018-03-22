@@ -335,6 +335,7 @@ hound_err driver_unregister(const char *path)
     for (i = 0; i < drv->datacount; ++i) {
         drv_destroy_desc(&drv->data[i]);
     }
+    free(drv->data);
 
     err = pthread_mutex_destroy(&drv->mutex);
     XASSERT_EQ(err, 0);
