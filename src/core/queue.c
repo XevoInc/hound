@@ -29,6 +29,12 @@ struct queue {
     struct record_info *data[];
 };
 
+void free_record_info(struct record_info *info)
+{
+    drv_free(info->record.data);
+    drv_free(info);
+}
+
 hound_err queue_alloc(
     struct queue **out_queue,
     size_t max_len)
@@ -155,10 +161,13 @@ void queue_push(
 
     pthread_mutex_lock(&queue->mutex);
     back = (queue->front + queue->len) % queue->max_len;
-    queue->data[back] = rec;
     if (queue->len < queue->max_len) {
         ++queue->len;
     }
+    else {
+        free_record_info(queue->data[back]);
+    }
+    queue->data[back] = rec;
     err = pthread_cond_signal(&queue->data_cond);
     XASSERT_EQ(err, 0);
     pthread_mutex_unlock(&queue->mutex);

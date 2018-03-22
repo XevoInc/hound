@@ -228,13 +228,6 @@ out:
 }
 
 static
-void free_record_info(struct record_info *info)
-{
-    drv_free(info->record.data);
-    drv_free(info);
-}
-
-static
 void destroy_cb_queue(struct queue *queue)
 {
     refcount_val count;

@@ -9,7 +9,14 @@
 #ifndef HOUND_PRIVATE_QUEUE_H_
 #define HOUND_PRIVATE_QUEUE_H_
 
+/*
+ * Forward declaration to avoid circular inclusion issues between queue.h and
+ * driver.h.
+ */
+struct queue;
+
 #include <hound/hound.h>
+#include <hound_private/driver.h>
 #include <hound_private/refcount.h>
 
 struct record_info {
@@ -17,7 +24,7 @@ struct record_info {
     struct hound_record record;
 };
 
-struct queue;
+void free_record_info(struct record_info *info);
 
 hound_err queue_alloc(
     struct queue **queue,
