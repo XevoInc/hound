@@ -245,7 +245,7 @@ void io_pause_poll(void)
     pthread_mutex_unlock(&s_poll_mutex);
 
     /*
-     * Wait until the poll has actually canceled. The signal handler will signal
+     * Wait until the poll has actually canceled. io_wait_for_ready will signal
      * on the condition variable when it is run.
      */
     pthread_mutex_lock(&s_poll_mutex);
