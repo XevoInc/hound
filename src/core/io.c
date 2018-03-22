@@ -91,9 +91,10 @@ hound_err io_read(int fd, struct fdctx *ctx)
 
     bytes_total = read(fd, s_read_buf, ARRAYLEN(s_read_buf));
     if (bytes_total == -1) {
-        /* We should not see these, as we only read after doing poll. */
-        XASSERT_NEQ(errno, EAGAIN);
-        XASSERT_NEQ(errno, EWOULDBLOCK);
+        /* Someone wanted to pause polling; we can finish reading later. */
+        if (errno == EINTR) {
+            return HOUND_INTR;
+        }
 
         if (errno == EIO) {
             hound_log_err(errno, "read returned EIO on fd %d", fd);
@@ -216,6 +217,10 @@ void *io_poll(UNUSED void *data)
 
             ctx = xv_A(s_ios.ctx, i);
             err = io_read(pfd->fd, ctx);
+            if (err == HOUND_INTR) {
+                /* Someone wants to pause polling; finish reading later. */
+                break;
+            }
             --fds;
             if (err != HOUND_OK) {
                 hound_log_err(err, "Failed to grab record from fd %d", pfd->fd);

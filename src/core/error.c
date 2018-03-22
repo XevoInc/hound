@@ -63,6 +63,8 @@ const char *error_strerror(hound_err err)
             return "the driver failed to complete the requested operation";
         case HOUND_INVALID_VAL:
             return "value specified is invalid";
+        case HOUND_INTR:
+            return "operation was interrupted";
     }
 
     __builtin_unreachable();

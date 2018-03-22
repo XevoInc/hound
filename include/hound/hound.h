@@ -43,7 +43,8 @@ enum hound_err_enum {
     HOUND_INVALID_STRING = -17,
     HOUND_DRIVER_UNSUPPORTED = -18,
     HOUND_DRIVER_FAIL = -19,
-    HOUND_INVALID_VAL = -20
+    HOUND_INVALID_VAL = -20,
+    HOUND_INTR = -21
 };
 
 /** Returns a human-readable error string. The string must not be modified or
