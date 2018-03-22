@@ -391,12 +391,6 @@ void io_remove_fd(int fd)
     index = get_fd_index(fd);
     ctx = xv_A(s_ios.ctx, index);
 
-    /*
-     * All queues must be removed before we remove the backing fd, as drivers
-     * should be loaded and unloaded on-demand.
-     */
-    XASSERT_EQ(xv_size(ctx->queues), 0);
-
     io_pause_poll();
 
     /* Remove fd and ctx. */

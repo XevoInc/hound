@@ -582,9 +582,6 @@ hound_err driver_unref(
         }
     }
 
-    /* Remove ourselves from the I/O layer. */
-    io_remove_queue(drv->fd, queue);
-
     /* Stop the driver if needed. */
     --drv->refcount;
     if (drv->refcount == 0) {
@@ -595,6 +592,13 @@ hound_err driver_unref(
             goto error_driver_stop;
         }
         drv->fd = FD_INVALID;
+    }
+    else {
+        /*
+         * io_remove_fd destroys the driver queues, so we need to explicitly
+         * remove ourselves only if the driver is still active.
+         */
+        io_remove_queue(drv->fd, queue);
     }
 
     err = HOUND_OK;
