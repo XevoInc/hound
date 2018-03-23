@@ -180,7 +180,7 @@ struct chan_sort_entry {
 #define BITS_TYPE_UNSIGNED(bits) uint##bits##_t
 #define BITS_TYPE_SIGNED(bits) int##bits##_t
 
-#define _DEFINE_COPY_FUNC(bits, name, endian, endian_func, utype, type) \
+#define _DEFINE_COPY_FUNC(bits, name, endian, endian_func, type) \
 static inline \
 void endian##bits##_copy_##name( \
     uint8_t *dest, \
@@ -188,20 +188,20 @@ void endian##bits##_copy_##name( \
     uint_fast8_t shift, \
     uint_fast64_t mask) \
 { \
-    utype u; \
+    BITS_TYPE_UNSIGNED(bits) u; \
     \
     /*
      * Treat as unsigned until we finally cast to avoid sign extension in the
      * shift.
      */ \
-    u = endian_func(*(utype *) src); \
+    u = endian_func(*(BITS_TYPE_UNSIGNED(bits) *) src); \
     u >>= shift; \
     u &= mask; \
     \
     *((type *) dest) = u; \
 }
 
-#define _DEFINE_COPY_FUNC_FLOAT(bits, name, endian, endian_func, utype, type) \
+#define _DEFINE_COPY_FUNC_FLOAT(bits, name, endian, endian_func, type) \
 static inline \
 float endian##bits##_copy_##name##_float( \
     const uint8_t *src, \
@@ -221,14 +221,12 @@ float endian##bits##_copy_##name##_float( \
         unsigned, \
         endian, \
         ENDIAN_FUNC(bits, endian), \
-        BITS_TYPE_UNSIGNED(bits), \
         BITS_TYPE_UNSIGNED(bits)) \
     _DEFINE_COPY_FUNC_FLOAT(\
         bits, \
         unsigned, \
         endian, \
         ENDIAN_FUNC(bits, endian), \
-        BITS_TYPE_UNSIGNED(bits), \
         BITS_TYPE_UNSIGNED(bits))
 
 #define _DEFINE_COPY_FUNC_SIGNED(bits, endian) \
@@ -237,14 +235,12 @@ float endian##bits##_copy_##name##_float( \
         signed, \
         endian, \
         ENDIAN_FUNC(bits, endian), \
-        BITS_TYPE_UNSIGNED(bits), \
         BITS_TYPE_SIGNED(bits)) \
     _DEFINE_COPY_FUNC_FLOAT(\
         bits, \
         signed, \
         endian, \
         ENDIAN_FUNC(bits, endian), \
-        BITS_TYPE_UNSIGNED(bits), \
         BITS_TYPE_SIGNED(bits))
 
 #define DEFINE_COPY_FUNC(bits) \
@@ -254,10 +250,10 @@ float endian##bits##_copy_##name##_float( \
     _DEFINE_COPY_FUNC_SIGNED(bits, le)
 
 /* Special-case one-byte copying, as the endian function is a no-op. */
-_DEFINE_COPY_FUNC(8, unsigned, identity, identity_copy, uint8_t, uint8_t)
-_DEFINE_COPY_FUNC_FLOAT(8, unsigned, identity, identity_copy, uint8_t, uint8_t)
-_DEFINE_COPY_FUNC(8, signed, identity, identity_copy, uint8_t, int8_t)
-_DEFINE_COPY_FUNC_FLOAT(8, signed, identity, identity_copy, uint8_t, int8_t)
+_DEFINE_COPY_FUNC(8, unsigned, identity, identity_copy, BITS_TYPE_UNSIGNED(8))
+_DEFINE_COPY_FUNC_FLOAT(8, unsigned, identity, identity_copy, BITS_TYPE_UNSIGNED(8))
+_DEFINE_COPY_FUNC(8, signed, identity, identity_copy, BITS_TYPE_SIGNED(8))
+_DEFINE_COPY_FUNC_FLOAT(8, signed, identity, identity_copy, BITS_TYPE_SIGNED(8))
 
 DEFINE_COPY_FUNC(16)
 DEFINE_COPY_FUNC(32)
