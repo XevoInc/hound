@@ -217,26 +217,26 @@ float endian##bits##_copy_##name##_float( \
     return (float) t; \
 }
 
-#define _DEFINE_COPY_FUNC_UNSIGNED(bits, endian) \
+#define _DEFINE_COPY_FUNC_UNSIGNED(bits, endian, endian_func) \
     _DEFINE_COPY_FUNC(\
         bits, \
         unsigned, \
         endian, \
-        ENDIAN_FUNC(bits, endian), \
+        endian_func, \
         BITS_TYPE_UNSIGNED(bits)) \
     _DEFINE_COPY_FUNC_FLOAT(\
         bits, \
         unsigned, \
         endian, \
-        ENDIAN_FUNC(bits, endian), \
+        endian_func, \
         BITS_TYPE_UNSIGNED_FAST(bits))
 
-#define _DEFINE_COPY_FUNC_SIGNED(bits, endian) \
+#define _DEFINE_COPY_FUNC_SIGNED(bits, endian, endian_func) \
     _DEFINE_COPY_FUNC(\
         bits, \
         signed, \
         endian, \
-        ENDIAN_FUNC(bits, endian), \
+        endian_func, \
         BITS_TYPE_SIGNED(bits)) \
     _DEFINE_COPY_FUNC_FLOAT(\
         bits, \
@@ -245,18 +245,16 @@ float endian##bits##_copy_##name##_float( \
         ENDIAN_FUNC(bits, endian), \
         BITS_TYPE_SIGNED_FAST(bits))
 
+#define DEFINE_COPY_FUNC_ENDIAN(bits, endian, endian_func) \
+    _DEFINE_COPY_FUNC_UNSIGNED(bits, endian, endian_func) \
+    _DEFINE_COPY_FUNC_SIGNED(bits, endian, endian_func)
+
 #define DEFINE_COPY_FUNC(bits) \
-    _DEFINE_COPY_FUNC_UNSIGNED(bits, be) \
-    _DEFINE_COPY_FUNC_UNSIGNED(bits, le) \
-    _DEFINE_COPY_FUNC_SIGNED(bits, be) \
-    _DEFINE_COPY_FUNC_SIGNED(bits, le)
+    DEFINE_COPY_FUNC_ENDIAN(bits, be, ENDIAN_FUNC(bits, be)) \
+    DEFINE_COPY_FUNC_ENDIAN(bits, le, ENDIAN_FUNC(bits, le)) \
 
 /* Special-case one-byte copying, as the endian function is a no-op. */
-_DEFINE_COPY_FUNC(8, unsigned, identity, identity_copy, BITS_TYPE_UNSIGNED(8))
-_DEFINE_COPY_FUNC_FLOAT(8, unsigned, identity, identity_copy, BITS_TYPE_UNSIGNED(8))
-_DEFINE_COPY_FUNC(8, signed, identity, identity_copy, BITS_TYPE_SIGNED(8))
-_DEFINE_COPY_FUNC_FLOAT(8, signed, identity, identity_copy, BITS_TYPE_SIGNED(8))
-
+DEFINE_COPY_FUNC_ENDIAN(8, identity, identity_copy)
 DEFINE_COPY_FUNC(16)
 DEFINE_COPY_FUNC(32)
 DEFINE_COPY_FUNC(64)
