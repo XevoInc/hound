@@ -596,55 +596,15 @@ hound_err iio_stop(void)
 }
 
 static
-hound_err iio_get_clock(const char *dev_dir, clock_t *clock)
+hound_err iio_set_clock(const char *dev_dir, const char *clock_type, size_t len)
 {
-    /* Must fit the entire clock file. */
-    char buf[30];
-    hound_err err;
-
-    err = iio_read(
-        dev_dir,
-        "current_timestamp_clock",
-        buf,
-        ARRAYLEN(buf),
-        NULL);
-    if (err != HOUND_OK) {
-        return err;
-    }
-
-    if (strcmp(buf, "realtime") == 0) {
-        *clock = CLOCK_REALTIME;
-    }
-    else if (strcmp(buf, "monotonic") == 0) {
-        *clock = CLOCK_MONOTONIC;
-    }
-    else if (strcmp(buf, "monotonic_raw") == 0) {
-        *clock = CLOCK_MONOTONIC_RAW;
-    }
-    else if (strcmp(buf, "realtime_coarse") == 0) {
-        *clock = CLOCK_REALTIME_COARSE;
-    }
-    else if (strcmp(buf, "monotonic_coarse") == 0) {
-        *clock = CLOCK_MONOTONIC_COARSE;
-    }
-    else if (strcmp(buf, "boottime") == 0) {
-        *clock = CLOCK_BOOTTIME;
-    }
-    else if (strcmp(buf, "tai") == 0) {
-        *clock = CLOCK_TAI;
-    }
-    else {
-        XASSERT_ERROR;
-    }
-
-    return HOUND_OK;
+    return iio_write(dev_dir, "current_timestamp_clock", clock_type, len);
 }
 
 static
 hound_err iio_init(void *data)
 {
     char buf[2];
-    clock_t clock_type;
     struct iio_ctx *ctx;
     char *dev_dir;
     hound_err err;
@@ -695,15 +655,9 @@ hound_err iio_init(void *data)
     }
     XASSERT(S_ISDIR(st.st_mode));
 
-    /* Get the device clock type. */
-    err = iio_get_clock(ctx->dev_dir, &clock_type);
+    err = iio_set_clock(ctx->dev_dir, "realtime", ARRAYLEN("realtime"));
     if (err != HOUND_OK) {
-        goto error_get_clock;
-    }
-    if (clock_type != CLOCK_REALTIME && clock_type != CLOCK_REALTIME_COARSE) {
-        /* For now, support only realtime clocks. */
-        err = HOUND_DRIVER_UNSUPPORTED;
-        goto error_get_clock;
+        goto error_set_clock;
     }
 
     ctx->dev = strndup(init->dev, PATH_MAX);
@@ -746,7 +700,7 @@ hound_err iio_init(void *data)
 error_buffer_enable:
 error_dev_name:
 error_dev:
-error_get_clock:
+error_set_clock:
 error_stat:
     free(ctx->dev_dir);
 error_dev_dir:
