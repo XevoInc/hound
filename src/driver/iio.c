@@ -178,7 +178,9 @@ struct chan_sort_entry {
 #define ENDIAN_FUNC(bits, endian) endian##bits##toh
 #define identity_copy(x) (x)
 #define BITS_TYPE_UNSIGNED(bits) uint##bits##_t
+#define BITS_TYPE_UNSIGNED_FAST(bits) uint##bits##_t
 #define BITS_TYPE_SIGNED(bits) int##bits##_t
+#define BITS_TYPE_SIGNED_FAST(bits) int##bits##_t
 
 #define _DEFINE_COPY_FUNC(bits, name, endian, endian_func, type) \
 static inline \
@@ -188,7 +190,7 @@ void endian##bits##_copy_##name( \
     uint_fast8_t shift, \
     uint_fast64_t mask) \
 { \
-    BITS_TYPE_UNSIGNED(bits) u; \
+    BITS_TYPE_UNSIGNED_FAST(bits) u; \
     \
     /*
      * Treat as unsigned until we finally cast to avoid sign extension in the
@@ -201,14 +203,14 @@ void endian##bits##_copy_##name( \
     *((type *) dest) = u; \
 }
 
-#define _DEFINE_COPY_FUNC_FLOAT(bits, name, endian, endian_func, type) \
+#define _DEFINE_COPY_FUNC_FLOAT(bits, name, endian, endian_func, fast_type) \
 static inline \
 float endian##bits##_copy_##name##_float( \
     const uint8_t *src, \
     uint_fast8_t shift, \
     uint_fast64_t mask) \
 { \
-    type t; \
+    fast_type t; \
     \
     endian##bits##_copy_##name((uint8_t *) &t, src, shift, mask); \
     \
@@ -227,7 +229,7 @@ float endian##bits##_copy_##name##_float( \
         unsigned, \
         endian, \
         ENDIAN_FUNC(bits, endian), \
-        BITS_TYPE_UNSIGNED(bits))
+        BITS_TYPE_UNSIGNED_FAST(bits))
 
 #define _DEFINE_COPY_FUNC_SIGNED(bits, endian) \
     _DEFINE_COPY_FUNC(\
@@ -241,7 +243,7 @@ float endian##bits##_copy_##name##_float( \
         signed, \
         endian, \
         ENDIAN_FUNC(bits, endian), \
-        BITS_TYPE_SIGNED(bits))
+        BITS_TYPE_SIGNED_FAST(bits))
 
 #define DEFINE_COPY_FUNC(bits) \
     _DEFINE_COPY_FUNC_UNSIGNED(bits, be) \
