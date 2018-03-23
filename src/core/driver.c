@@ -574,14 +574,6 @@ hound_err driver_unref(
         }
     }
 
-    /* Tell the driver to change what data it generates. */
-    if (changed) {
-        err = drv_op_setdata(drv, drv_data_list);
-        if (err != HOUND_OK) {
-            goto error_driver_setdata;
-        }
-    }
-
     /* Stop the driver if needed. */
     --drv->refcount;
     if (drv->refcount == 0) {
@@ -599,6 +591,13 @@ hound_err driver_unref(
          * remove ourselves only if the driver is still active.
          */
         io_remove_queue(drv->fd, queue);
+
+        if (changed) {
+            err = drv_op_setdata(drv, drv_data_list);
+            if (err != HOUND_OK) {
+                goto error_driver_setdata;
+            }
+        }
     }
 
     err = HOUND_OK;
