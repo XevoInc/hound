@@ -1,4 +1,5 @@
 Things to do:
+- GPS driver
 - Dynamically loadable drivers?
 - Driver interface for querying how large (in bytes) a given data type is.
   Allows users to preallocate buffers and know what to expect for record size.
