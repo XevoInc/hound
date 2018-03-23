@@ -528,7 +528,6 @@ hound_err populate_desc(
     const char *dev_name,
     struct hound_datadesc *desc)
 {
-    /* TODO: after it compiles: refactor to call things desc instead of chan */
 
     desc->id = data_id;
     desc->name = strdup(dev_name);
