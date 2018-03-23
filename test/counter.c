@@ -27,7 +27,7 @@ static void reset_counts(struct stats *stats)
     stats->count = 0;
 }
 
-void data_cb(struct hound_record *rec, void *cb_ctx)
+void data_cb(const struct hound_record *rec, void *cb_ctx)
 {
     struct stats *stats;
 

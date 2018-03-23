@@ -34,7 +34,7 @@ void sig_handler(int sig)
 }
 
 static
-void data_cb(UNUSED struct hound_record *record, UNUSED void *ctx)
+void data_cb(UNUSED const struct hound_record *record, UNUSED void *ctx)
 {
     float *p;
     const char *type;

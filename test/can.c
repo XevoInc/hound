@@ -46,7 +46,7 @@ static struct frame_ctx s_tx = {
     .frames = s_tx_frames
 };
 
-void data_cb(struct hound_record *record, void *data)
+void data_cb(const struct hound_record *record, void *data)
 {
     struct frame_ctx *ctx;
     uint8_t *p;

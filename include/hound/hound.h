@@ -77,7 +77,7 @@ struct hound_record {
     uint8_t *data;
 };
 
-typedef void (*hound_cb)(struct hound_record *rec, void *cb_ctx);
+typedef void (*hound_cb)(const struct hound_record *rec, void *cb_ctx);
 typedef uint_fast8_t hound_period_count;
 typedef uint_fast64_t hound_data_period;
 

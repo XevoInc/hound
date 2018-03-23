@@ -14,7 +14,7 @@
 
 extern hound_err register_nop_driver(void);
 
-void data_cb(struct hound_record *rec, void *cb_ctx)
+void data_cb(const struct hound_record *rec, void *cb_ctx)
 {
     XASSERT_NOT_NULL(rec);
     XASSERT_NULL(cb_ctx);

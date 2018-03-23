@@ -25,7 +25,7 @@ struct text {
     size_t index;
 };
 
-void data_cb(struct hound_record *record, void *data)
+void data_cb(const struct hound_record *record, void *data)
 {
     struct text *text;
     int ret;
