@@ -1406,7 +1406,7 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
                 chan = parse_entry->channels[j].chan;
                 err = iio_disable_chan(ctx->dev_dir, chan->enable_file);
                 if (err != HOUND_OK) {
-                    return err;
+                    goto out_error;
                 }
             }
         }
@@ -1427,13 +1427,13 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
     /* Set the buffer length to buffer the amount of time the user requested. */
     err = iio_get_freq(period, &hz);
     if (err != HOUND_OK) {
-        return err;
+        goto out_error;
     }
     buf_sec = ((double) ctx->buf_ns) / NSEC_PER_SEC;
     buf_samples = (uint_fast64_t) (hz*buf_sec);
     err = iio_set_buffer_length(ctx->dev_dir, buf_samples);
     if (err != HOUND_OK) {
-        return err;
+        goto out_error;
     }
 
     /*
@@ -1442,7 +1442,7 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
      */
     err = iio_write(ctx->dev_dir, "buffer/watermark", "1", 1);
     if (err != HOUND_OK) {
-        return err;
+        goto out_error;
     }
 
     /*
@@ -1461,13 +1461,14 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
 
     sort_entries = malloc(num_channels*sizeof(*sort_entries));
     if (sort_entries == NULL) {
-        return HOUND_OOM;
+        err = HOUND_OOM;
+        goto out_error;
     }
 
     err = get_channel_sort_entries(ctx->dev_dir, num_channels, data_list, sort_entries);
     if (err != HOUND_OK) {
         err = HOUND_OOM;
-        goto out;
+        goto out_error;
     }
 
     /* Make sure the channel indices for a given data type are contiguous. */
@@ -1486,7 +1487,7 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
              */
             if (ids[chan->id] == 1) {
                 err = HOUND_DRIVER_UNSUPPORTED;
-                goto out;
+                goto error_chan_id;
             }
             ids[chan->id] = 1;
             id = chan->id;
@@ -1507,7 +1508,7 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
     ctx->entries = malloc(ctx->num_entries * sizeof(*ctx->entries));
     if (ctx->entries == NULL) {
         err = HOUND_OOM;
-        goto out;
+        goto error_malloc_entries;
     }
 
     /* Enable the requested channels. */
@@ -1586,23 +1587,26 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
         ctx->entries,
         &ctx->timestamp_channel);
 
-    if (restart) {
-        err = iio_enable_device(ctx->dev_dir);
-        if (err != HOUND_OK) {
-            goto error_chan_parse;
-        }
-    }
-
     err = HOUND_OK;
-    goto out;
+    goto out_success;
 
 error_chan_parse:
     for (; i < num_channels-1; ++i) {
         free(ctx->entries[i].channels);
     }
     free(ctx->entries);
-out:
+error_malloc_entries:
+error_chan_id:
+out_success:
     free(sort_entries);
+out_error:
+    if (restart) {
+        err = iio_enable_device(ctx->dev_dir);
+        if (err != HOUND_OK) {
+            hound_log_err_nofmt(err, "failed to enable device");
+        }
+    }
+
     return err;
 }
 
