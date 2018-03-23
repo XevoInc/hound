@@ -1,5 +1,9 @@
 Things to do:
 - GPS driver
+- IIO automated unit tests, using the kernel dummy IIO driver
+- IIO driver dynamically listing sysfs entries and doing string parsing to
+  figure out possible channels (like iio_generic_buffer does), instead of
+  hardcoding these.
 - Dynamically loadable drivers?
 - Driver interface for querying how large (in bytes) a given data type is.
   Allows users to preallocate buffers and know what to expect for record size.
