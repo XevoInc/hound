@@ -6,3 +6,4 @@ Things to do:
 - Interface to describe data schema (making Hound self-describing).
 - Optimize drv_alloc, since both record data and struct record_info are
   short-lived.
+- Audit logging to make it consistent throughout the code.

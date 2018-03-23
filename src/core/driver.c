@@ -22,8 +22,6 @@
 #include <xlib/xhash.h>
 #include <xlib/xvec.h>
 
-/* TODO: make logging consistent everywhere */
-
 #define FD_INVALID (-1)
 
 /* device path --> driver ID */
