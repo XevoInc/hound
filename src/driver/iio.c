@@ -317,7 +317,8 @@ hound_err iio_get_period(hound_data_period hz, hound_data_period *out)
     return HOUND_OK;
 }
 
-static hound_err iio_read_abs(
+static
+hound_err iio_read_abs(
     const char *path,
     char *out,
     size_t maxlen,
