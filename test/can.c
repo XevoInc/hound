@@ -147,7 +147,7 @@ int main(int argc, const char **argv)
             stderr,
             "Failed to open CAN interface %s\n"
             "Run this command to create a CAN interface:\n"
-            "sudo meson/vcan\n",
+            "sudo meson/vcan setup\n",
             init.iface);
         exit(EXIT_FAILURE);
     }
