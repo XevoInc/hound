@@ -655,11 +655,6 @@ hound_err iio_init(void *data)
     }
     XASSERT(S_ISDIR(st.st_mode));
 
-    err = iio_set_clock(ctx->dev_dir, "realtime", ARRAYLEN("realtime"));
-    if (err != HOUND_OK) {
-        goto error_set_clock;
-    }
-
     ctx->dev = strndup(init->dev, PATH_MAX);
     if (ctx->dev_dir == NULL) {
         err = HOUND_OOM;
@@ -700,7 +695,6 @@ hound_err iio_init(void *data)
 error_buffer_enable:
 error_dev_name:
 error_dev:
-error_set_clock:
 error_stat:
     free(ctx->dev_dir);
 error_dev_dir:
@@ -1358,6 +1352,12 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
             }
         }
     }
+
+    /* For simplicity, we use only the realtime clock. */
+    err = iio_set_clock(ctx->dev_dir, "realtime", ARRAYLEN("realtime"));
+    if (err != HOUND_OK) {
+        goto out_error;
+   }
 
     /* Set the device frequency. */
     period = data_list->data[0].period_ns;
