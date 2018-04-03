@@ -34,7 +34,6 @@ struct bcm_payload {
     struct can_frame tx_frames[];
 };
 
-static const char *s_device_id = "can-device";
 static struct hound_datadesc s_datadesc = {
     .name = "can-data",
     .id = HOUND_DEVICE_CAN,
@@ -42,18 +41,28 @@ static struct hound_datadesc s_datadesc = {
     .avail_periods = NULL
 };
 
-static bool s_active;
-static char s_iface[IFNAMSIZ];
-static canid_t s_rx_can_id;
-static hound_data_period s_period_ns;
-static int s_tx_fd;
-static int s_rx_fd;
-static uint32_t s_tx_count;
-static size_t s_payload_size;
-static struct bcm_payload *s_payload;
+/*
+ * Turn off pedantic warning for nesting the variable-length struct payload at
+ * the end of can_ctx, even though it is the last member of the struct.
+ */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+struct can_ctx {
+    bool active;
+    const char *device_id;
+    char iface[IFNAMSIZ];
+    canid_t rx_can_id;
+    int tx_fd;
+    int rx_fd;
+    hound_data_period period_ns;
+    uint32_t tx_count;
+    size_t payload_size;
+    struct bcm_payload payload;
+};
+#pragma GCC diagnostic pop
 
 static
-hound_err write_loop(int fd, void *data, size_t n)
+hound_err write_loop(int fd, const void *data, size_t n)
 {
     ssize_t bytes;
     size_t count;
@@ -78,6 +87,7 @@ hound_err write_loop(int fd, void *data, size_t n)
 static
 hound_err can_init(void *data)
 {
+    struct can_ctx *ctx;
     struct ifreq ifr;
     hound_err err;
     int fd;
@@ -113,20 +123,25 @@ hound_err can_init(void *data)
     }
     close(fd);
 
-    frames_size = init->tx_count*sizeof(*s_payload->tx_frames);
-    s_payload_size = sizeof(*s_payload) + frames_size;
-    s_payload = drv_alloc(s_payload_size);
-    if (s_payload == NULL) {
+    frames_size = init->tx_count*sizeof(*ctx->payload.tx_frames);
+    ctx = malloc(sizeof(*ctx) + frames_size);
+    if (ctx == NULL) {
         return HOUND_OOM;
     }
-    memcpy(s_payload->tx_frames, init->tx_frames, frames_size);
 
-    strcpy(s_iface, init->iface); /* NOLINT, string size already checked */
-    s_rx_can_id = init->rx_can_id;
-    s_tx_count = init->tx_count;
-    s_tx_fd = FD_INVALID;
-    s_rx_fd = FD_INVALID;
-    s_active = false;
+    ctx->payload_size = sizeof(ctx->payload) + frames_size;
+    memcpy(ctx->payload.tx_frames, init->tx_frames, frames_size);
+
+    strcpy(ctx->iface, init->iface); /* NOLINT, string size already checked */
+    ctx->device_id = "can-device";
+    ctx->rx_can_id = init->rx_can_id;
+    ctx->tx_count = init->tx_count;
+    ctx->tx_fd = FD_INVALID;
+    ctx->rx_fd = FD_INVALID;
+    ctx->active = false;
+    ctx->period_ns = 0;
+
+    drv_set_ctx(ctx);
 
     return HOUND_OK;
 }
@@ -134,8 +149,10 @@ hound_err can_init(void *data)
 static
 hound_err can_destroy(void)
 {
-    s_iface[0] = '\0';
-    free(s_payload);
+    struct can_ctx *ctx;
+
+    ctx = drv_ctx();
+    free(ctx);
 
     return HOUND_OK;
 }
@@ -143,9 +160,14 @@ hound_err can_destroy(void)
 static
 hound_err can_device_id(char *device_id)
 {
+    const struct can_ctx *ctx;
+
     XASSERT_NOT_NULL(device_id);
 
-    strcpy(device_id, s_device_id);
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
+
+    strcpy(device_id, ctx->device_id);
 
     return HOUND_OK;
 }
@@ -192,7 +214,7 @@ hound_err populate_addr(int fd, struct sockaddr_can *addr, const char *iface)
 }
 
 static
-hound_err make_raw_socket(int *out_fd)
+hound_err make_raw_socket(struct can_ctx *ctx, int *out_fd)
 {
     struct sockaddr_can addr;
     hound_err err;
@@ -206,7 +228,7 @@ hound_err make_raw_socket(int *out_fd)
         goto out;
     }
 
-    err = populate_addr(fd, &addr, s_iface);
+    err = populate_addr(fd, &addr, ctx->iface);
     if (err != HOUND_OK) {
         goto error;
     }
@@ -238,7 +260,7 @@ void set_bcm_timers(struct bcm_msg_head *bcm, hound_data_period period_ns)
 }
 
 static
-hound_err make_bcm_socket(int *out_fd)
+hound_err make_bcm_socket(struct can_ctx *ctx, int *out_fd)
 {
     struct sockaddr_can addr;
     struct bcm_msg_head *bcm;
@@ -253,7 +275,7 @@ hound_err make_bcm_socket(int *out_fd)
         goto out;
     }
 
-    err = populate_addr(fd, &addr, s_iface);
+    err = populate_addr(fd, &addr, ctx->iface);
     if (err != HOUND_OK) {
         goto error;
     }
@@ -269,12 +291,12 @@ hound_err make_bcm_socket(int *out_fd)
      * to 0 and use only ival2. See Linux kernel
      * Documentation/networking/can.txt for more details.
      */
-    bcm = &s_payload->bcm;
+    bcm = &ctx->payload.bcm;
     bcm->opcode = TX_SETUP;
     bcm->flags = SETTIMER | STARTTIMER;
-    set_bcm_timers(bcm, s_period_ns);
-    bcm->nframes = s_tx_count;
-    err = write_loop(fd, s_payload, s_payload_size);
+    set_bcm_timers(bcm, ctx->period_ns);
+    bcm->nframes = ctx->tx_count;
+    err = write_loop(fd, &ctx->payload, ctx->payload_size);
     if (err != HOUND_OK) {
         goto error;
     }
@@ -292,43 +314,43 @@ out:
 }
 
 static
-hound_err set_period(hound_data_period period_ns)
+hound_err set_period(struct can_ctx *ctx, hound_data_period period_ns)
 {
     struct bcm_msg_head *bcm;
     hound_err err;
     bool transition;
 
-    if (period_ns == s_period_ns) {
+    if (period_ns == ctx->period_ns) {
         return HOUND_OK;
     }
 
     /* Are we switching from RAW to BCM or vice-versa? */
-    transition = ((s_period_ns == 0 && period_ns != 0) ||
-                  (s_period_ns != 0 && period_ns == 0));
-    s_period_ns = period_ns;
+    transition = ((ctx->period_ns == 0 && period_ns != 0) ||
+                  (ctx->period_ns != 0 && period_ns == 0));
+    ctx->period_ns = period_ns;
 
-    if (!s_active) {
+    if (!ctx->active) {
         return HOUND_OK;
     }
 
     if (transition) {
-        close(s_tx_fd);
+        close(ctx->tx_fd);
         if (period_ns == 0) {
-            err = make_raw_socket(&s_tx_fd);
+            err = make_raw_socket(ctx, &ctx->tx_fd);
         }
         else {
-            err = make_bcm_socket(&s_tx_fd);
+            err = make_bcm_socket(ctx, &ctx->tx_fd);
         }
     }
     else {
         if (period_ns != 0) {
             /* We're changing the period of an existing BCM socket. */
-            bcm = &s_payload->bcm;
+            bcm = &ctx->payload.bcm;
             bcm->opcode = TX_SETUP;
             bcm->flags = SETTIMER;
-            set_bcm_timers(bcm, s_period_ns);
+            set_bcm_timers(bcm, ctx->period_ns);
             bcm->nframes = 0;
-            err = write_loop(s_tx_fd, bcm, sizeof(*bcm));
+            err = write_loop(ctx->tx_fd, bcm, sizeof(*bcm));
         }
         else {
             /* RAW --> RAW; nothing to do. */
@@ -342,6 +364,7 @@ hound_err set_period(hound_data_period period_ns)
 static
 hound_err can_setdata(const struct hound_data_rq_list *data_list)
 {
+    struct can_ctx *ctx;
     const struct hound_data_rq *rq;
     hound_err err;
 
@@ -349,8 +372,11 @@ hound_err can_setdata(const struct hound_data_rq_list *data_list)
     XASSERT_EQ(data_list->len, 1);
     XASSERT_NOT_NULL(data_list->data);
 
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
+
     rq = data_list->data;
-    err = set_period(rq->period_ns);
+    err = set_period(ctx, rq->period_ns);
     if (err != HOUND_OK) {
         return err;
     }
@@ -366,6 +392,7 @@ hound_err can_parse(
     size_t *record_count)
 {
     size_t count;
+    const struct can_ctx *ctx;
     hound_err err;
     size_t i;
     const uint8_t *pos;
@@ -377,6 +404,9 @@ hound_err can_parse(
     XASSERT_GT(*bytes, 0);
     XASSERT_NOT_NULL(records);
     XASSERT_NOT_NULL(record_count);
+
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
 
     count = *bytes / sizeof(struct can_frame);
     if (count > HOUND_DRIVER_MAX_RECORDS) {
@@ -396,7 +426,7 @@ hound_err can_parse(
         record->size = sizeof(struct can_frame);
 
         /* Get the kernel-provided timestamp for our last message. */
-        err = ioctl(s_rx_fd, SIOCGSTAMP, &tv);
+        err = ioctl(ctx->rx_fd, SIOCGSTAMP, &tv);
         XASSERT_NEQ(err, -1);
         record->timestamp.tv_sec = tv.tv_sec;
         record->timestamp.tv_nsec = tv.tv_usec * (NS_PER_SEC/US_PER_SEC);
@@ -421,16 +451,20 @@ error_drv_alloc:
 static
 hound_err can_next(hound_data_id id)
 {
+    const struct can_ctx *ctx;
     size_t i;
     hound_err err;
 
     XASSERT_EQ(id, HOUND_DEVICE_CAN);
 
-    for (i = 0; i < s_tx_count; ++i) {
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
+
+    for (i = 0; i < ctx->tx_count; ++i) {
         err = write_loop(
-            s_tx_fd,
-            &s_payload->tx_frames[i],
-            sizeof(*s_payload->tx_frames));
+            ctx->tx_fd,
+            &ctx->payload.tx_frames[i],
+            sizeof(*ctx->payload.tx_frames));
         if (err != HOUND_OK) {
             return err;
         }
@@ -442,26 +476,30 @@ hound_err can_next(hound_data_id id)
 static
 hound_err can_start(int *out_fd)
 {
+    struct can_ctx *ctx;
     hound_err err;
     struct can_filter filter;
     int rx_fd;
     int tx_fd;
 
-    XASSERT_EQ(s_tx_fd, FD_INVALID);
-    XASSERT_EQ(s_rx_fd, FD_INVALID);
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
+
+    XASSERT_EQ(ctx->tx_fd, FD_INVALID);
+    XASSERT_EQ(ctx->rx_fd, FD_INVALID);
 
     /*
      * Open the receive socket first so that it doesn't miss the immediate
      * transmission that will happen if we open a BCM socket.
      */
-    err = make_raw_socket(&rx_fd);
+    err = make_raw_socket(ctx, &rx_fd);
     if (err != HOUND_OK) {
         goto out;
     }
 
     /* Filter by the given CAN ID. CAN ID == 0 implies allow all traffic. */
-    if (s_rx_can_id != 0) {
-        filter.can_id = s_rx_can_id;
+    if (ctx->rx_can_id != 0) {
+        filter.can_id = ctx->rx_can_id;
         filter.can_mask = CAN_SFF_MASK;
         err = setsockopt(
             rx_fd,
@@ -474,20 +512,20 @@ hound_err can_start(int *out_fd)
         }
     }
 
-    if (s_period_ns == 0) {
-        err = make_raw_socket(&tx_fd);
+    if (ctx->period_ns == 0) {
+        err = make_raw_socket(ctx, &tx_fd);
     }
     else {
-        err = make_bcm_socket(&tx_fd);
+        err = make_bcm_socket(ctx, &tx_fd);
     }
     if (err != HOUND_OK) {
         goto error_tx_fd;
     }
 
-    s_tx_fd = tx_fd;
-    s_rx_fd = rx_fd;
+    ctx->tx_fd = tx_fd;
+    ctx->rx_fd = rx_fd;
     *out_fd = rx_fd;
-    s_active = true;
+    ctx->active = true;
 
     err = HOUND_OK;
     goto out;
@@ -501,16 +539,20 @@ out:
 static
 hound_err can_stop(void)
 {
+    struct can_ctx *ctx;
     hound_err err;
 
-    XASSERT_NEQ(s_tx_fd, FD_INVALID);
-    XASSERT_NEQ(s_rx_fd, FD_INVALID);
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
 
-    err = close(s_tx_fd);
-    err |= close(s_rx_fd);
-    s_tx_fd = FD_INVALID;
-    s_rx_fd = FD_INVALID;
-    s_active = false;
+    XASSERT_NEQ(ctx->tx_fd, FD_INVALID);
+    XASSERT_NEQ(ctx->rx_fd, FD_INVALID);
+
+    err = close(ctx->tx_fd);
+    err |= close(ctx->rx_fd);
+    ctx->tx_fd = FD_INVALID;
+    ctx->rx_fd = FD_INVALID;
+    ctx->active = false;
 
     return err;
 }
@@ -518,7 +560,12 @@ hound_err can_stop(void)
 static
 hound_err can_reset(void *data)
 {
-    if (s_active) {
+    struct can_ctx *ctx;
+
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
+
+    if (ctx->active) {
         can_stop();
     }
     can_destroy();
