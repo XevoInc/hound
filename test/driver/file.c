@@ -18,7 +18,7 @@
 #include <unistd.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
-#define NS_PER_SEC ((hound_data_period) 1e9)
+#define NSEC_PER_SEC ((hound_data_period) 1e9)
 #define FD_INVALID (-1)
 #define UNUSED __attribute__((unused))
 

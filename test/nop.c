@@ -10,7 +10,7 @@
 #include <string.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
-#define NS_PER_SEC (1e9)
+#define NSEC_PER_SEC (1e9)
 
 extern hound_err register_nop_driver(void);
 
@@ -78,7 +78,7 @@ void test_alloc_ctx(struct hound_ctx **ctx)
 {
     hound_err err;
     struct hound_data_rq data_rq[] = {
-        { .id = HOUND_DEVICE_ACCELEROMETER, .period_ns = NS_PER_SEC/1000 },
+        { .id = HOUND_DEVICE_ACCELEROMETER, .period_ns = NSEC_PER_SEC/1000 },
         { .id = HOUND_DEVICE_GYROSCOPE, .period_ns = 0 },
     };
     struct hound_data_rq bad_data_rq[ARRAYLEN(data_rq)];

@@ -19,18 +19,18 @@
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 #define CTX_MAGIC ((void *) 0x1ceb00da)
-#define NS_PER_SEC (1e9)
+#define NSEC_PER_SEC (1e9)
 #define FD_INVALID (-1)
 #define UNUSED __attribute__((unused))
 
 static const char *s_device_id = "dummy";
 static const hound_data_period s_accel_period[] = {
     0,
-    NS_PER_SEC,
-    NS_PER_SEC/10,
-    NS_PER_SEC/500,
-    NS_PER_SEC/1000,
-    NS_PER_SEC/2000
+    NSEC_PER_SEC,
+    NSEC_PER_SEC/10,
+    NSEC_PER_SEC/500,
+    NSEC_PER_SEC/1000,
+    NSEC_PER_SEC/2000
 };
 static const hound_data_period s_gyro_period[] = { 0 };
 static const struct hound_datadesc s_datadesc[] = {

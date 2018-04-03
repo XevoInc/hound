@@ -25,7 +25,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#define NS_PER_SEC ((uint64_t) 1e9)
+#define NSEC_PER_SEC ((uint64_t) 1e9)
 #define US_PER_SEC ((uint64_t) 1e6)
 #define FD_INVALID (-1)
 
@@ -253,8 +253,8 @@ void set_bcm_timers(struct bcm_msg_head *bcm, hound_data_period period_ns)
 {
     bcm->count = 0;
     memset(&bcm->ival1, 0, sizeof(bcm->ival1));
-    bcm->ival2.tv_sec = period_ns / NS_PER_SEC;
-    bcm->ival2.tv_usec = (period_ns % NS_PER_SEC) / (NS_PER_SEC/US_PER_SEC);
+    bcm->ival2.tv_sec = period_ns / NSEC_PER_SEC;
+    bcm->ival2.tv_usec = (period_ns % NSEC_PER_SEC) / (NSEC_PER_SEC/US_PER_SEC);
 }
 
 static
@@ -427,7 +427,7 @@ hound_err can_parse(
         err = ioctl(ctx->rx_fd, SIOCGSTAMP, &tv);
         XASSERT_NEQ(err, -1);
         record->timestamp.tv_sec = tv.tv_sec;
-        record->timestamp.tv_nsec = tv.tv_usec * (NS_PER_SEC/US_PER_SEC);
+        record->timestamp.tv_nsec = tv.tv_usec * (NSEC_PER_SEC/US_PER_SEC);
 
         record->id = HOUND_DEVICE_CAN;
 
