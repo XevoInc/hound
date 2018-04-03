@@ -58,9 +58,10 @@ const char *hound_strerror(hound_err err);
  */
 enum hound_datatype {
   HOUND_DEVICE_CAN = 0,
-  HOUND_DEVICE_ACCELEROMETER = 1,
-  HOUND_DEVICE_GYROSCOPE = 2,
-  HOUND_DEVICE_MAX = 3,
+  HOUND_DEVICE_GPS = 1,
+  HOUND_DEVICE_ACCELEROMETER = 2,
+  HOUND_DEVICE_GYROSCOPE = 3,
+  HOUND_DEVICE_MAX = 4
 };
 
 /* Data. */

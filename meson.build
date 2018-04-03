@@ -18,9 +18,11 @@ include = include_directories('include')
 install_subdir('include/hound', install_dir: 'include')
 
 # Library.
+gps_dep = dependency('libgps')
 thread_dep = dependency('threads')
 xlib_dep = dependency('xlib', fallback: ['xlib', 'xlib_dep'])
 lib_deps = [
+    gps_dep,
     thread_dep,
     xlib_dep
 ]
@@ -39,6 +41,7 @@ src = [
     'src/core/refcount.c',
     'src/core/util.c',
     'src/driver/can.c',
+    'src/driver/gps.c',
     'src/driver/iio.c',
     'src/driver/util.c',
 ]
@@ -91,6 +94,11 @@ executable(
     'test/iio.c',
     include_directories: test_include,
     dependencies: manual_test_deps)
+executable(
+    'gps_test',
+    'test/gps.c',
+    include_directories: test_include,
+    dependencies: manual_test_deps + [gps_dep])
 
 # Documentation.
 run_target('docs', command: 'meson/makedoc')
