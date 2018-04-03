@@ -49,7 +49,6 @@ static struct hound_datadesc s_datadesc = {
 #pragma GCC diagnostic ignored "-Wpedantic"
 struct can_ctx {
     bool active;
-    const char *device_id;
     char iface[IFNAMSIZ];
     canid_t rx_can_id;
     int tx_fd;
@@ -133,7 +132,6 @@ hound_err can_init(void *data)
     memcpy(ctx->payload.tx_frames, init->tx_frames, frames_size);
 
     strcpy(ctx->iface, init->iface); /* NOLINT, string size already checked */
-    ctx->device_id = "can-device";
     ctx->rx_can_id = init->rx_can_id;
     ctx->tx_count = init->tx_count;
     ctx->tx_fd = FD_INVALID;
@@ -167,7 +165,7 @@ hound_err can_device_id(char *device_id)
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
 
-    strcpy(device_id, ctx->device_id);
+    strcpy(device_id, "can-device");
 
     return HOUND_OK;
 }
