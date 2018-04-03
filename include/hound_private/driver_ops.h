@@ -84,7 +84,7 @@ DEFINE_DRV_OP(setdata, const struct hound_data_rq_list *data, data)
 DEFINE_DRV_OP(
     parse,
     TOKENIZE(
-        const uint8_t *buf,
+        uint8_t *buf,
         size_t *bytes,
         struct hound_record *records,
         size_t *record_count),

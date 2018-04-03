@@ -384,7 +384,7 @@ hound_err can_setdata(const struct hound_data_rq_list *data_list)
 
 static
 hound_err can_parse(
-    const uint8_t *buf,
+    uint8_t *buf,
     size_t *bytes,
     struct hound_record *records,
     size_t *record_count)

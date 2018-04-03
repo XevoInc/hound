@@ -86,7 +86,7 @@ struct driver_ops {
      * @return an error code
      */
     hound_err (*parse)(
-        const uint8_t *buf,
+        uint8_t *buf,
         size_t *bytes,
         struct hound_record *records,
         size_t *record_count);

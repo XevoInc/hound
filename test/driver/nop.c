@@ -126,7 +126,7 @@ hound_err nop_setdata(UNUSED const struct hound_data_rq_list *data)
 
 static
 hound_err nop_parse(
-    const uint8_t *buf,
+    uint8_t *buf,
     size_t *bytes,
     struct hound_record *records,
     size_t *record_count)

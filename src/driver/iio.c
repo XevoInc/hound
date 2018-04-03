@@ -1595,7 +1595,7 @@ hound_err iio_make_record(
 
 static
 hound_err iio_parse(
-    const uint8_t *buf,
+    uint8_t *buf,
     size_t *bytes,
     struct hound_record *records,
     size_t *out_record_count)
