@@ -164,6 +164,11 @@ hound_err driver_register(
 
     NULL_CHECK(path);
 
+    if (strnlen(path, PATH_MAX) == PATH_MAX) {
+        err = HOUND_INVALID_STRING;
+        goto out;
+    }
+
     pthread_rwlock_wrlock(&s_driver_rwlock);
 
     iter = xh_get(DEVICE_MAP, s_device_map, path);
