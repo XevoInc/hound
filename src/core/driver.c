@@ -157,6 +157,7 @@ hound_err driver_register(
     void *init_data)
 {
     struct driver *drv;
+    char *drv_path;
     hound_err err;
     size_t i;
     xhiter_t iter;
@@ -252,7 +253,13 @@ hound_err driver_register(
     /*
      * Finally, commit the driver into all the maps.
      */
-    iter = xh_put(DEVICE_MAP, s_device_map, path, &ret);
+    drv_path = strdup(path);
+    if (drv_path == NULL ) {
+        err = HOUND_OOM;
+        goto error_alloc_drv_path;
+    }
+
+    iter = xh_put(DEVICE_MAP, s_device_map, drv_path, &ret);
     if (ret == -1) {
         err = HOUND_OOM;
         goto error_device_map_put;
@@ -276,6 +283,8 @@ error_data_map_put:
     XASSERT_NEQ(iter, xh_end(s_device_map));
     xh_del(DEVICE_MAP, s_device_map, iter);
 error_device_map_put:
+    free(drv_path);
+error_alloc_drv_path:
 error_conflicting_drivers:
 error_datadesc:
 error_device_id:
@@ -289,6 +298,7 @@ out:
 hound_err driver_unregister(const char *path)
 {
     struct driver *drv;
+    const char *drv_path;
     struct driver *drv_iter;
     hound_err err;
     size_t i;
@@ -304,6 +314,7 @@ hound_err driver_unregister(const char *path)
         err = HOUND_DRIVER_NOT_REGISTERED;
         goto out;
     }
+    drv_path = xh_key(s_device_map, iter);
     drv = xh_val(s_device_map, iter);
 
     /* Make sure the driver is not in-use. */
@@ -325,6 +336,8 @@ hound_err driver_unregister(const char *path)
             xh_del(DATA_MAP, s_data_map, iter);
         }
     );
+
+    free((char *) drv_path);
 
     pthread_rwlock_unlock(&s_driver_rwlock);
 
