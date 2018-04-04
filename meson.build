@@ -62,7 +62,8 @@ run_target('can-setup', command: ['meson/vcan', 'setup'])
 run_target('can-destroy', command: ['meson/vcan', 'destroy'])
 
 valgrind_dep = dependency('valgrind')
-test_deps = [hound_dep] + [thread_dep] + [valgrind_dep] + [xlib_dep]
+manual_test_deps = [hound_dep] + [thread_dep] + [xlib_dep]
+unit_test_deps = manual_test_deps + [valgrind_dep]
 test_include = include_directories('test/include')
 
 add_test_setup(
@@ -80,16 +81,16 @@ foreach t : tests
         t.get(0),
         t.get(1),
         include_directories: test_include,
-        dependencies: test_deps)
+        dependencies: unit_test_deps)
     test(t.get(0), exe, args: t.get(2), timeout: 50)
 endforeach
 
-# The iio test is manual.
+# These tests are manual.
 executable(
     'iio_test',
     'test/iio.c',
     include_directories: test_include,
-    dependencies: test_deps)
+    dependencies: manual_test_deps)
 
 # Documentation.
 run_target('docs', command: 'meson/makedoc')
