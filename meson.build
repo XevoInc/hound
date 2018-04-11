@@ -20,7 +20,7 @@ install_subdir('include/hound', install_dir: 'include')
 # Library.
 gps_dep = dependency('libgps')
 thread_dep = dependency('threads')
-xlib_dep = dependency('xlib', fallback: ['xlib', 'xlib_dep'])
+xlib_dep = dependency('xlib')
 lib_deps = [
     gps_dep,
     thread_dep,
