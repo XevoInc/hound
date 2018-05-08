@@ -1,6 +1,6 @@
 # Summary.
 project('hound', 'c',
-    version: '0.3',
+    version: '0.5',
     license: 'proprietary',
     default_options: [
         'c_std=c11',
