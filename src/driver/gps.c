@@ -5,6 +5,7 @@
  * @copyright Copyright (C) 2018 Xevo Inc. All Rights Reserved.
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <gps.h>
 #include <hound/hound.h>
@@ -15,6 +16,14 @@
 #include <hound_private/log.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Make sure gps.h looks the way we expect. */
+static_assert(
+    sizeof(int) == 4,
+    "gpsd uses a raw int in its struct gps_fix_t mode field, but int is not "
+    "guaranteed to be 4 bytes. Since we want to guarantee an ABI to the user, "
+    "we fix it at 4 bytes. Thus if the assumption of a 4-byte int ever "
+    "changes, we will need code to handle it.");
 
 #define NSEC_PER_SEC ((uint64_t) 1e9)
 
