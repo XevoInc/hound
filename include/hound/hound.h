@@ -16,8 +16,6 @@ extern "C" {
 #include <stdint.h>
 #include <time.h>
 
-typedef uint_fast64_t hound_data;
-
 /* Errors. */
 typedef int hound_err;
 
