@@ -234,7 +234,6 @@ hound_err hound_queue_length(struct hound_ctx *ctx, size_t *count);
  */
 hound_err hound_max_queue_length(struct hound_ctx *ctx, size_t *count);
 
-
 /**
  * Unregisters the driver at the given path, effectively unloading the backing
  * driver.
