@@ -65,6 +65,8 @@ const char *error_strerror(hound_err err)
             return "value specified is invalid";
         case HOUND_INTR:
             return "operation was interrupted";
+        case HOUND_DEV_DOES_NOT_EXIST:
+            return "the given device ID does not exist";
     }
 
     __builtin_unreachable();

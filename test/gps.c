@@ -76,7 +76,7 @@ void data_cb(const struct hound_record *record, UNUSED void *ctx)
 {
     struct gps_fix_t *fix;
 
-    XASSERT_EQ(record->id, HOUND_DEVICE_GPS);
+    XASSERT_EQ(record->data_id, HOUND_DEVICE_GPS);
     XASSERT_EQ(record->size, sizeof(*fix));
     fix = (__typeof(fix)) record->data;
 
@@ -118,7 +118,7 @@ int main(int argc, const char **argv)
     XASSERT_OK(err);
     XASSERT_NOT_NULL(desc);
     XASSERT_EQ(len, 1);
-    XASSERT_EQ(desc->id, HOUND_DEVICE_GPS);
+    XASSERT_EQ(desc->data_id, HOUND_DEVICE_GPS);
     XASSERT_EQ(strcmp(desc->name, "gps-data"), 0);
     XASSERT_EQ(desc->period_count, 1);
     XASSERT_EQ(*desc->avail_periods, NSEC_PER_SEC);

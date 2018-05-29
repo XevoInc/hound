@@ -24,10 +24,10 @@
 #define READ_END (0)
 #define WRITE_END (1)
 
-static const char *s_device_id = "counter";
+static const char *s_device_name = "counter";
 static const hound_data_period s_period = 0;
 static const struct hound_datadesc s_datadesc = {
-    .id = HOUND_DEVICE_GYROSCOPE,
+    .data_id = HOUND_DEVICE_GYROSCOPE,
     .name = "increasing-gyroscope-counter",
     .period_count = 1,
     .avail_periods = &s_period
@@ -63,9 +63,9 @@ hound_err counter_reset(void *data)
 }
 
 static
-hound_err counter_device_id(char *device_id)
+hound_err counter_device_name(char *device_name)
 {
-    strcpy(device_id, s_device_id);
+    strcpy(device_name, s_device_name);
 
     return HOUND_OK;
 }
@@ -139,7 +139,7 @@ hound_err counter_parse(
         /* We have at least a full record. */
         err = clock_gettime(CLOCK_REALTIME, &record->timestamp);
         XASSERT_EQ(err, 0);
-        record->id = s_datadesc.id;
+        record->data_id = s_datadesc.data_id;
         record->size = sizeof(s_count);
         memcpy(record->data, pos, sizeof(s_count));
         pos += sizeof(s_count);
@@ -215,7 +215,7 @@ static struct driver_ops counter_driver = {
     .init = counter_init,
     .destroy = counter_destroy,
     .reset = counter_reset,
-    .device_id = counter_device_id,
+    .device_name = counter_device_name,
     .datadesc = counter_datadesc,
     .setdata = counter_setdata,
     .parse = counter_parse,

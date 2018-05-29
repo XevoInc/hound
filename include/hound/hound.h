@@ -42,7 +42,8 @@ enum hound_err_enum {
     HOUND_DRIVER_UNSUPPORTED = -18,
     HOUND_DRIVER_FAIL = -19,
     HOUND_INVALID_VAL = -20,
-    HOUND_INTR = -21
+    HOUND_INTR = -21,
+    HOUND_DEV_DOES_NOT_EXIST = -22
 };
 
 /** Returns a human-readable error string. The string must not be modified or
@@ -65,12 +66,17 @@ enum hound_datatype {
 /* Data. */
 
 typedef uint_least64_t hound_data_id;
+typedef uint_least8_t hound_dev_id;
 typedef uint_least64_t hound_seqno;
 typedef uint_least32_t hound_record_size;
 
+/** Max length for a device name, including the null character. */
+#define HOUND_DEVICE_NAME_MAX 32
+
 struct hound_record {
     hound_seqno seqno;
-    hound_data_id id;
+    hound_data_id data_id;
+    hound_dev_id dev_id;
     struct timespec timestamp;
     hound_record_size size;
     uint8_t *data;
@@ -81,7 +87,8 @@ typedef uint_fast8_t hound_period_count;
 typedef uint_fast64_t hound_data_period;
 
 struct hound_datadesc {
-    hound_data_id id;
+    hound_data_id data_id;
+    hound_dev_id dev_id;
     const char *name;
     hound_period_count period_count;
     const hound_data_period *avail_periods;
@@ -108,6 +115,8 @@ struct hound_rq {
 
 /** Opaque pointer to an I/O context. */
 struct hound_ctx;
+
+hound_err hound_get_dev_name(hound_dev_id id, const char **name);
 
 hound_err hound_get_datadesc(struct hound_datadesc **desc, size_t *len);
 void hound_free_datadesc(struct hound_datadesc *desc);

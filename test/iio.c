@@ -44,10 +44,10 @@ void data_cb(const struct hound_record *record, UNUSED void *ctx)
 
     XASSERT_EQ(record->size, 3 * sizeof(float));
 
-    if (record->id == HOUND_DEVICE_ACCELEROMETER) {
+    if (record->data_id == HOUND_DEVICE_ACCELEROMETER) {
         type = "accel";
     }
-    else if (record->id == HOUND_DEVICE_GYROSCOPE) {
+    else if (record->data_id == HOUND_DEVICE_GYROSCOPE) {
         type = "gyro";
     }
     else {
@@ -128,15 +128,15 @@ int main(int argc, const char **argv)
     printf("Found available data:\n");
     iio_count = 0;
     for (i = 0; i < len; ++i) {
-        if (desc[i].id != HOUND_DEVICE_ACCELEROMETER &&
-            desc[i].id != HOUND_DEVICE_GYROSCOPE) {
+        if (desc[i].data_id != HOUND_DEVICE_ACCELEROMETER &&
+            desc[i].data_id != HOUND_DEVICE_GYROSCOPE) {
             continue;
         }
         ++iio_count;
         if (i != len-1) {
             printf("---\n");
         }
-        printf("Hound ID: %" PRIu64 "\n", desc[i].id);
+        printf("Hound ID: %" PRIu64 "\n", desc[i].data_id);
         printf("Name: %s\n", desc[i].name);
         printf("Available periods:");
         for (j = 0; j < desc[i].period_count; ++j) {
@@ -158,7 +158,7 @@ int main(int argc, const char **argv)
         goto error;
     }
     for (i = 0; i < iio_count; ++i) {
-        rq.rq_list.data[i].id = desc[i].id;
+        rq.rq_list.data[i].id = desc[i].data_id;
         /* Arbitrarily select the first available period, likely the slowest. */
         rq.rq_list.data[i].period_ns = desc[i].avail_periods[0];
     }

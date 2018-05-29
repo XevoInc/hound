@@ -23,7 +23,7 @@
 #define FD_INVALID (-1)
 #define UNUSED __attribute__((unused))
 
-static const char *s_device_id = "dummy";
+static const char *s_device_name = "dummy";
 static const hound_data_period s_accel_period[] = {
     0,
     NSEC_PER_SEC,
@@ -35,13 +35,13 @@ static const hound_data_period s_accel_period[] = {
 static const hound_data_period s_gyro_period[] = { 0 };
 static const struct hound_datadesc s_datadesc[] = {
     {
-        .id = HOUND_DEVICE_ACCELEROMETER,
+        .data_id = HOUND_DEVICE_ACCELEROMETER,
         .name = "super-extra-accelerometer",
         .period_count = ARRAYLEN(s_accel_period),
         .avail_periods = s_accel_period
     },
     {
-        .id = HOUND_DEVICE_GYROSCOPE,
+        .data_id = HOUND_DEVICE_GYROSCOPE,
         .name = "oneshot-gyroscope",
         .period_count = ARRAYLEN(s_gyro_period),
         .avail_periods = s_gyro_period
@@ -73,11 +73,11 @@ hound_err nop_reset(UNUSED void *data)
 }
 
 static
-hound_err nop_device_id(char *device_id)
+hound_err nop_device_name(char *device_name)
 {
-    XASSERT_NOT_NULL(device_id);
+    XASSERT_NOT_NULL(device_name);
 
-    strcpy(device_id, s_device_id);
+    strcpy(device_name, s_device_name);
 
     return HOUND_OK;
 }
@@ -186,7 +186,7 @@ static struct driver_ops nop_driver = {
     .init = nop_init,
     .destroy = nop_destroy,
     .reset = nop_reset,
-    .device_id = nop_device_id,
+    .device_name = nop_device_name,
     .datadesc = nop_datadesc,
     .setdata = nop_setdata,
     .parse = nop_parse,

@@ -90,6 +90,29 @@ void driver_destroy(void)
     xh_destroy(DATA_MAP, s_data_map);
 }
 
+hound_err driver_get_dev_name(hound_dev_id id, const char **name)
+{
+    const struct driver *drv;
+    hound_err err;
+
+    pthread_rwlock_rdlock(&s_driver_rwlock);
+
+    err = HOUND_DEV_DOES_NOT_EXIST;
+    xh_foreach_value(s_device_map, drv,
+        if (id == drv->id) {
+            if (name != NULL) {
+                *name = drv->device_name;
+            }
+            err = HOUND_OK;
+            break;
+        }
+    );
+
+    pthread_rwlock_unlock(&s_driver_rwlock);
+
+    return err;
+}
+
 hound_err driver_get_datadesc(struct hound_datadesc **desc, size_t *len)
 {
     struct driver *drv;
@@ -150,6 +173,18 @@ void driver_free_datadesc(struct hound_datadesc *desc)
     free(desc);
 }
 
+static hound_dev_id s_next_dev_id = 0;
+static
+hound_dev_id next_dev_id(void)
+{
+    hound_dev_id id;
+
+    /* Must be called with the driver lock held. */
+    id = s_next_dev_id;
+    ++s_next_dev_id;
+    return id;
+}
+
 PUBLIC_API
 hound_err driver_register(
     const char *path,
@@ -182,7 +217,7 @@ hound_err driver_register(
     NULL_CHECK(ops->init);
     NULL_CHECK(ops->destroy);
     NULL_CHECK(ops->reset);
-    NULL_CHECK(ops->device_id);
+    NULL_CHECK(ops->device_name);
     NULL_CHECK(ops->datadesc);
     NULL_CHECK(ops->setdata);
     NULL_CHECK(ops->parse);
@@ -203,6 +238,7 @@ hound_err driver_register(
     drv->fd = FD_INVALID;
     xv_init(drv->active_data);
     drv->ops = *ops;
+    drv->id = next_dev_id();
     drv->ctx = NULL;
 
     /* Init. */
@@ -213,14 +249,15 @@ hound_err driver_register(
     }
 
     /* Device IDs. */
-    err = drv_op_device_id(drv, drv->device_id);
+    err = drv_op_device_name(drv, drv->device_name);
     if (err != HOUND_OK) {
-        goto error_device_id;
+        goto error_device_name;
     }
 
-    if (strnlen(drv->device_id, HOUND_DEVICE_ID_MAX) == HOUND_DEVICE_ID_MAX) {
+    if (strnlen(drv->device_name, HOUND_DEVICE_NAME_MAX)
+        == HOUND_DEVICE_NAME_MAX) {
         err = HOUND_INVALID_STRING;
-        goto error_device_id;
+        goto error_device_name;
     }
 
     /* Get all the supported data for the driver. */
@@ -234,16 +271,18 @@ hound_err driver_register(
             err = HOUND_NULL_VAL;
             goto error_datadesc;
         }
-        if (strnlen(drv->data[i].name, HOUND_DEVICE_NAME_MAX) ==
-            HOUND_DEVICE_NAME_MAX) {
+        if (strnlen(drv->data[i].name, HOUND_DATA_NAME_MAX) ==
+            HOUND_DATA_NAME_MAX) {
             err = HOUND_INVALID_STRING;
             goto error_datadesc;
         }
+
+        drv->data[i].dev_id = drv->id;
     }
 
     /* Verify that all descriptors are sane. */
     for (i = 0; i < drv->datacount; ++i) {
-        iter = xh_get(DATA_MAP, s_data_map, drv->data[i].id);
+        iter = xh_get(DATA_MAP, s_data_map, drv->data[i].data_id);
         if (iter != xh_end(s_data_map)) {
             err = HOUND_CONFLICTING_DRIVERS;
             goto error_conflicting_drivers;
@@ -267,7 +306,7 @@ hound_err driver_register(
     xh_val(s_device_map, iter) = drv;
 
     for (i = 0; i < drv->datacount; ++i ) {
-        iter = xh_put(DATA_MAP, s_data_map, drv->data[i].id, &ret);
+        iter = xh_put(DATA_MAP, s_data_map, drv->data[i].data_id, &ret);
         if (ret == -1) {
             err = HOUND_OOM;
             goto error_data_map_put;
@@ -287,7 +326,7 @@ error_device_map_put:
 error_alloc_drv_path:
 error_conflicting_drivers:
 error_datadesc:
-error_device_id:
+error_device_name:
 error_init:
     free(drv);
 out:
@@ -665,7 +704,7 @@ bool driver_period_supported(
 
     for (i = 0; i < drv->datacount; ++i) {
         desc = &drv->data[i];
-        if (desc->id == id) {
+        if (desc->data_id == id) {
             break;
         }
     }

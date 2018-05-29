@@ -147,6 +147,7 @@ hound_err io_read(int fd, struct fdctx *ctx)
             }
             record->seqno = ctx->next_seqno;
             ++ctx->next_seqno;
+            record->dev_id = ctx->drv->id;
             memcpy(&rec_info->record, record, sizeof(*record));
             atomic_ref_init(&rec_info->refcount, xv_size(ctx->queues));
 

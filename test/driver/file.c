@@ -30,11 +30,11 @@ struct driver_init {
     hound_data_id data_id;
 };
 
-static const char *s_device_id = "file";
+static const char *s_device_name = "file";
 static hound_data_period s_period_ns = 0;
 static const char *s_filepath = NULL;
 static struct hound_datadesc s_datadesc = {
-    .id = HOUND_DEVICE_ACCELEROMETER,
+    .data_id = HOUND_DEVICE_ACCELEROMETER,
     .name = "file-data",
     .period_count = 1,
     .avail_periods = &s_period_ns
@@ -63,7 +63,7 @@ hound_err file_init(void *data)
         return HOUND_INVALID_STRING;
     }
     s_filepath = init->filepath;
-    s_datadesc.id = init->data_id;
+    s_datadesc.data_id = init->data_id;
     s_fd = FD_INVALID;
     s_pipe[READ_END] = FD_INVALID;
     s_pipe[WRITE_END] = FD_INVALID;
@@ -89,11 +89,11 @@ hound_err file_reset(void *data)
 }
 
 static
-hound_err file_device_id(char *device_id)
+hound_err file_device_name(char *device_name)
 {
-    XASSERT_NOT_NULL(device_id);
+    XASSERT_NOT_NULL(device_name);
 
-    strcpy(device_id, s_device_id);
+    strcpy(device_name, s_device_name);
 
     return HOUND_OK;
 }
@@ -131,7 +131,7 @@ hound_err file_setdata(const struct hound_data_rq_list *data)
     XASSERT_NOT_NULL(data->data);
 
     rq = data->data;
-    XASSERT_EQ(rq->id, s_datadesc.id);
+    XASSERT_EQ(rq->id, s_datadesc.data_id);
     XASSERT_EQ(rq->period_ns, s_datadesc.avail_periods[0]);
 
     return HOUND_OK;
@@ -162,7 +162,7 @@ hound_err file_parse(
     }
 
     memcpy(record->data, buf, *bytes);
-    record->id = s_datadesc.id;
+    record->data_id = s_datadesc.data_id;
     record->timestamp = timestamp;
     record->size = *bytes;
 
@@ -244,7 +244,7 @@ static struct driver_ops file_driver = {
     .init = file_init,
     .destroy = file_destroy,
     .reset = file_reset,
-    .device_id = file_device_id,
+    .device_name = file_device_name,
     .datadesc = file_datadesc,
     .setdata = file_setdata,
     .parse = file_parse,

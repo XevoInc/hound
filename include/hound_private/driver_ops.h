@@ -46,7 +46,8 @@ struct driver {
     pthread_mutex_t mutex;
     refcount_val refcount;
 
-    char device_id[HOUND_DEVICE_ID_MAX];
+    hound_dev_id id;
+    char device_name[HOUND_DEVICE_NAME_MAX];
     hound_data_count datacount;
     struct hound_datadesc *data;
 
@@ -75,7 +76,7 @@ struct driver {
 DEFINE_DRV_OP(init, void *data, data)
 DEFINE_DRV_OP_VOID(destroy)
 DEFINE_DRV_OP(reset, void *data, data)
-DEFINE_DRV_OP(device_id, char *device_id, device_id)
+DEFINE_DRV_OP(device_name, char *device_name, device_name)
 DEFINE_DRV_OP(
     datadesc,
     TOKENIZE(struct hound_datadesc **desc, hound_data_count *count),

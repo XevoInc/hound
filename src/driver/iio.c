@@ -162,7 +162,7 @@ struct iio_ctx {
     bool active;
     char *dev;
     char *dev_dir;
-    char dev_name[HOUND_DEVICE_NAME_MAX];
+    char dev_name[HOUND_DATA_NAME_MAX];
     uint_fast64_t buf_ns;
     size_t num_entries;
     struct device_parse_entry *entries;
@@ -523,7 +523,7 @@ hound_err populate_desc(
     struct hound_datadesc *desc)
 {
 
-    desc->id = data_id;
+    desc->data_id = data_id;
     desc->name = strdup(dev_name);
     if (desc->name == NULL) {
         return HOUND_OOM;
@@ -731,17 +731,17 @@ hound_err iio_destroy(void)
 }
 
 static
-hound_err iio_device_id(char *device_id)
+hound_err iio_device_name(char *device_name)
 {
     const struct iio_ctx *ctx;
 
-    XASSERT_NOT_NULL(device_id);
+    XASSERT_NOT_NULL(device_name);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
     XASSERT_NOT_NULL(ctx->dev_dir);
 
-    strncpy(device_id, ctx->dev_name, HOUND_DEVICE_ID_MAX);
+    strncpy(device_name, ctx->dev_name, HOUND_DEVICE_NAME_MAX);
 
     return HOUND_OK;
 }
@@ -1575,7 +1575,7 @@ hound_err iio_make_record(
     data = (__typeof__(*data) *) record->data;
 
     record->size = entry->data_size;
-    record->id = entry->id;
+    record->data_id = entry->id;
 
     for (i = 0; i < entry->num_channels; ++i) {
         desc = &entry->channels[i];
@@ -1697,7 +1697,7 @@ static struct driver_ops iio_driver = {
     .init = iio_init,
     .destroy = iio_destroy,
     .reset = iio_reset,
-    .device_id = iio_device_id,
+    .device_name = iio_device_name,
     .datadesc = iio_datadesc,
     .setdata = iio_setdata,
     .parse = iio_parse,

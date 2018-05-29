@@ -31,7 +31,7 @@ static_assert(
 static hound_data_period s_avail_periods = NSEC_PER_SEC;
 static struct hound_datadesc s_datadesc = {
     .name = "gps-data",
-    .id = HOUND_DEVICE_GPS,
+    .data_id = HOUND_DEVICE_GPS,
     .period_count = 1,
     .avail_periods = &s_avail_periods
 };
@@ -139,16 +139,16 @@ hound_err gps_destroy(void)
 }
 
 static
-hound_err gps_device_id(char *device_id)
+hound_err gps_device_name(char *device_name)
 {
     const struct gps_ctx *ctx;
 
-    XASSERT_NOT_NULL(device_id);
+    XASSERT_NOT_NULL(device_name);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
 
-    strcpy(device_id, "gps-data");
+    strcpy(device_name, "gps-data");
 
     return HOUND_OK;
 }
@@ -237,7 +237,7 @@ hound_err gps_parse(
     memcpy(record->data, &ctx->gps.fix, sizeof(ctx->gps.fix));
     record->size = sizeof(ctx->gps.fix);
 
-    record->id = HOUND_DEVICE_GPS;
+    record->data_id = HOUND_DEVICE_GPS;
     unix_to_timespec(ctx->gps.fix.time, &record->timestamp);
 
     *record_count = 1;
@@ -353,7 +353,7 @@ static struct driver_ops gps_driver = {
     .init = gps_init,
     .destroy = gps_destroy,
     .reset = gps_reset,
-    .device_id = gps_device_id,
+    .device_name = gps_device_name,
     .datadesc = gps_datadesc,
     .setdata = gps_setdata,
     .parse = gps_parse,

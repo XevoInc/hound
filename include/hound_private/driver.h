@@ -15,10 +15,11 @@
 /** Maximum number of records a driver can produce from a single parse call. */
 #define HOUND_DRIVER_MAX_RECORDS 1000
 
-/** Max length for a device name, including '\0'. */
-#define HOUND_DEVICE_NAME_MAX 32
-/** Max length for a device ID, including '\0'. */
-#define HOUND_DEVICE_ID_MAX 32
+/**
+ * Max length for the name of data (e.g. "accelerometer X value"), including
+ * the null character.
+ */
+#define HOUND_DATA_NAME_MAX 32
 
 typedef uint_least8_t hound_data_count;
 
@@ -31,14 +32,14 @@ struct driver_ops {
     /**
      * Get the device ID for the backing device.
      *
-     * @param device_id a pointer to a string with length HOUND_DEVICE_ID_MAX,
+     * @param device_name a pointer to a string with length HOUND_DEVICE_NAME_MAX,
      * including the '\0' character. The driver must fill this in with a device
      * ID and include the '\0' character. If the driver does not have or cannot
      * find a device ID, it should fill in an empty string of just '0'.
      *
      * @return an error code
      */
-    hound_err (*device_id)(char *device_id);
+    hound_err (*device_name)(char *device_name);
 
     /**
      * Get the data descriptors supported by this driver. These descriptors must
@@ -129,6 +130,8 @@ void driver_destroy(void);
 
 /** Forward declaration for use as opaque pointer. */
 struct driver;
+
+hound_err driver_get_dev_name(hound_dev_id id, const char **name);
 
 hound_err driver_get_datadesc(struct hound_datadesc **desc, size_t *len);
 void driver_free_datadesc(struct hound_datadesc *desc);

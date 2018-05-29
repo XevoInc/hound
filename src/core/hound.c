@@ -13,6 +13,12 @@
 #include <hound_private/log.h>
 
 PUBLIC_API
+hound_err hound_get_dev_name(hound_dev_id id, const char **name)
+{
+    return driver_get_dev_name(id, name);
+}
+
+PUBLIC_API
 hound_err hound_get_datadesc(struct hound_datadesc **desc, size_t *len)
 {
     return driver_get_datadesc(desc, len);

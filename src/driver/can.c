@@ -36,7 +36,7 @@ struct bcm_payload {
 
 static struct hound_datadesc s_datadesc = {
     .name = "can-data",
-    .id = HOUND_DEVICE_CAN,
+    .data_id = HOUND_DEVICE_CAN,
     .period_count = 0,
     .avail_periods = NULL
 };
@@ -156,16 +156,16 @@ hound_err can_destroy(void)
 }
 
 static
-hound_err can_device_id(char *device_id)
+hound_err can_device_name(char *device_name)
 {
     const struct can_ctx *ctx;
 
-    XASSERT_NOT_NULL(device_id);
+    XASSERT_NOT_NULL(device_name);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
 
-    strcpy(device_id, "can-device");
+    strcpy(device_name, "can-device");
 
     return HOUND_OK;
 }
@@ -429,7 +429,7 @@ hound_err can_parse(
         record->timestamp.tv_sec = tv.tv_sec;
         record->timestamp.tv_nsec = tv.tv_usec * (NSEC_PER_SEC/US_PER_SEC);
 
-        record->id = HOUND_DEVICE_CAN;
+        record->data_id = HOUND_DEVICE_CAN;
 
         pos += sizeof(struct can_frame);
     }
@@ -576,7 +576,7 @@ static struct driver_ops can_driver = {
     .init = can_init,
     .destroy = can_destroy,
     .reset = can_reset,
-    .device_id = can_device_id,
+    .device_name = can_device_name,
     .datadesc = can_datadesc,
     .setdata = can_setdata,
     .parse = can_parse,

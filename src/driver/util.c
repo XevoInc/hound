@@ -14,10 +14,10 @@ hound_err drv_deepcopy_desc(
     XASSERT_NOT_NULL(src);
     XASSERT_NOT_NULL(dest);
 
-    dest->id = src->id;
+    dest->data_id = src->data_id;
 
-    len = strnlen(src->name, HOUND_DEVICE_NAME_MAX);
-    XASSERT_LTE(len, HOUND_DEVICE_NAME_MAX-1);
+    len = strnlen(src->name, HOUND_DATA_NAME_MAX);
+    XASSERT_LTE(len, HOUND_DATA_NAME_MAX-1);
     dest->name = drv_alloc((len+1)*sizeof(*dest->name));
     if (dest->name == NULL) {
         goto error_name;
