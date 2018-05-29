@@ -25,14 +25,14 @@ hound_err ctx_stop(struct hound_ctx *ctx);
 hound_err ctx_next(struct hound_ctx *ctx, size_t n);
 
 hound_err ctx_read_bytes(struct hound_ctx *ctx, size_t bytes);
-hound_err ctx_read_bytes_async(
+hound_err ctx_read_bytes_nowait(
     struct hound_ctx *ctx,
     size_t bytes,
     size_t *records_read,
     size_t *bytes_read);
 hound_err ctx_read(struct hound_ctx *ctx, size_t records);
-hound_err ctx_read_async(struct hound_ctx *ctx, size_t records, size_t *read);
-hound_err ctx_read_all(struct hound_ctx *ctx, size_t *read);
+hound_err ctx_read_nowait(struct hound_ctx *ctx, size_t records, size_t *read);
+hound_err ctx_read_all_nowait(struct hound_ctx *ctx, size_t *read);
 
 hound_err ctx_queue_length(struct hound_ctx *ctx, size_t *count);
 hound_err ctx_max_queue_length(struct hound_ctx *ctx, size_t *count);

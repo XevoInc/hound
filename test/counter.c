@@ -111,7 +111,7 @@ int main(void)
          * A tight loop like this is not efficient, but it may help stress the
          * multithreaded code.
          */
-        err = hound_read_async(ctx, 1, &records_read);
+        err = hound_read_nowait(ctx, 1, &records_read);
         XASSERT_OK(err);
         count_records += records_read;
     }
@@ -125,7 +125,7 @@ int main(void)
     }
     count_records = 0;
     while (count_records < total_records) {
-        err = hound_read_async(ctx, total_records, &records_read);
+        err = hound_read_nowait(ctx, total_records, &records_read);
         XASSERT_OK(err);
         count_records += records_read;
     }
@@ -138,7 +138,7 @@ int main(void)
     XASSERT_OK(err);
     count_records = 0;
     while (count_records < total_records) {
-        err = hound_read_all(ctx, &records_read);
+        err = hound_read_all_nowait(ctx, &records_read);
         XASSERT_OK(err);
         count_records += records_read;
     }
@@ -151,7 +151,7 @@ int main(void)
     count_bytes = 0;
     count_records = 0;
     while (count_bytes < total_bytes) {
-        err = hound_read_bytes_async(
+        err = hound_read_bytes_nowait(
             ctx,
             total_bytes,
             &records_read,

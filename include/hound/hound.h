@@ -173,7 +173,7 @@ hound_err hound_read(struct hound_ctx *ctx, size_t records);
  *
  * @return an error code
  */
-hound_err hound_read_async(struct hound_ctx *ctx, size_t records, size_t *read);
+hound_err hound_read_nowait(struct hound_ctx *ctx, size_t records, size_t *read);
 
 /**
  * Triggers callback invocations to process queued data. If fewer than n records
@@ -182,7 +182,7 @@ hound_err hound_read_async(struct hound_ctx *ctx, size_t records, size_t *read);
  * guaranteed to have completed upon return. This function does not call
  * hound_next(), so it is useless for pull-mode data.
  *
- * This form of read_async will trigger callbacks on up to the specified number
+ * This form of read_nowait will trigger callbacks on up to the specified number
  * of bytes of records. The callback will take the same form as usual,
  * triggering on a per-record basis. However, the sum of the record sizes
  * triggered will not exceed the specified number of bytes.
@@ -195,7 +195,7 @@ hound_err hound_read_async(struct hound_ctx *ctx, size_t records, size_t *read);
  *
  * @return an error code
  */
-hound_err hound_read_bytes_async(
+hound_err hound_read_bytes_nowait(
     struct hound_ctx *ctx,
     size_t bytes,
     size_t *records_read,
@@ -203,14 +203,14 @@ hound_err hound_read_bytes_async(
 
 /**
  * Triggers callback invocations to process all currently available data. This
- * is equivalent to calling hound_read_async(ctx, INFINITY).
+ * is equivalent to calling hound_read_nowait(ctx, INFINITY).
  *
  * @param ctx a context
  * @param read filled in to indicate how many records were actually read.
  *
  * @return an error code
  */
-hound_err hound_read_all(struct hound_ctx *ctx, size_t *read);
+hound_err hound_read_all_nowait(struct hound_ctx *ctx, size_t *read);
 
 /**
  * Returns how many records are currently available in the queue.

@@ -203,7 +203,7 @@ void queue_pop_records_sync(
 
 }
 
-size_t queue_pop_bytes_async(
+size_t queue_pop_bytes_nowait(
     struct queue *queue,
     struct record_info **buf,
     size_t bytes,
@@ -222,7 +222,7 @@ size_t queue_pop_bytes_async(
     return count;
 }
 
-size_t queue_pop_records_async(
+size_t queue_pop_records_nowait(
     struct queue *queue,
     struct record_info **buf,
     size_t records)

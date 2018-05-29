@@ -237,7 +237,7 @@ void destroy_cb_queue(struct queue *queue)
     size_t read;
 
     /* First drain the queue. */
-    read = queue_pop_records_async(queue, buf, SIZE_MAX);
+    read = queue_pop_records_nowait(queue, buf, SIZE_MAX);
     for (i = 0; i < read; ++i) {
         rec_info = buf[i];
         count = atomic_ref_dec(&rec_info->refcount);
@@ -547,7 +547,7 @@ out:
    implemented.
 */
 
-hound_err ctx_read_async(struct hound_ctx *ctx, size_t records, size_t *read)
+hound_err ctx_read_nowait(struct hound_ctx *ctx, size_t records, size_t *read)
 {
     struct record_info *buf[DEQUEUE_BUF_SIZE];
     size_t count;
@@ -562,7 +562,7 @@ hound_err ctx_read_async(struct hound_ctx *ctx, size_t records, size_t *read)
     do {
         target = min(records - total, ARRAYLEN(buf));
 
-        count = queue_pop_records_async(ctx->queue, buf, target);
+        count = queue_pop_records_nowait(ctx->queue, buf, target);
         process_callbacks(ctx, buf, count);
 
         total += count;
@@ -574,7 +574,7 @@ hound_err ctx_read_async(struct hound_ctx *ctx, size_t records, size_t *read)
     return HOUND_OK;
 }
 
-hound_err ctx_read_bytes_async(
+hound_err ctx_read_bytes_nowait(
     struct hound_ctx *ctx,
     size_t bytes,
     size_t *records_read,
@@ -596,7 +596,7 @@ hound_err ctx_read_bytes_async(
     do {
         target = min(bytes - total_bytes, sizeof(buf));
 
-        count = queue_pop_bytes_async(ctx->queue, buf, target, &records);
+        count = queue_pop_bytes_nowait(ctx->queue, buf, target, &records);
         process_callbacks(ctx, buf, records);
 
         total_records += records;
@@ -611,9 +611,9 @@ hound_err ctx_read_bytes_async(
     return HOUND_OK;
 }
 
-hound_err ctx_read_all(struct hound_ctx *ctx, size_t *read)
+hound_err ctx_read_all_nowait(struct hound_ctx *ctx, size_t *read)
 {
-    return ctx_read_async(ctx, SIZE_MAX, read);
+    return ctx_read_nowait(ctx, SIZE_MAX, read);
 }
 
 hound_err ctx_queue_length(struct hound_ctx *ctx, size_t *count)
