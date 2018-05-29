@@ -86,8 +86,8 @@ hound_err io_read(int fd, struct fdctx *ctx)
     size_t i;
     uint8_t *pos;
     struct hound_record *record;
-    struct record_info *rec_info;
     size_t record_count;
+    struct record_info *rec_info;
 
     bytes_total = read(fd, s_read_buf, ARRAYLEN(s_read_buf));
     if (bytes_total == -1) {
