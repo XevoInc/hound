@@ -24,11 +24,11 @@
 
 #define FD_INVALID (-1)
 
-/* device path --> driver ID */
+/* device path --> driver */
 XHASH_MAP_INIT_STR(DEVICE_MAP, struct driver *)
 static xhash_t(DEVICE_MAP) *s_device_map = NULL;
 
-/* data ID --> data info */
+/* data ID --> driver */
 XHASH_MAP_INIT_INT64(DATA_MAP, struct driver *)
 static xhash_t(DATA_MAP) *s_data_map;
 
