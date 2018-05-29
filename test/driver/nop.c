@@ -23,7 +23,7 @@
 #define FD_INVALID (-1)
 #define UNUSED __attribute__((unused))
 
-static const char *s_device_name = "dummy";
+static const char *s_device_name = "nop";
 static const hound_data_period s_accel_period[] = {
     0,
     NSEC_PER_SEC,
