@@ -987,7 +987,11 @@ hound_err iio_populate_parse_desc(
 
     val = strtoul(p, &end, 10);
     XASSERT_GT(end, p);
-    XASSERT_LT(end, p + ARRAYLEN(buf));
+    /*
+     * We cast to uintptr_t to keep GCC happy. With out it, it issues a spurious
+     * "array subscript out of bounds" warning!
+     */
+    XASSERT_LT((uintptr_t) end, (uintptr_t) p + (uintptr_t) ARRAYLEN(buf));
     XASSERT_LTE(val, UINT8_MAX);
     desc->data_bytes = val / 8;
     desc->mask = (1 << val) - 1;
@@ -1307,7 +1311,7 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
     uint_fast64_t buf_samples;
     double buf_sec;
     const struct chan_desc *chan;
-    size_t chan_num;
+    size_t chan_num = 0;
     struct iio_ctx *ctx;
     const struct device_entry *entry;
     hound_err err;
@@ -1318,7 +1322,7 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
     size_t j;
     size_t entry_index;
     size_t num_channels;
-    struct device_parse_entry *parse_entry;
+    struct device_parse_entry *parse_entry = NULL;
     hound_data_period period;
     bool restart;
     const struct chan_sort_entry *sort_entry;
@@ -1491,7 +1495,6 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
             }
 
             ++entry_index;
-            chan_num = 0;
         }
         else {
             ++chan_num;
