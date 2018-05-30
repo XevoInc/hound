@@ -986,7 +986,7 @@ hound_err iio_populate_parse_desc(
     p += 1;
 
     val = strtoul(p, &end, 10);
-    XASSERT_NEQ(end, p);
+    XASSERT_GT(end, p);
     XASSERT_LT(end, p + ARRAYLEN(buf));
     XASSERT_LTE(val, UINT8_MAX);
     desc->data_bytes = val / 8;
