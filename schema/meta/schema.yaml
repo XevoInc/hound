@@ -1,0 +1,47 @@
+---
+#
+# This is the "master" schema, which validates the format of the runtime
+# schemas. Its purpose is to turn a runtime schema syntax error into a
+# compile-time one.
+#
+$schema: http://json-schema.org/draft-06/schema#
+title: Sensor data description
+type: object
+minProperties: 1
+# It's useful for the parsing code to have a maximum number of entries it can
+# see.
+maxProperties: 100
+format: contiguous-indices
+additionalProperties:
+  properties:
+    name:
+      description: A description of the entry
+      type: string
+
+    unit:
+      $ref: include://si-unit.yaml
+
+    type:
+      $ref: include://type.yaml
+
+    offset:
+      description: The byte offset at which to read this entry
+      type: integer
+      minimum: 0
+
+    len:
+      description: The length of this entry
+      oneOf:
+        -
+          type: integer
+          minimum: 0
+        -
+          type: string
+          const: all
+
+  required:
+    - name
+    - unit
+    - type
+    - offset
+    - len

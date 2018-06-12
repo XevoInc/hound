@@ -1697,6 +1697,7 @@ hound_err iio_reset(void *data)
 }
 
 static struct driver_ops iio_driver = {
+    .schemas = {"accel.yaml", "gyro.yaml"},
     .init = iio_init,
     .destroy = iio_destroy,
     .reset = iio_reset,

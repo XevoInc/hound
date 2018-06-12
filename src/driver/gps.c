@@ -350,6 +350,7 @@ hound_err gps_reset(void *data)
 }
 
 static struct driver_ops gps_driver = {
+    .schemas = {"gps.yaml"},
     .init = gps_init,
     .destroy = gps_destroy,
     .reset = gps_reset,

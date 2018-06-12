@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -uo pipefail
+
+SCHEMA_FILE="$MESON_SOURCE_ROOT/schema/meta/schema.yaml"
+for datafile in "$MESON_SOURCE_ROOT"/schema/deploy/*; do
+    if [[ ! -f $datafile ]]; then
+        continue
+    fi
+    if [[ $datafile == $SCHEMA_FILE ]]; then
+        continue
+    fi
+
+    CMD=""$MESON_SOURCE_ROOT/scripts/schema-check" \
+             -s "$SCHEMA_FILE" \
+             "$datafile""
+    $CMD
+    if [[ $? != 0 ]]; then
+        echo "FAILED: $CMD" >&2
+        exit 1
+    fi
+done

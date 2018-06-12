@@ -1,0 +1,84 @@
+#!/usr/bin/python3
+#
+# This utility does YAML schema verification. Given a schema and a YAML data
+# file, it returns 0 if the data matches the schema and non-0 otherwise.
+#
+# Note that, although the schema is specified in YAML, we actually use
+# jsonschema to do validation. This is because jsonschema is well-supported.
+# Since you have to parse the document before passing it into jsonschema, any
+# hierarchical JSON-like data structure works fine for representing the schema
+# itself.
+#
+
+import argparse
+import sys
+import yaml
+
+import jsonschema
+
+import sschema
+from sschema import (
+    make_format_checker,
+    make_resolver
+)
+from sschema.formatchecker import contiguous_indices
+from sschema.handler.include import make_default_handler
+
+
+def get_arg_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        'datafile',
+        action='store',
+        help='The YAML file to check')
+    parser.add_argument(
+        '-s',
+        '--schema',
+        action='store',
+        required=True,
+        help='The schema to check against')
+    parser.add_argument(
+        '-q',
+        '--quiet',
+        action='store_true',
+        default=False,
+        help='No output, just return 0/non-0 if the check passes/fails')
+
+    return parser
+
+
+def main():
+    parser = get_arg_parser()
+    args = parser.parse_args()
+
+    with open(args.schema, 'r') as f:
+        schema = yaml.load(f)
+
+    with open(args.datafile, 'r') as f:
+        data = yaml.load(f)
+
+    handler = make_default_handler()
+    resolver = make_resolver(schema, [handler])
+    format_checker = make_format_checker([contiguous_indices])
+    errors = list(jsonschema.Draft6Validator(
+                      schema,
+                      format_checker=format_checker,
+                      resolver=resolver).iter_errors(data))
+    count = len(errors)
+    if count > 0:
+        ret = 1
+        if not args.quiet:
+            errors.sort(key=jsonschema.exceptions.relevance)
+            print('Schema validation failed with %d errors:' % count)
+            for error in errors:
+                print('-')
+                s = str(error).replace('\n', '\n    ')
+                print('    %s' % s)
+    else:
+        ret = 0
+
+    return ret
+
+
+if __name__ == '__main__':
+    sys.exit(main())

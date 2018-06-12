@@ -573,6 +573,7 @@ hound_err can_reset(void *data)
 }
 
 static struct driver_ops can_driver = {
+    .schemas = {"can.yaml"},
     .init = can_init,
     .destroy = can_destroy,
     .reset = can_reset,
