@@ -69,5 +69,10 @@ const char *error_strerror(hound_err err)
             return "the given device ID does not exist";
     }
 
-    __builtin_unreachable();
+    /*
+     * The user passed in something that wasn't a valid error code. We could
+     * could make this the default case, but then the compiler would not be able
+     * to check that we covered all valid error cases.
+     */
+    return NULL;
 }

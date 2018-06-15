@@ -5,8 +5,10 @@
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
+#include <errno.h>
 #include <hound/hound.h>
 #include <hound_test/assert.h>
+#include <limits.h>
 #include <string.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
@@ -19,6 +21,14 @@ void data_cb(const struct hound_record *rec, void *cb_ctx)
     XASSERT_ERROR;
     XASSERT_NOT_NULL(rec);
     XASSERT_NULL(cb_ctx);
+}
+
+static
+void test_strerror(void)
+{
+    XASSERT_STREQ(hound_strerror(HOUND_OOM), "out of memory!");
+    XASSERT_STREQ(hound_strerror(EIO), strerror(EIO));
+    XASSERT_NULL(hound_strerror(INT_MIN));
 }
 
 static
@@ -174,6 +184,7 @@ int main(void)
 {
     struct hound_ctx *ctx;
 
+    test_strerror();
     test_register();
     test_datadesc();
     test_alloc_ctx(&ctx);
