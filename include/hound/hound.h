@@ -17,10 +17,9 @@ extern "C" {
 #include <time.h>
 
 /* Errors. */
-typedef int hound_err;
 
 /** Hound error codes are negative while errno codes are positive. */
-enum hound_err_enum {
+typedef enum {
     HOUND_OK = 0,
     HOUND_NULL_VAL = -1,
     HOUND_OOM = -2,
@@ -44,7 +43,7 @@ enum hound_err_enum {
     HOUND_INVALID_VAL = -20,
     HOUND_INTR = -21,
     HOUND_DEV_DOES_NOT_EXIST = -22
-};
+} hound_err;
 
 /** Returns a human-readable error string. The string must not be modified or
  * freed, but it may be modified by subsequent calls to hound_strerror or the

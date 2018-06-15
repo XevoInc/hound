@@ -20,7 +20,7 @@ const char *error_strerror(hound_err err)
         return strerror(err);
     }
 
-    switch ((enum hound_err_enum) err) {
+    switch (err) {
         case HOUND_OK:
             return "OK";
         case HOUND_NULL_VAL:
