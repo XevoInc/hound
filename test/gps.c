@@ -119,7 +119,7 @@ int main(int argc, const char **argv)
     XASSERT_NOT_NULL(desc);
     XASSERT_EQ(len, 1);
     XASSERT_EQ(desc->data_id, HOUND_DEVICE_GPS);
-    XASSERT_EQ(strcmp(desc->name, "gps-data"), 0);
+    XASSERT_STREQ(desc->name, "gps-data");
     XASSERT_EQ(desc->period_count, 1);
     XASSERT_EQ(*desc->avail_periods, NSEC_PER_SEC);
     hound_free_datadesc(desc);
