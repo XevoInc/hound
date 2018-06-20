@@ -1,0 +1,7 @@
+---
+file:
+    name: file data
+    unit: none
+    type: bytes
+    offset: 0
+    len: all

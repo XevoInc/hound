@@ -1,0 +1,7 @@
+---
+counter:
+    name: current count
+    unit: none
+    type: uint64
+    offset: 0
+    len: 8

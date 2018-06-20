@@ -1,0 +1,19 @@
+---
+x:
+    name: X axis acceleration
+    unit: m/s^2
+    type: signed double
+    offset: 0
+    len: 8
+y:
+    name: Y axis acceleration
+    unit: m/s^2
+    type: signed double
+    offset: 8
+    len: 8
+z:
+    name: Z axis acceleration
+    unit: m/s^2
+    type: signed double
+    offset: 16
+    len: 8

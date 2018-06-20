@@ -1,0 +1,10 @@
+---
+can:
+    # CAN is a bus and not a data type, so nothing more can be said about it.
+    # If, for instance, you need OBD-II, you should parse the CAN payload with
+    # an OBD-II library.
+    name: CAN bus data
+    unit: none
+    type: bytes
+    offset: 0
+    len: all

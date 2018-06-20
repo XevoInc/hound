@@ -1,0 +1,7 @@
+---
+nop:
+    name: no-op (no data)
+    unit: none
+    type: bytes
+    offset: 0
+    len: all

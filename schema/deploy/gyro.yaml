@@ -1,0 +1,19 @@
+---
+x:
+    name: angular velocity about X axis
+    unit: rad/s
+    type: signed double
+    offset: 0
+    len: 8
+y:
+    name: angular velocity about Y axis
+    unit: rad/s
+    type: signed double
+    offset: 8
+    len: 8
+z:
+    name: angular velocity about Z axis
+    unit: rad/s
+    type: signed double
+    offset: 16
+    len: 8
