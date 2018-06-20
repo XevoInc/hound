@@ -41,6 +41,12 @@ void *drv_alloc(size_t bytes)
 }
 
 PUBLIC_API
+void *drv_realloc(void *p, size_t bytes)
+{
+    return realloc(p, bytes);
+}
+
+PUBLIC_API
 void drv_free(void *p)
 {
     free(p);

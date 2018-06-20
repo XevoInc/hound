@@ -104,6 +104,14 @@ struct driver_ops {
  * @return a pointer to the allocated memory, or NULL if the allocation failed.
  */
 void *drv_alloc(size_t bytes);
+
+/**
+ * A function that drivers should use for any reallocations they need to do.
+ *
+ * @return a pointer to the allocated memory, or NULL if the allocation failed.
+ */
+void *drv_realloc(void *p, size_t bytes);
+
 /**
  * Free a pointer allocated by drv_alloc.
  *
