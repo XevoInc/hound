@@ -101,12 +101,17 @@ struct driver_ops {
 /**
  * A function that drivers should use for any allocations they need to do.
  *
+ * @param bytes the number of bytes to allocate to the pointer
+ *
  * @return a pointer to the allocated memory, or NULL if the allocation failed.
  */
 void *drv_alloc(size_t bytes);
 
 /**
  * A function that drivers should use for any reallocations they need to do.
+ *
+ * @param p a pointer to realloc
+ * @param bytes the number of bytes to reallocate to the pointer
  *
  * @return a pointer to the allocated memory, or NULL if the allocation failed.
  */
