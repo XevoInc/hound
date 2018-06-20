@@ -37,52 +37,6 @@ static xhash_t(DATA_MAP) *s_data_map;
 
 static pthread_rwlock_t s_driver_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
-PUBLIC_API
-void *drv_alloc(size_t bytes)
-{
-    return malloc(bytes);
-}
-
-PUBLIC_API
-void *drv_realloc(void *p, size_t bytes)
-{
-    return realloc(p, bytes);
-}
-
-PUBLIC_API
-void drv_free(void *p)
-{
-    free(p);
-}
-
-PUBLIC_API
-void *drv_ctx(void)
-{
-    const struct driver *drv;
-
-    /*
-     * This should be called only from a driver's callback, so we should already
-     * hold the driver's mutex.
-     */
-    drv = get_active_drv();
-    XASSERT_NOT_NULL(drv);
-    return drv->ctx;
-}
-
-PUBLIC_API
-void drv_set_ctx(void *ctx)
-{
-    struct driver *drv;
-
-    /*
-     * This should be called only from a driver's callback, so we should already
-     * hold the driver's mutex.
-     */
-    drv = get_active_drv();
-    XASSERT_NOT_NULL(drv);
-    drv->ctx = ctx;
-}
-
 void driver_init(void)
 {
     s_data_map = xh_init(DATA_MAP);
