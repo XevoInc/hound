@@ -5,16 +5,18 @@
  * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
  */
 
+#define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <hound/hound.h>
 #include <hound_test/assert.h>
 #include <limits.h>
+#include <linux/limits.h>
 #include <string.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 #define NSEC_PER_SEC (1e9)
 
-extern hound_err register_nop_driver(void);
+extern hound_err register_nop_driver(const char *schema_base);
 
 void data_cb(const struct hound_record *rec, void *cb_ctx)
 {
@@ -32,11 +34,11 @@ void test_strerror(void)
 }
 
 static
-void test_register(void)
+void test_register(const char *schema_base)
 {
     hound_err err;
 
-    err = register_nop_driver();
+    err = register_nop_driver(schema_base);
     XASSERT_OK(err);
 }
 
@@ -180,12 +182,23 @@ void test_unregister()
     XASSERT_OK(err);
 }
 
-int main(void)
+int main(int argc, const char **argv)
 {
     struct hound_ctx *ctx;
+    const char *schema_base;
+
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s SCHEMA-BASE-PATH\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+    if (strnlen(argv[1], PATH_MAX) == PATH_MAX) {
+        fprintf(stderr, "Schema base path is longer than PATH_MAX\n");
+        exit(EXIT_FAILURE);
+    }
+    schema_base = argv[1];
 
     test_strerror();
-    test_register();
+    test_register(schema_base);
     test_datadesc();
     test_alloc_ctx(&ctx);
     test_start_ctx(ctx);

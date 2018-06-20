@@ -7,9 +7,6 @@ Things to do:
   figure out possible channels (like iio_generic_buffer does), instead of
   hardcoding these.
 - Dynamically loadable drivers?
-- Driver interface for querying how large (in bytes) a given data type is.
-  Allows users to preallocate buffers and know what to expect for record size.
-- Interface to describe data schema (making Hound self-describing).
 - Optimize drv_alloc, since both record data and struct record_info are
   short-lived.
 - Audit logging to make it consistent throughout the code.

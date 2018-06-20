@@ -42,7 +42,8 @@ typedef enum {
     HOUND_DRIVER_FAIL = -19,
     HOUND_INVALID_VAL = -20,
     HOUND_INTR = -21,
-    HOUND_DEV_DOES_NOT_EXIST = -22
+    HOUND_DEV_DOES_NOT_EXIST = -22,
+    HOUND_UNKNOWN_UNIT = -23
 } hound_err;
 
 /** Returns a human-readable error string. The string must not be modified or
@@ -85,12 +86,42 @@ typedef void (*hound_cb)(const struct hound_record *rec, void *cb_ctx);
 typedef uint_fast8_t hound_period_count;
 typedef uint_fast64_t hound_data_period;
 
+typedef enum {
+    HOUND_SIGNED_FLOAT,
+    HOUND_UNSIGNED_FLOAT,
+    HOUND_SIGNED_DOUBLE,
+    HOUND_UNSIGNED_DOUBLE,
+    HOUND_INT8,
+    HOUND_UINT8,
+    HOUND_INT16,
+    HOUND_UINT16,
+    HOUND_INT32,
+    HOUND_UINT32,
+    HOUND_INT64,
+    HOUND_UINT64,
+    HOUND_BYTES
+} hound_type;
+
+typedef uint_fast8_t hound_unit;
+
+struct hound_data_fmt {
+    const char *name;
+    const char *desc;
+    hound_unit unit;
+    size_t offset;
+    /* Length 0 means "all of the data." */
+    size_t len;
+    hound_type type;
+};
+
 struct hound_datadesc {
     hound_data_id data_id;
     hound_dev_id dev_id;
     const char *name;
     hound_period_count period_count;
     const hound_data_period *avail_periods;
+    size_t fmt_count;
+    struct hound_data_fmt *fmts;
 };
 
 struct hound_data_rq {
@@ -110,15 +141,17 @@ struct hound_rq {
     struct hound_data_rq_list rq_list;
 };
 
+hound_err hound_get_datadesc(struct hound_datadesc **desc, size_t *len);
+void hound_free_datadesc(struct hound_datadesc *desc);
+
+hound_err hound_get_unit_str(hound_unit unit, const char **unit_str);
+
 /* Devices. */
 
 /** Opaque pointer to an I/O context. */
 struct hound_ctx;
 
 hound_err hound_get_dev_name(hound_dev_id id, const char **name);
-
-hound_err hound_get_datadesc(struct hound_datadesc **desc, size_t *len);
-void hound_free_datadesc(struct hound_datadesc *desc);
 
 hound_err hound_alloc_ctx(struct hound_ctx **ctx, const struct hound_rq *rq);
 hound_err hound_free_ctx(struct hound_ctx *ctx);

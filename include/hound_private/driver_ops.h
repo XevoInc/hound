@@ -79,8 +79,11 @@ DEFINE_DRV_OP(reset, void *data, data)
 DEFINE_DRV_OP(device_name, char *device_name, device_name)
 DEFINE_DRV_OP(
     datadesc,
-    TOKENIZE(struct hound_datadesc **desc, hound_data_count *count),
-    TOKENIZE(desc, count))
+    TOKENIZE(
+        struct hound_datadesc **desc,
+        const char ***schemas,
+        hound_data_count *count),
+    TOKENIZE(desc, schemas, count))
 DEFINE_DRV_OP(setdata, const struct hound_data_rq_list *data, data)
 DEFINE_DRV_OP(
     parse,

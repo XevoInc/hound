@@ -17,15 +17,37 @@ pkg = import('pkgconfig')
 include = include_directories('include')
 install_subdir('include/hound', install_dir: 'include')
 
+# Config header generation.
+conf = configuration_data()
+hound_confdir = join_paths(
+    get_option('prefix'),
+    get_option('sysconfdir'),
+    'hound')
+hound_schemadir = join_paths(hound_confdir, 'schema')
+conf.set_quoted('CONFIG_HOUND_SCHEMADIR', hound_schemadir)
+configure_file(
+    input: 'include/hound_private/config.h.in',
+    output: 'config.h',
+    configuration : conf)
+
 # Library.
 gps_dep = dependency('libgps')
+yaml_dep = dependency('yaml-0.1')
 thread_dep = dependency('threads')
 xlib_dep = dependency('xlib')
 lib_deps = [
     gps_dep,
+    yaml_dep,
     thread_dep,
     xlib_dep
 ]
+
+# Install schemas.
+install_subdir(
+    'schema/deploy',
+    install_dir: hound_schemadir,
+    strip_directory: true)
+
 
 src = [
     'src/core/ctx.c',
@@ -39,6 +61,7 @@ src = [
     'src/core/log.c',
     'src/core/queue.c',
     'src/core/refcount.c',
+    'src/core/schema.c',
     'src/core/util.c',
     'src/driver/can.c',
     'src/driver/gps.c',
@@ -73,10 +96,13 @@ add_test_setup(
     'valgrind',
     exe_wrapper: ['valgrind'],
     timeout_multiplier: 100)
+# meson won't let us pass a directory to files(), so we use current_source_dir()
+# as a workaround.
+schema_dir = join_paths(meson.current_source_dir(), 'test', 'schema')
 tests = [
-    ['nop', ['test/driver/nop.c', 'test/nop.c'], [] ],
-    ['counter', ['test/driver/counter.c', 'test/counter.c'], [] ],
-    ['file', ['test/driver/file.c', 'test/file.c'], files('test/data/testfile') ],
+    ['nop', ['test/driver/nop.c', 'test/nop.c'], schema_dir ],
+    ['counter', ['test/driver/counter.c', 'test/counter.c'], schema_dir ],
+    ['file', ['test/driver/file.c', 'test/file.c'], files([schema_dir, 'test/data/testfile']) ],
     ['can', ['test/can.c'], ['hound-vcan0'] ]
 ]
 foreach t : tests

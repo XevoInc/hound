@@ -99,25 +99,45 @@ hound_err file_device_name(char *device_name)
 }
 
 static
-hound_err file_datadesc(struct hound_datadesc **out, hound_data_count *count)
+hound_err file_datadesc(
+    struct hound_datadesc **out,
+    const char ***schemas,
+    hound_data_count *count)
 {
     struct hound_datadesc *desc;
     hound_err err;
 
     XASSERT_NOT_NULL(out);
     XASSERT_NOT_NULL(count);
+    XASSERT_NOT_NULL(schemas);
 
     *count = 1;
     desc = drv_alloc(sizeof(*desc));
     if (desc == NULL) {
-        return HOUND_OOM;
+        err = HOUND_OOM;
+        goto out;
     }
+
+    *schemas = drv_alloc(sizeof(*schemas));
+    if (desc == NULL) {
+        err = HOUND_OOM;
+        goto error_alloc_schemas;
+    }
+    **schemas = "file.yaml";
+
     err = drv_deepcopy_desc(desc, &s_datadesc);
     if (err != HOUND_OK) {
-        drv_free(desc);
+        goto error_deepcopy;
     }
 
     *out = desc;
+    goto out;
+
+error_deepcopy:
+    drv_free(schemas);
+error_alloc_schemas:
+    drv_free(desc);
+out:
     return err;
 }
 
@@ -254,11 +274,14 @@ static struct driver_ops file_driver = {
 };
 
 PUBLIC_API
-hound_err hound_register_file_driver(const char *filepath, hound_data_id id)
+hound_err hound_register_file_driver(
+    const char *filepath,
+    const char *schema_base,
+    hound_data_id id)
 {
 	struct driver_init init;
 
 	init.filepath = filepath;
 	init.data_id = id;
-	return driver_register(filepath, &file_driver, &init);
+	return driver_register(filepath, &file_driver, schema_base, &init);
 }

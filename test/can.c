@@ -157,7 +157,7 @@ int main(int argc, const char **argv)
     /* Don't filter responses; we want to receive our own queries. */
     init.rx_can_id = 0;
 
-    err = hound_register_can_driver(&init);
+    err = hound_register_can_driver(NULL, &init);
     XASSERT_OK(err);
 
     /* On-demand data. */

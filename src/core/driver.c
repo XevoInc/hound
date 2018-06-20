@@ -14,6 +14,7 @@
 #include <hound_private/error.h>
 #include <hound_private/io.h>
 #include <hound_private/log.h>
+#include <hound_private/schema.h>
 #include <hound_private/util.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -21,6 +22,8 @@
 #include <string.h>
 #include <xlib/xhash.h>
 #include <xlib/xvec.h>
+
+#include "config.h"
 
 #define FD_INVALID (-1)
 
@@ -195,6 +198,7 @@ PUBLIC_API
 hound_err driver_register(
     const char *path,
     struct driver_ops *ops,
+    const char *schema_base,
     void *init_data)
 {
     struct driver *drv;
@@ -203,10 +207,19 @@ hound_err driver_register(
     size_t i;
     xhiter_t iter;
     int ret;
+    const char **schemas;
 
     NULL_CHECK(path);
 
     if (strnlen(path, PATH_MAX) == PATH_MAX) {
+        err = HOUND_INVALID_STRING;
+        goto out;
+    }
+
+    if (schema_base == NULL) {
+        schema_base = CONFIG_HOUND_SCHEMADIR;
+    }
+    else if (strnlen(schema_base, PATH_MAX) == PATH_MAX) {
         err = HOUND_INVALID_STRING;
         goto out;
     }
@@ -267,32 +280,57 @@ hound_err driver_register(
     }
 
     /* Get all the supported data for the driver. */
-    err = drv_op_datadesc(drv, &drv->data, &drv->datacount);
+    err = drv_op_datadesc(drv, &drv->data, &schemas, &drv->datacount);
     if (err != HOUND_OK) {
         goto error_datadesc;
     }
 
+    /* Verify that all descriptors are sane. */
     for (i = 0; i < drv->datacount; ++i) {
         if (drv->data[i].name == NULL) {
             err = HOUND_NULL_VAL;
             goto error_datadesc;
         }
+
         if (strnlen(drv->data[i].name, HOUND_DATA_NAME_MAX) ==
             HOUND_DATA_NAME_MAX) {
             err = HOUND_INVALID_STRING;
             goto error_datadesc;
         }
 
-        drv->data[i].dev_id = drv->id;
-    }
+        if (schemas[i] == NULL) {
+            err = HOUND_NULL_VAL;
+            goto error_datadesc;
+        }
 
-    /* Verify that all descriptors are sane. */
-    for (i = 0; i < drv->datacount; ++i) {
+        if (strnlen(schemas[i], PATH_MAX) == PATH_MAX) {
+            err = HOUND_INVALID_STRING;
+            goto error_datadesc;
+        }
+
         iter = xh_get(DATA_MAP, s_data_map, drv->data[i].data_id);
         if (iter != xh_end(s_data_map)) {
             err = HOUND_CONFLICTING_DRIVERS;
             goto error_conflicting_drivers;
         }
+
+        drv->data[i].dev_id = drv->id;
+    }
+
+    /* Parse each given schema and store its format. */
+    for (i = 0; i < drv->datacount; ++i) {
+        err = schema_parse(
+            schema_base,
+            schemas[i],
+            &drv->data[i].fmt_count,
+            &drv->data[i].fmts);
+        if (err != HOUND_OK) {
+            break;
+        }
+    }
+    drv_free(schemas);
+    if (err != HOUND_OK) {
+        goto error_schema_parse;
     }
 
     /*
@@ -330,6 +368,7 @@ error_data_map_put:
 error_device_map_put:
     free(drv_path);
 error_alloc_drv_path:
+error_schema_parse:
 error_conflicting_drivers:
 error_datadesc:
 error_device_name:

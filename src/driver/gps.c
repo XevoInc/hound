@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <gps.h>
 #include <hound/hound.h>
+#include <hound/driver/gps.h>
 #include <hound_private/api.h>
 #include <hound_private/driver.h>
 #include <hound_private/driver/util.h>
@@ -154,25 +155,45 @@ hound_err gps_device_name(char *device_name)
 }
 
 static
-hound_err gps_datadesc(struct hound_datadesc **out, hound_data_count *count)
+hound_err gps_datadesc(
+    struct hound_datadesc **out,
+    const char ***schemas,
+    hound_data_count *count)
 {
     struct hound_datadesc *desc;
     hound_err err;
 
     XASSERT_NOT_NULL(out);
     XASSERT_NOT_NULL(count);
+    XASSERT_NOT_NULL(schemas);
 
     *count = 1;
     desc = drv_alloc(sizeof(*desc));
     if (desc == NULL) {
-        return HOUND_OOM;
+        err = HOUND_OOM;
+        goto out;
     }
+
+    *schemas = drv_alloc(sizeof(**schemas));
+    if (*schemas == NULL) {
+        err = HOUND_OOM;
+        goto error_alloc_schemas;
+    }
+    **schemas = "gps.yaml";
+
     err = drv_deepcopy_desc(desc, &s_datadesc);
     if (err != HOUND_OK) {
-        drv_free(desc);
+        goto error_deepcopy;
     }
 
     *out = desc;
+    goto out;
+
+error_deepcopy:
+    drv_free(schemas);
+error_alloc_schemas:
+    drv_free(desc);
+out:
     return err;
 }
 
@@ -197,6 +218,24 @@ unix_to_timespec (double timestamp, struct timespec *ts)
   ts->tv_sec = timestamp;
   fraction = timestamp - ts->tv_sec;
   ts->tv_nsec = NSEC_PER_SEC * fraction;
+}
+
+static
+void populate_gps_data(struct gps_data *data, struct gps_fix_t *fix)
+{
+	data->time_uncertainty = fix->ept;
+	data->latitude = fix->latitude;
+	data->latitude_uncertainty = fix->epy;
+	data->longitude = fix->longitude;
+	data->longitude_uncertainty = fix->epx;
+	data->altitude = fix->altitude;
+	data->altitude_uncertainty = fix->epv;
+	data->track = fix->track;
+	data->track_uncertainty = fix->epd;
+	data->speed = fix->speed;
+	data->speed_uncertainty = fix->eps;
+	data->climb = fix->climb;
+	data->climb_uncertainty = fix->epc;
 }
 
 static
@@ -230,11 +269,11 @@ hound_err gps_parse(
     }
 
     record = records;
-    record->data = drv_alloc(sizeof(ctx->gps.fix));
+    record->data = drv_alloc(sizeof(struct gps_data));
     if (record->data == NULL) {
         return HOUND_OOM;
     }
-    memcpy(record->data, &ctx->gps.fix, sizeof(ctx->gps.fix));
+    populate_gps_data((struct gps_data *) record->data, &ctx->gps.fix);
     record->size = sizeof(ctx->gps.fix);
 
     record->data_id = HOUND_DEVICE_GPS;
@@ -350,7 +389,6 @@ hound_err gps_reset(void *data)
 }
 
 static struct driver_ops gps_driver = {
-    .schemas = {"gps.yaml"},
     .init = gps_init,
     .destroy = gps_destroy,
     .reset = gps_reset,
@@ -364,11 +402,13 @@ static struct driver_ops gps_driver = {
 };
 
 PUBLIC_API
-hound_err hound_register_gps_driver(const char *location)
+hound_err hound_register_gps_driver(
+    const char *schema_base,
+    const char *location)
 {
     if (location == NULL) {
         return HOUND_NULL_VAL;
     }
 
-    return driver_register(location, &gps_driver, (void *) location);
+    return driver_register(location, &gps_driver, schema_base, (void *) location);
 }

@@ -14,6 +14,26 @@
 extern "C" {
 #endif
 
+struct gps_data {
+    /*
+     * These properties are taken from gpsd's struct gps_fix_t in gps.h and have
+     * the same units.
+     */
+    double time_uncertainty;
+    double latitude;
+    double latitude_uncertainty;
+    double longitude;
+    double longitude_uncertainty;
+    double altitude;
+    double altitude_uncertainty;
+    double track;
+    double track_uncertainty;
+    double speed;
+    double speed_uncertainty;
+    double climb;
+    double climb_uncertainty;
+};
+
 /**
  * Registers a GPS driver.
  *
@@ -22,7 +42,9 @@ extern "C" {
  *     HOST:PORT
  *     where HOST and PORT are the gpsd host and port to use.
  */
-hound_err hound_register_gps_driver(const char *location);
+hound_err hound_register_gps_driver(
+    const char *schema_base,
+    const char *location);
 
 #ifdef __cplusplus
 }

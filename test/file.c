@@ -18,7 +18,7 @@
 #include <unistd.h>
 
 extern hound_err hound_register_file_driver(
-    const char *filepath, hound_data_id id);
+    const char *filepath, const char *schema_base, hound_data_id id);
 
 struct text {
     char *data;
@@ -76,6 +76,7 @@ int main(int argc, const char **argv)
     struct hound_ctx *ctx;
     hound_err err;
     const char *filepath;
+    const char *schema_base;
     struct text text;
     size_t total_count;
     struct hound_data_rq data_rq = { .id = HOUND_DEVICE_ACCELEROMETER };
@@ -87,17 +88,24 @@ int main(int argc, const char **argv)
         .rq_list.data = &data_rq
     };
 
-    if (argc != 2) {
-        fprintf(stderr, "Usage: file TESTFILE\n");
+    if (argc != 3) {
+        fprintf(stderr, "Usage: file SCHEMA-BASE-PATH TESTFILE\n");
         exit(EXIT_FAILURE);
     }
+
     if (strnlen(argv[1], PATH_MAX) == PATH_MAX) {
+        fprintf(stderr, "Schema base path is longer than PATH_MAX\n");
+        exit(EXIT_FAILURE);
+    }
+    schema_base = argv[1];
+
+    if (strnlen(argv[2], PATH_MAX) == PATH_MAX) {
         fprintf(stderr, "File argument is longer than PATH_MAX\n");
         exit(EXIT_FAILURE);
     }
-    filepath = argv[1];
+    filepath = argv[2];
 
-    err = hound_register_file_driver(filepath, data_rq.id);
+    err = hound_register_file_driver(filepath, schema_base, data_rq.id);
     XASSERT_OK(err);
 
     err = hound_alloc_ctx(&ctx, &rq);

@@ -83,20 +83,30 @@ hound_err nop_device_name(char *device_name)
 }
 
 static
-hound_err nop_datadesc(struct hound_datadesc **out, hound_data_count *count)
+hound_err nop_datadesc(
+    struct hound_datadesc **out,
+    const char ***schemas,
+    hound_data_count *count)
 {
     struct hound_datadesc *desc;
     hound_err err;
     size_t i;
 
     XASSERT_NOT_NULL(out);
+    XASSERT_NOT_NULL(schemas);
     XASSERT_NOT_NULL(count);
 
     *count = ARRAYLEN(s_datadesc);
     desc = drv_alloc(*count*sizeof(*desc));
     if (desc == NULL) {
         err = HOUND_OOM;
-        goto error_desc;
+        goto out;
+    }
+
+    *schemas = drv_alloc(sizeof(**schemas));
+    if (*schemas == NULL) {
+        err = HOUND_OOM;
+        goto error_schema_alloc;
     }
 
     for (i = 0; i < ARRAYLEN(s_datadesc); ++i) {
@@ -104,6 +114,7 @@ hound_err nop_datadesc(struct hound_datadesc **out, hound_data_count *count)
         if (err != HOUND_OK) {
             goto error_deepcopy;
         }
+        (*schemas)[i] = "nop.yaml";
     }
 
     *out = desc;
@@ -114,7 +125,9 @@ error_deepcopy:
         drv_destroy_desc(&desc[i]);
     }
     drv_free(desc);
-error_desc:
+error_schema_alloc:
+    drv_free(desc);
+out:
     return err;
 }
 
@@ -195,7 +208,7 @@ static struct driver_ops nop_driver = {
     .stop = nop_stop
 };
 
-hound_err register_nop_driver(void)
+hound_err register_nop_driver(const char *schema_base)
 {
-    return driver_register("/dev/nop", &nop_driver, NULL);
+    return driver_register("/dev/nop", &nop_driver, schema_base, NULL);
 }

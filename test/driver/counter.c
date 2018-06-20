@@ -34,7 +34,7 @@ static const struct hound_datadesc s_datadesc = {
 };
 
 int s_pipe[2] = { FD_INVALID, FD_INVALID };
-static size_t s_count;
+static uint64_t s_count;
 
 static
 hound_err counter_init(void *data)
@@ -71,25 +71,45 @@ hound_err counter_device_name(char *device_name)
 }
 
 static
-hound_err counter_datadesc(struct hound_datadesc **out, hound_data_count *count)
+hound_err counter_datadesc(
+    struct hound_datadesc **out,
+    const char ***schemas,
+    hound_data_count *count)
 {
     struct hound_datadesc *desc;
     hound_err err;
 
     XASSERT_NOT_NULL(out);
     XASSERT_NOT_NULL(count);
+    XASSERT_NOT_NULL(schemas);
 
     *count = 1;
     desc = drv_alloc(sizeof(*desc));
     if (desc == NULL) {
-        return HOUND_OOM;
+        err = HOUND_OOM;
+        goto out;
     }
+
+    *schemas = drv_alloc(sizeof(*schemas));
+    if (desc == NULL) {
+        err = HOUND_OOM;
+        goto error_alloc_schemas;
+    }
+    **schemas = "counter.yaml";
+
     err = drv_deepcopy_desc(desc, &s_datadesc);
     if (err != HOUND_OK) {
-        drv_free(desc);
+        goto error_deepcopy;
     }
 
     *out = desc;
+    goto out;
+
+error_deepcopy:
+    drv_free(schemas);
+error_alloc_schemas:
+    drv_free(desc);
+out:
     return err;
 }
 
@@ -224,7 +244,7 @@ static struct driver_ops counter_driver = {
     .stop = counter_stop
 };
 
-hound_err register_counter_driver(size_t *count)
+hound_err register_counter_driver(const char *schema_base, size_t *count)
 {
-    return driver_register("/dev/counter", &counter_driver, count);
+    return driver_register("/dev/counter", &counter_driver, schema_base, count);
 }

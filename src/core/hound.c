@@ -11,11 +11,18 @@
 #include <hound_private/error.h>
 #include <hound_private/driver.h>
 #include <hound_private/log.h>
+#include <hound_private/schema.h>
 
 PUBLIC_API
 hound_err hound_get_dev_name(hound_dev_id id, const char **name)
 {
     return driver_get_dev_name(id, name);
+}
+
+PUBLIC_API
+hound_err hound_get_unit_str(hound_unit unit, const char **unit_str)
+{
+    return schema_get_unit_str(unit, unit_str);
 }
 
 PUBLIC_API

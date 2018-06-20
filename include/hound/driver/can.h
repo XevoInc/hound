@@ -28,7 +28,9 @@ struct hound_can_driver_init {
     struct can_frame *tx_frames;
 };
 
-hound_err hound_register_can_driver(struct hound_can_driver_init *init);
+hound_err hound_register_can_driver(
+    const char *schema_base,
+    struct hound_can_driver_init *init);
 
 #ifdef __cplusplus
 }

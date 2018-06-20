@@ -43,6 +43,7 @@ struct device_entry {
     enum hound_datatype id;
     size_t num_channels;
     const struct chan_desc *channels;
+    const char *schema;
 };
 
 struct device_parse_entry {
@@ -110,12 +111,14 @@ static const struct device_entry s_channels[] = {
     {
         .id = HOUND_DEVICE_ACCELEROMETER,
         .num_channels = 3,
-        .channels = s_accel_chan
+        .channels = s_accel_chan,
+        .schema = "accel.yaml"
     },
     {
         .id = HOUND_DEVICE_GYROSCOPE,
         .num_channels = 3,
-        .channels = s_gyro_chan
+        .channels = s_gyro_chan,
+        .schema = "gyro.yaml"
     }
 };
 
@@ -762,7 +765,10 @@ bool iio_scan_exists(
 }
 
 static
-hound_err iio_datadesc(struct hound_datadesc **out, hound_data_count *count)
+hound_err iio_datadesc(
+    struct hound_datadesc **out,
+    const char ***schemas,
+    hound_data_count *count)
 {
     hound_data_period *avail_periods;
     const struct chan_desc *channels;
@@ -776,19 +782,26 @@ hound_err iio_datadesc(struct hound_datadesc **out, hound_data_count *count)
     hound_period_count period_count;
 
     XASSERT_NOT_NULL(out);
+    XASSERT_NOT_NULL(schemas);
     XASSERT_NOT_NULL(count);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
 
     /*
-     * Preallocate a larger data descriptor than we probably need. We will
-     * realloc it once we've scanned the system and know the correct size.
+     * Preallocate more data than we probably need. We will realloc it once
+     * we've scanned the system and know the correct size.
      */
     desc = malloc(HOUND_DEVICE_MAX*sizeof(*desc));
     if (desc == NULL) {
         err = HOUND_OOM;
         goto out;
+    }
+
+    *schemas = malloc(HOUND_DEVICE_MAX*sizeof(**schemas));
+    if (*schemas == NULL) {
+        err = HOUND_OOM;
+        goto error_desc;
     }
 
     /*
@@ -820,6 +833,7 @@ hound_err iio_datadesc(struct hound_datadesc **out, hound_data_count *count)
         if (err != HOUND_OK) {
             goto error_desc;
         }
+        (*schemas)[desc_count] = entry->schema;
         ++desc_count;
         if (desc_count == HOUND_DEVICE_MAX) {
             goto error_desc;
@@ -838,13 +852,19 @@ hound_err iio_datadesc(struct hound_datadesc **out, hound_data_count *count)
         goto error_desc;
     };
 
+    *schemas = realloc(schemas, desc_count*sizeof(**schemas));
+    if (*schemas == NULL) {
+        err = HOUND_OOM;
+        goto error_desc;
+    };
+
     /*
      * The periods are the same for all channels, so just parse them once and
      * set them for each descriptor.
      */
     err = parse_avail_periods(ctx->dev_dir, &period_count, &avail_periods);
     if (err != HOUND_OK) {
-        goto error_desc;
+        goto error_parse_avail_periods;
     }
 
     desc[0].period_count = period_count;
@@ -853,7 +873,7 @@ hound_err iio_datadesc(struct hound_datadesc **out, hound_data_count *count)
         desc[i].period_count = period_count;
         desc[i].avail_periods = malloc(period_count * sizeof(*avail_periods));
         if (desc[i].avail_periods == NULL) {
-            goto error_avail_periods;
+            goto error_alloc_avail_periods;
         }
 
         memcpy(
@@ -867,10 +887,12 @@ hound_err iio_datadesc(struct hound_datadesc **out, hound_data_count *count)
     err = HOUND_OK;
     goto out;
 
-error_avail_periods:
+error_alloc_avail_periods:
     for (i = i-1; i < desc_count; --i) {
         free((hound_data_period *) desc[i].avail_periods);
     }
+error_parse_avail_periods:
+    free((void *) **schemas);
 error_desc:
     free(desc);
 out:
@@ -1697,7 +1719,6 @@ hound_err iio_reset(void *data)
 }
 
 static struct driver_ops iio_driver = {
-    .schemas = {"accel.yaml", "gyro.yaml"},
     .init = iio_init,
     .destroy = iio_destroy,
     .reset = iio_reset,
@@ -1711,12 +1732,14 @@ static struct driver_ops iio_driver = {
 };
 
 PUBLIC_API
-hound_err hound_register_iio_driver(const struct hound_iio_driver_init *init)
+hound_err hound_register_iio_driver(
+    const char *schema_base,
+    const struct hound_iio_driver_init *init)
 {
     if (init == NULL) {
         return HOUND_NULL_VAL;
     }
 
     /* The compiler can't verify it, but we won't change dev. */
-    return driver_register(init->dev, &iio_driver, (void *) init);
+    return driver_register(init->dev, &iio_driver, schema_base, (void *) init);
 }

@@ -171,25 +171,45 @@ hound_err can_device_name(char *device_name)
 }
 
 static
-hound_err can_datadesc(struct hound_datadesc **out, hound_data_count *count)
+hound_err can_datadesc(
+    struct hound_datadesc **out,
+    const char ***schemas,
+    hound_data_count *count)
 {
     struct hound_datadesc *desc;
     hound_err err;
 
     XASSERT_NOT_NULL(out);
     XASSERT_NOT_NULL(count);
+    XASSERT_NOT_NULL(schemas);
 
     *count = 1;
     desc = drv_alloc(sizeof(*desc));
     if (desc == NULL) {
-        return HOUND_OOM;
+        err = HOUND_OOM;
+        goto out;
     }
+
+    *schemas = drv_alloc(sizeof(**schemas));
+    if (*schemas == NULL) {
+        err = HOUND_OOM;
+        goto error_alloc_schemas;
+    }
+    **schemas = "can.yaml";
+
     err = drv_deepcopy_desc(desc, &s_datadesc);
     if (err != HOUND_OK) {
-        drv_free(desc);
+        goto error_deepcopy;
     }
 
     *out = desc;
+    goto out;
+
+error_deepcopy:
+    drv_free(schemas);
+error_alloc_schemas:
+    drv_free(desc);
+out:
     return err;
 }
 
@@ -573,7 +593,6 @@ hound_err can_reset(void *data)
 }
 
 static struct driver_ops can_driver = {
-    .schemas = {"can.yaml"},
     .init = can_init,
     .destroy = can_destroy,
     .reset = can_reset,
@@ -587,11 +606,13 @@ static struct driver_ops can_driver = {
 };
 
 PUBLIC_API
-hound_err hound_register_can_driver(struct hound_can_driver_init *init)
+hound_err hound_register_can_driver(
+    const char *schema_base,
+    struct hound_can_driver_init *init)
 {
     if (init == NULL) {
         return HOUND_NULL_VAL;
     }
 
-    return driver_register(init->iface, &can_driver, init);
+    return driver_register(init->iface, &can_driver, schema_base, init);
 }

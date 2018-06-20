@@ -35,6 +35,11 @@ hound_err drv_deepcopy_desc(
         src->avail_periods,
         src->period_count*sizeof(*src->avail_periods));
 
+    /*
+     * Note that we don't copy the format information, as it is managed by the
+     * driver core, and not the drivers themselves.
+     */
+
     return HOUND_OK;
 
 error_avail_periods:
@@ -46,6 +51,16 @@ error_name:
 PUBLIC_API
 void drv_destroy_desc(struct hound_datadesc *desc)
 {
+    size_t i;
+    struct hound_data_fmt *fmt;
+
     drv_free((void *) desc->name);
     drv_free((void *) desc->avail_periods);
+
+    for (i = 0; i < desc->fmt_count; ++i) {
+        fmt = &desc->fmts[i];
+        drv_free((void *) fmt->name);
+        drv_free((void *) fmt->desc);
+    }
+    drv_free(desc->fmts);
 }

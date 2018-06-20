@@ -10,17 +10,20 @@
 
 #include <hound/hound.h>
 #include <hound_test/assert.h>
+#include <linux/limits.h>
 #include <string.h>
 #include <valgrind.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 
-extern hound_err register_counter_driver(size_t *count);
+extern hound_err register_counter_driver(
+    const char *schema_base,
+    size_t *count);
 extern void counter_zero(void);
 
 struct cb_ctx {
     hound_dev_id dev_id;
-    size_t count;
+    uint64_t count;
     size_t seqno;
 };
 
@@ -64,7 +67,7 @@ void data_cb(const struct hound_record *rec, void *cb_ctx)
     ++ctx->seqno;
 }
 
-int main(void)
+int main(int argc, const char **argv)
 {
     size_t bytes_read;
     struct hound_ctx *ctx;
@@ -74,12 +77,25 @@ int main(void)
     size_t count_records;
     struct hound_data_rq data_rq =
         { .id = HOUND_DEVICE_GYROSCOPE, .period_ns = 0 };
+    const struct hound_data_fmt *fmt;
     size_t len;
     size_t records_read;
     struct hound_rq rq;
+    const char *schema_base;
     struct cb_ctx cb_ctx;
     size_t total_bytes;
     size_t total_records;
+    const char *unit_str;
+
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s SCHEMA-BASE-PATH\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+    if (strnlen(argv[1], PATH_MAX) == PATH_MAX) {
+        fprintf(stderr, "Schema base path is longer than PATH_MAX\n");
+        exit(EXIT_FAILURE);
+    }
+    schema_base = argv[1];
 
     /*
      * Valgrind substantially slows down runtime performance, so reduce the
@@ -95,7 +111,7 @@ int main(void)
     total_bytes = total_records * sizeof(size_t);
 
     count_records = 0;
-    err = register_counter_driver(&count_records);
+    err = register_counter_driver(schema_base, &count_records);
     XASSERT_OK(err);
 
     cb_ctx.seqno = 0;
@@ -113,6 +129,18 @@ int main(void)
     err = hound_get_datadesc(&desc, &len);
     XASSERT_OK(err);
     XASSERT_EQ(len, 1);
+    XASSERT_EQ(desc->fmt_count, 1);
+
+    fmt = desc->fmts;
+    XASSERT_STREQ(fmt->name, "counter");
+    XASSERT_STREQ(fmt->desc, "current count");
+    err = hound_get_unit_str(fmt->unit, &unit_str);
+    XASSERT_OK(err);
+    XASSERT_STREQ(unit_str, "none");
+    XASSERT_EQ(fmt->offset, 0);
+    XASSERT_EQ(fmt->len, sizeof(cb_ctx.count));
+    XASSERT_EQ(fmt->type, HOUND_UINT64);
+
     cb_ctx.dev_id = desc->dev_id;
 
     hound_free_datadesc(desc);

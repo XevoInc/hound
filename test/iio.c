@@ -117,7 +117,7 @@ int main(int argc, const char **argv)
         exit(EXIT_FAILURE);
     }
 
-    err = hound_register_iio_driver(&init);
+    err = hound_register_iio_driver(NULL, &init);
     XASSERT_OK(err);
 
     err = hound_get_datadesc(&desc, &len);
