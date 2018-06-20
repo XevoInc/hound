@@ -125,6 +125,15 @@ void *drv_alloc(size_t bytes);
 void *drv_realloc(void *p, size_t bytes);
 
 /**
+ * Driver version of strdup.
+ *
+ * @param s a string to duplicate
+ *
+ * @return a new, duplicated string, or NULL if the duplication failed.
+ */
+char *drv_strdup(const char *s);
+
+/**
  * Free a pointer allocated by drv_alloc.
  *
  * @param p a pointer to free

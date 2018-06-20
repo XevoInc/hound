@@ -10,6 +10,7 @@
 #include <hound/hound.h>
 #include <hound_private/driver.h>
 #include <hound_private/error.h>
+#include <hound_private/driver/util.h>
 #include <hound_private/util.h>
 #include <pthread.h>
 #include <string.h>
@@ -311,7 +312,7 @@ hound_err parse(FILE *file, size_t *count_out, struct hound_data_fmt **fmt_out)
                                 fmt = &fmt_list[fmt_count];
                                 ++fmt_count;
 
-                                fmt->name = strdup(val);
+                                fmt->name = drv_strdup(val);
                                 if (fmt->name == NULL) {
                                     err = HOUND_OOM;
                                     break;
@@ -329,7 +330,7 @@ hound_err parse(FILE *file, size_t *count_out, struct hound_data_fmt **fmt_out)
 
                         XASSERT_NOT_NULL(fmt);
 
-                        fmt->desc = strdup(val);
+                        fmt->desc = drv_strdup(val);
                         if (fmt->desc == NULL) {
                             err = HOUND_OOM;
                             done = true;
@@ -351,7 +352,7 @@ hound_err parse(FILE *file, size_t *count_out, struct hound_data_fmt **fmt_out)
                         }
 
                         /* This unit is new. */
-                        unit_str = strdup(val);
+                        unit_str = drv_strdup(val);
                         if (unit_str == NULL) {
                             err = HOUND_OOM;
                             done = true;

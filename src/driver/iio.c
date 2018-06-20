@@ -13,6 +13,7 @@
 #include <hound/driver/iio.h>
 #include <hound_private/api.h>
 #include <hound_private/driver.h>
+#include <hound_private/driver/util.h>
 #include <hound_private/error.h>
 #include <hound_private/util.h>
 #include <fcntl.h>
@@ -527,7 +528,7 @@ hound_err populate_desc(
 {
 
     desc->data_id = data_id;
-    desc->name = strdup(dev_name);
+    desc->name = drv_strdup(dev_name);
     if (desc->name == NULL) {
         return HOUND_OOM;
     }
@@ -647,7 +648,7 @@ hound_err iio_init(void *data)
     err = snprintf(path, ARRAYLEN(path), "%s/%s", IIO_TOPDIR, dev_dir);
     XASSERT_GT(err, 0);
 
-    ctx->dev_dir = strdup(path);
+    ctx->dev_dir = drv_strdup(path);
     if (ctx->dev_dir == NULL) {
         goto error_dev_dir;
     }

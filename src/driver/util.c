@@ -18,6 +18,12 @@ void *drv_realloc(void *p, size_t bytes)
 }
 
 PUBLIC_API
+char *drv_strdup(const char *s)
+{
+    return strdup(s);
+}
+
+PUBLIC_API
 void drv_free(void *p)
 {
     free(p);
