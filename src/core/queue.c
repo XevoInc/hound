@@ -155,6 +155,7 @@ void queue_push(
 {
     size_t back;
     hound_err err;
+    struct record_info *tmp;
 
     XASSERT_NOT_NULL(queue);
     XASSERT_NOT_NULL(rec);
@@ -163,14 +164,19 @@ void queue_push(
     back = (queue->front + queue->len) % queue->max_len;
     if (queue->len < queue->max_len) {
         ++queue->len;
+        tmp = NULL;
     }
     else {
-        free_record_info(queue->data[back]);
+        tmp = queue->data[back];
     }
     queue->data[back] = rec;
     err = pthread_cond_signal(&queue->data_cond);
     XASSERT_EQ(err, 0);
     pthread_mutex_unlock(&queue->mutex);
+
+    if (tmp != NULL) {
+        free_record_info(tmp);
+    }
 }
 
 void queue_pop_records_sync(
