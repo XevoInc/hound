@@ -167,6 +167,11 @@ void queue_push(
         tmp = NULL;
     }
     else {
+        /*
+         * Overflow. Increment front so it points to the oldest entry instead of
+         * the one we just inserted.
+         */
+        queue->front = (queue->front + 1) % queue->max_len;
         tmp = queue->data[back];
     }
     queue->data[back] = rec;
