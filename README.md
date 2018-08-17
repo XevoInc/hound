@@ -16,6 +16,12 @@ issues, like queueing samples, minimizing latency, etc.
 
 - ninja: `pip3 install ninja`
 
+- libgps: `sudo apt install libgps-dev`
+
+- libYAML: `sudo apt install libyaml-dev`
+
+- xlib: compile from source: https://github.com/XevoInc/xlib
+
 - (optional, for developers) `clang-tidy`. This is used for static analysis and
   is thus a build but not runtime requirement.
 
