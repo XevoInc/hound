@@ -87,10 +87,8 @@ typedef uint_fast8_t hound_period_count;
 typedef uint_fast64_t hound_data_period;
 
 typedef enum {
-    HOUND_SIGNED_FLOAT,
-    HOUND_UNSIGNED_FLOAT,
-    HOUND_SIGNED_DOUBLE,
-    HOUND_UNSIGNED_DOUBLE,
+    HOUND_FLOAT,
+    HOUND_DOUBLE,
     HOUND_INT8,
     HOUND_UINT8,
     HOUND_INT16,

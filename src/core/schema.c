@@ -149,17 +149,11 @@ parse_key find_type(const char *val)
     else if (strcmp(val, "uint64") == 0) {
         return HOUND_UINT64;
     }
-    else if (strcmp(val, "signed float") == 0) {
-        return HOUND_SIGNED_FLOAT;
+    else if (strcmp(val, "float") == 0) {
+        return HOUND_FLOAT;
     }
-    else if (strcmp(val, "unsigned float") == 0) {
-        return HOUND_UNSIGNED_FLOAT;
-    }
-    else if (strcmp(val, "signed double") == 0) {
-        return HOUND_SIGNED_DOUBLE;
-    }
-    else if (strcmp(val, "unsigned double") == 0) {
-        return HOUND_UNSIGNED_DOUBLE;
+    else if (strcmp(val, "double") == 0) {
+        return HOUND_DOUBLE;
     }
     else if (strcmp(val, "bytes") == 0) {
         return HOUND_BYTES;

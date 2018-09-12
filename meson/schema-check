@@ -2,6 +2,12 @@
 
 set -uo pipefail
 
+# Check for sschema, needed for schema checking.
+python3 -c "import sschema"
+if [[ $# != 0 ]]; then
+    echo 'Cannot import python module sschema. Please run "pip3 install sschema"' >&2
+fi
+
 SCHEMA_FILE="$MESON_SOURCE_ROOT/schema/meta/schema.yaml"
 for datafile in "$MESON_SOURCE_ROOT"/schema/deploy/*; do
     if [[ ! -f $datafile ]]; then

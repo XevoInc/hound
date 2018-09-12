@@ -2,78 +2,78 @@
 time-uncertainty:
     name: time uncertainty
     unit: s
-    type: signed double
+    type: double
     offset: 0
     len: 8
 latitude:
     name: latitude
     unit: degree
-    type: signed double
+    type: double
     offset: 8
     len: 8
 latitude-uncertainty:
     name: latitude uncertainty
     unit: m
-    type: signed double
+    type: double
     offset: 16
     len: 8
 longitude:
     name: longitude
     unit: degree
-    type: signed double
+    type: double
     offset: 24
     len: 8
 longitude-uncertainty:
     name: longitude uncertainty
     unit: m
-    type: signed double
+    type: double
     offset: 32
     len: 8
 altitude:
     name: altitude
     unit: m
-    type: signed double
+    type: double
     offset: 40
     len: 8
 altitude-uncertainty:
     name: longitude uncertainty
     unit: m
-    type: signed double
+    type: double
     offset: 48
     len: 8
 track:
     name: course relative to true north
     unit: degree
-    type: signed double
+    type: double
     offset: 56
     len: 8
 track-uncertainty:
     name: longitude uncertainty
     unit: m
-    type: signed double
+    type: double
     offset: 64
     len: 8
 speed:
     name: speed over ground
     unit: m/s
-    type: signed double
+    type: double
     offset: 72
     len: 8
 speed-uncertainty:
     name: speed over ground
     unit: m/s
-    type: signed double
+    type: double
     offset: 80
     len: 8
 climb:
     name: vertical speed
     unit: m/s
-    type: signed double
+    type: double
     offset: 88
     len: 8
 climb-uncertainty:
     name: vertical speed
     unit: m/s
-    type: signed double
+    type: double
     offset: 96
     len: 8

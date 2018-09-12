@@ -60,7 +60,7 @@ def main():
     handler = make_default_handler()
     resolver = make_resolver(schema, [handler])
     format_checker = make_format_checker([contiguous_indices])
-    errors = list(jsonschema.Draft6Validator(
+    errors = list(jsonschema.Draft4Validator(
                       schema,
                       format_checker=format_checker,
                       resolver=resolver).iter_errors(data))
