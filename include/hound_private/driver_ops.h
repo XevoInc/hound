@@ -71,7 +71,7 @@ struct driver {
 #define DEFINE_DRV_OP(name, prototype, args) \
     _DEFINE_DRV_OP(name, TOKENIZE(const struct driver *drv, prototype), TOKENIZE(args))
 
-#define DEFINE_DRV_OP_VOID(name) _DEFINE_DRV_OP(name, struct driver *drv,)
+#define DEFINE_DRV_OP_VOID(name) _DEFINE_DRV_OP(name, const struct driver *drv,)
 
 DEFINE_DRV_OP(init, void *data, data)
 DEFINE_DRV_OP_VOID(destroy)
