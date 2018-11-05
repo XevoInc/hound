@@ -8,7 +8,7 @@ project('hound', 'c',
         'warning_level=3',
         'werror=true'])
 
-cflags = ['-Wshadow', '-fvisibility=hidden']
+cflags = ['-Wshadow', '-fvisibility=internal']
 add_project_arguments(cflags, language: 'c')
 
 pkg = import('pkgconfig')
