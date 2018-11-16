@@ -18,7 +18,6 @@ void log_destroy(void);
 
 void log_msg(int priority, const char *fmt, ...);
 void log_vmsg(int priority, const char *fmt, va_list args);
-void log_assert_msg(const char *msg);
 
 /*
  * Sadly, we have two versions of log_err because having empty __VA_ARGS__ in a

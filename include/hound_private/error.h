@@ -14,8 +14,6 @@
 
 const char *error_strerror(hound_err err);
 
-XASSERT_DEFINE_ASSERTS(log_assert_msg)
-
 #define XASSERT_ERRCODE(x, y) _XASSERT_ERRCODE(x, y, hound_strerror)
 #define XASSERT_OK(err) XASSERT_ERRCODE(err, HOUND_OK)
 
