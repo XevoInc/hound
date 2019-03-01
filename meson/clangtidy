@@ -1,0 +1,5 @@
+#!/bin/sh
+
+cd "$MESON_SOURCE_ROOT"
+exec clang-tidy $(find src -name '*.c') \
+  -- -std=c99 -Iinclude

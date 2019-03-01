@@ -1,0 +1,4 @@
+#!/bin/sh
+
+cd $MESON_BUILD_ROOT
+doxygen ../Doxyfile

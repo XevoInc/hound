@@ -1,0 +1,4 @@
+#!/bin/sh
+
+cd "$MESON_SOURCE_ROOT"
+exec find src -name '*.c' | xargs clang-check -p build -analyze

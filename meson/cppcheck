@@ -1,0 +1,9 @@
+#!/bin/sh
+
+cd "$MESON_SOURCE_ROOT"
+exec cppcheck \
+  --quiet \
+  --std=c99 \
+  --template '{file}({line}): {severity} ({id}): {message}' \
+  -I include \
+  src
