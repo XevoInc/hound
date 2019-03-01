@@ -2,7 +2,7 @@
  * @file      schema.c
  * @brief     Schema parser implementation.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2018 Xevo Inc. All Rights Reserved.
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
 #define _POSIX_C_SOURCE 200809L

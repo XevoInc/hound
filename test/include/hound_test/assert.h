@@ -2,7 +2,7 @@
  * @file      assert.h
  * @brief     Test assert code.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
 #ifndef HOUND_TEST_ASSERT_H_

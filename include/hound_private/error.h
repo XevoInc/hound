@@ -2,7 +2,7 @@
  * @file      error.h
  * @brief     Private hound error code.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
 #ifndef HOUND_PRIVATE_ERROR_H_

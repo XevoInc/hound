@@ -2,7 +2,7 @@
  * @file      driver.h
  * @brief     Private driver functionality shared by multiple compilation units.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
 #ifndef HOUND_PRIVATE_DRIVER_H_

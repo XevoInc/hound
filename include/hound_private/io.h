@@ -2,7 +2,7 @@
  * @file      io.h
  * @brief     I/O subsystem header.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  *
  */
 

@@ -3,7 +3,7 @@
  * @brief     Private logging header, for functions that should not be publicly
  *            exported.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  *
  */
 

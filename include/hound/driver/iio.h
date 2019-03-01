@@ -2,7 +2,7 @@
  * @file      iio.h
  * @brief     Public Industrial I/O driver header.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2018 Xevo Inc. All Rights Reserved.
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
 #ifndef HOUND_DRIVER_IIO_H_

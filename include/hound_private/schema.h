@@ -2,7 +2,7 @@
  * @file      schema.h
  * @brief     Schema subsystem header.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2018 Xevo Inc. All Rights Reserved.
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  *
  */
 

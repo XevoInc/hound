@@ -6,7 +6,7 @@
  *            empty. Thus it is intended for use in a producer-consumer
  *            scenario.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
 #include <hound_private/error.h>

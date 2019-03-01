@@ -2,7 +2,7 @@
  * @file      hound.c
  * @brief     Hound public implementation, gluing together all subsystems.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
 #include <hound/hound.h>

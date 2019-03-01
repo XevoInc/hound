@@ -4,7 +4,7 @@
  *            driver contexts. All driver operations should be called through
  *            these wrappers rather than directly.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2018 Xevo Inc. All Rights Reserved.
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
 #include <hound_private/driver.h>

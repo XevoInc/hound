@@ -2,7 +2,7 @@
  * @file      gps.h
  * @brief     Public GPS driver header.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2018 Xevo Inc. All Rights Reserved.
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
 #ifndef HOUND_DRIVER_GPS_H_

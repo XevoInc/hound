@@ -4,7 +4,7 @@
  *            required driver functions but does not actually produce data, and
  *            is used for unit-testing the driver core.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
 #include <hound/hound.h>

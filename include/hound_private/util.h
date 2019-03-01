@@ -2,8 +2,7 @@
  * @file      util.h
  * @brief     Utility functions.
  * @author    Martin Kelly <mkelly@xevo.com>
- * @copyright Copyright (C) 2017 Xevo Inc. All Rights Reserved.
- *
+ * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
 #ifndef HOUND_PRIVATE_UTIL_H_
