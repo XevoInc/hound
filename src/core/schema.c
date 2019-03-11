@@ -232,6 +232,7 @@ hound_err parse(FILE *file, size_t *count_out, struct hound_data_fmt **fmt_out)
     state.key = KEY_NONE;
     done = false;
     fmt_count = 0;
+    fmt = NULL;
     next_unit_id = 0;
     err = HOUND_OK;
     pthread_mutex_lock(&s_unit_map_lock);
