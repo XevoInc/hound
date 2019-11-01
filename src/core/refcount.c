@@ -6,8 +6,8 @@
  */
 
 #include <hound/hound.h>
-#include <hound_private/error.h>
-#include <hound_private/refcount.h>
+#include <hound-private/error.h>
+#include <hound-private/refcount.h>
 #include <stdatomic.h>
 
 void atomic_ref_init(atomic_refcount_val *count, refcount_val val)

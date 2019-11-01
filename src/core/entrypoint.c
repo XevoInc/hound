@@ -5,10 +5,10 @@
  * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
-#include <hound_private/driver.h>
-#include <hound_private/io.h>
-#include <hound_private/log.h>
-#include <hound_private/schema.h>
+#include <hound-private/driver.h>
+#include <hound-private/io.h>
+#include <hound-private/log.h>
+#include <hound-private/schema.h>
 
 __attribute__((constructor))
 static void lib_init(void)

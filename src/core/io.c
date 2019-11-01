@@ -7,13 +7,13 @@
 
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
-#include <hound_private/driver.h>
-#include <hound_private/driver_ops.h>
-#include <hound_private/error.h>
-#include <hound_private/log.h>
-#include <hound_private/queue.h>
-#include <hound_private/refcount.h>
-#include <hound_private/util.h>
+#include <hound-private/driver.h>
+#include <hound-private/driver_ops.h>
+#include <hound-private/error.h>
+#include <hound-private/log.h>
+#include <hound-private/queue.h>
+#include <hound-private/refcount.h>
+#include <hound-private/util.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <pthread.h>

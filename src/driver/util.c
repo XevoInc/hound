@@ -1,8 +1,8 @@
 #define _POSIX_C_SOURCE 200809L
-#include <hound_private/api.h>
-#include <hound_private/driver_ops.h>
-#include <hound_private/driver/util.h>
-#include <hound_private/error.h>
+#include <hound-private/api.h>
+#include <hound-private/driver_ops.h>
+#include <hound-private/driver/util.h>
+#include <hound-private/error.h>
 #include <string.h>
 
 PUBLIC_API

@@ -9,7 +9,7 @@
 #define HOUND_PRIVATE_ERROR_H_
 
 #include <hound/hound.h>
-#include <hound_private/log.h>
+#include <hound-private/log.h>
 #include <xlib/xassert.h>
 
 const char *error_strerror(hound_err err);

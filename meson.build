@@ -26,7 +26,7 @@ hound_confdir = join_paths(
 hound_schemadir = join_paths(hound_confdir, 'schema')
 conf.set_quoted('CONFIG_HOUND_SCHEMADIR', hound_schemadir)
 configure_file(
-    input: 'include/hound_private/config.h.in',
+    input: 'include/hound-private/config.h.in',
     output: 'config.h',
     configuration : conf)
 

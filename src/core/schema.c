@@ -8,10 +8,10 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <hound/hound.h>
-#include <hound_private/driver.h>
-#include <hound_private/error.h>
-#include <hound_private/driver/util.h>
-#include <hound_private/util.h>
+#include <hound-private/driver.h>
+#include <hound-private/error.h>
+#include <hound-private/driver/util.h>
+#include <hound-private/util.h>
 #include <pthread.h>
 #include <string.h>
 #include <xlib/xhash.h>

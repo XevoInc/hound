@@ -7,10 +7,10 @@
 
 #define _GNU_SOURCE
 #include <hound/hound.h>
-#include <hound_private/driver.h>
-#include <hound_private/error.h>
-#include <hound_private/log.h>
-#include <hound_private/util.h>
+#include <hound-private/driver.h>
+#include <hound-private/error.h>
+#include <hound-private/log.h>
+#include <hound-private/util.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <xlib/xhash.h>

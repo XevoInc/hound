@@ -6,8 +6,8 @@
  */
 
 #include <hound/hound.h>
-#include <hound_private/error.h>
-#include <hound_private/log.h>
+#include <hound-private/error.h>
+#include <hound-private/log.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>

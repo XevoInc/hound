@@ -9,9 +9,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <hound/hound.h>
-#include <hound_private/api.h>
-#include <hound_private/driver.h>
-#include <hound_private/driver/util.h>
+#include <hound-private/api.h>
+#include <hound-private/driver.h>
+#include <hound-private/driver/util.h>
 #include <hound_test/assert.h>
 #include <linux/limits.h>
 #include <string.h>

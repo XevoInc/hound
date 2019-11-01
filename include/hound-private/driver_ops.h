@@ -10,7 +10,7 @@
 #ifndef HOUND_PRIVATE_DRIVER_OPS_H_
 #define HOUND_PRIVATE_DRIVER_OPS_H_
 
-#include <hound_private/driver.h>
+#include <hound-private/driver.h>
 #include <pthread.h>
 #include <xlib/xvec.h>
 

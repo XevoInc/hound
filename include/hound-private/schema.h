@@ -10,8 +10,8 @@
 #define HOUND_PRIVATE_SCHEMA_H_
 
 #include <hound/hound.h>
-#include <hound_private/driver.h>
-#include <hound_private/queue.h>
+#include <hound-private/driver.h>
+#include <hound-private/queue.h>
 
 void schema_init(void);
 void schema_destroy(void);

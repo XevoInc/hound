@@ -10,11 +10,11 @@
 #include <errno.h>
 #include <hound/hound.h>
 #include <hound/driver/can.h>
-#include <hound_private/api.h>
-#include <hound_private/driver.h>
-#include <hound_private/driver/util.h>
-#include <hound_private/error.h>
-#include <hound_private/log.h>
+#include <hound-private/api.h>
+#include <hound-private/driver.h>
+#include <hound-private/driver/util.h>
+#include <hound-private/error.h>
+#include <hound-private/log.h>
 #include <linux/can.h>
 #include <linux/can/bcm.h>
 #include <linux/can/raw.h>

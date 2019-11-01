@@ -5,7 +5,7 @@
  * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
-#include <hound_private/util.h>
+#include <hound-private/util.h>
 
 size_t min(size_t a, size_t b)
 {

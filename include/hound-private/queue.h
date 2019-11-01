@@ -16,8 +16,8 @@
 struct queue;
 
 #include <hound/hound.h>
-#include <hound_private/driver.h>
-#include <hound_private/refcount.h>
+#include <hound-private/driver.h>
+#include <hound-private/refcount.h>
 
 struct record_info {
     atomic_refcount_val refcount;

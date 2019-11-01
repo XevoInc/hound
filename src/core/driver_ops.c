@@ -7,9 +7,9 @@
  * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
-#include <hound_private/driver.h>
-#include <hound_private/driver_ops.h>
-#include <hound_private/error.h>
+#include <hound-private/driver.h>
+#include <hound-private/driver_ops.h>
+#include <hound-private/error.h>
 #include <pthread.h>
 
 /**

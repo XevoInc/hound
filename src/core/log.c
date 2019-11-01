@@ -6,7 +6,7 @@
  */
 
 #define _DEFAULT_SOURCE
-#include <hound_private/log.h>
+#include <hound-private/log.h>
 #include <syslog.h>
 
 void log_msg(int priority, const char *fmt, ...)

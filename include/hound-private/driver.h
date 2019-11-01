@@ -9,7 +9,7 @@
 #define HOUND_PRIVATE_DRIVER_H_
 
 #include <hound/hound.h>
-#include <hound_private/queue.h>
+#include <hound-private/queue.h>
 #include <stdbool.h>
 
 /** Maximum number of records a driver can produce from a single parse call. */

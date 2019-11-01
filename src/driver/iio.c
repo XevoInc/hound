@@ -11,11 +11,11 @@
 #include <errno.h>
 #include <hound/hound.h>
 #include <hound/driver/iio.h>
-#include <hound_private/api.h>
-#include <hound_private/driver.h>
-#include <hound_private/driver/util.h>
-#include <hound_private/error.h>
-#include <hound_private/util.h>
+#include <hound-private/api.h>
+#include <hound-private/driver.h>
+#include <hound-private/driver/util.h>
+#include <hound-private/error.h>
+#include <hound-private/util.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <linux/limits.h>

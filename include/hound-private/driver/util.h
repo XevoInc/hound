@@ -9,7 +9,7 @@
 #define HOUND_PRIVATE_DRIVER_UTIL_H_
 
 #include <hound/hound.h>
-#include <hound_private/driver.h>
+#include <hound-private/driver.h>
 
 hound_err drv_deepcopy_desc(
     struct hound_datadesc *dest,

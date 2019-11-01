@@ -9,9 +9,9 @@
  * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
-#include <hound_private/error.h>
-#include <hound_private/queue.h>
-#include <hound_private/util.h>
+#include <hound-private/error.h>
+#include <hound-private/queue.h>
+#include <hound-private/util.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
