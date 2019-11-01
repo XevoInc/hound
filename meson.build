@@ -98,20 +98,25 @@ add_test_setup(
     timeout_multiplier: 100)
 # meson won't let us pass a directory to files(), so we use current_source_dir()
 # as a workaround.
-schema_dir = join_paths(
-                 meson.source_root(),
-                 meson.current_source_dir(),
-                 'test',
-                 'schema')
+prod_schema_dir = join_paths(
+    meson.source_root(),
+    meson.current_source_dir(),
+    'schema',
+    'deploy')
+test_schema_dir = join_paths(
+    meson.source_root(),
+    meson.current_source_dir(),
+    'test',
+    'schema')
 tests = [
-    ['nop', ['test/driver/nop.c', 'test/nop.c'], schema_dir ],
-    ['counter', ['test/driver/counter.c', 'test/counter.c'], schema_dir ],
+    ['nop', ['test/driver/nop.c', 'test/nop.c'], test_schema_dir],
+    ['counter', ['test/driver/counter.c', 'test/counter.c'], test_schema_dir],
     [
         'file',
         ['test/driver/file.c', 'test/file.c'],
-        [schema_dir, files('test/data/testfile')]
+        [test_schema_dir, files('test/data/testfile')]
     ],
-    ['can', ['test/can.c'], ['hound-vcan0'] ]
+    ['can', ['test/can.c'], ['hound-vcan0', prod_schema_dir]]
 ]
 foreach t : tests
     exe = executable(

@@ -10,6 +10,7 @@
 #include <hound/hound.h>
 #include <hound_test/assert.h>
 #include <linux/can.h>
+#include <linux/limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
@@ -131,16 +132,24 @@ int main(int argc, const char **argv)
 {
     hound_err err;
     struct hound_can_driver_init init;
+    const char *schema_base;
 
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s CAN-IFACE\n", argv[0]);
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s CAN-IFACE SCHEMA-BASE-PATH\n", argv[0]);
         exit(EXIT_FAILURE);
     }
+
     if (strnlen(argv[1], IFNAMSIZ) == IFNAMSIZ) {
         fprintf(stderr, "Device argument is longer than IFNAMSIZ\n");
         exit(EXIT_FAILURE);
     }
     strcpy(init.iface, argv[1]); /* NOLINT, string size already checked */
+
+    if (strnlen(argv[2], PATH_MAX) == PATH_MAX) {
+        fprintf(stderr, "Schema base path is longer than PATH_MAX\n");
+        exit(EXIT_FAILURE);
+    }
+    schema_base = argv[2];
 
     if (!can_iface_exists(init.iface)) {
         fprintf(
@@ -157,7 +166,7 @@ int main(int argc, const char **argv)
     /* Don't filter responses; we want to receive our own queries. */
     init.rx_can_id = 0;
 
-    err = hound_register_can_driver(NULL, &init);
+    err = hound_register_can_driver(schema_base, &init);
     XASSERT_OK(err);
 
     /* On-demand data. */
