@@ -8,7 +8,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <hound-private/driver.h>
-#include <hound-private/driver_ops.h>
+#include <hound-private/driver-ops.h>
 #include <hound-private/error.h>
 #include <hound-private/log.h>
 #include <hound-private/queue.h>

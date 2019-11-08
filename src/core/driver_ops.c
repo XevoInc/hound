@@ -8,7 +8,7 @@
  */
 
 #include <hound-private/driver.h>
-#include <hound-private/driver_ops.h>
+#include <hound-private/driver-ops.h>
 #include <hound-private/error.h>
 #include <pthread.h>
 
