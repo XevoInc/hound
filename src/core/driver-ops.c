@@ -1,5 +1,5 @@
 /**
- * @file      driver_ops.c
+ * @file      driver-ops.c
  * @brief     Wrappers for driver operations, to ensure safe/correct handling of
  *            driver contexts. All driver operations should be called through
  *            these wrappers rather than directly.

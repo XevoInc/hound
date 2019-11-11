@@ -52,7 +52,7 @@ install_subdir(
 src = [
     'src/core/ctx.c',
     'src/core/driver.c',
-    'src/core/driver_ops.c',
+    'src/core/driver-ops.c',
     'src/core/error.c',
     'src/core/entrypoint.c',
     'src/core/error.c',
