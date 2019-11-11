@@ -1,7 +1,9 @@
 ---
-nop:
-    name: no-op (no data)
-    unit: none
-    type: bytes
-    offset: 0
-    len: all
+id: 0x00000002
+name: nop
+data:
+    - name: no-op (no data)
+      unit: none
+      type: bytes
+      offset: 0
+      len: all

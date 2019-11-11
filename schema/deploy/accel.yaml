@@ -1,19 +1,16 @@
 ---
-x:
-    name: X axis acceleration
-    unit: m/s^2
-    type: double
-    offset: 0
-    len: 8
-y:
-    name: Y axis acceleration
-    unit: m/s^2
-    type: double
-    offset: 8
-    len: 8
-z:
-    name: Z axis acceleration
-    unit: m/s^2
-    type: double
-    offset: 16
-    len: 8
+id: "0x00000000"
+name: accelerometer
+data:
+    - name: X axis acceleration
+      unit: m/s^2
+      type: double
+      len: 8
+    - name: Y axis acceleration
+      unit: m/s^2
+      type: double
+      len: 8
+    - name: Z axis acceleration
+      unit: m/s^2
+      type: double
+      len: 8

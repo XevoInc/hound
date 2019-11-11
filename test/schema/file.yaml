@@ -1,7 +1,9 @@
 ---
-file:
-    name: file data
-    unit: none
-    type: bytes
-    offset: 0
-    len: all
+id: 0x00000001
+name: file
+data:
+    - name: file data
+      unit: none
+      type: bytes
+      offset: 0
+      len: all

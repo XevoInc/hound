@@ -1,7 +1,9 @@
 ---
-counter:
-    name: current count
-    unit: none
-    type: uint64
-    offset: 0
-    len: 8
+id: 0x00000000
+name: counter
+data:
+    - name: current count
+      unit: none
+      type: uint64
+      offset: 0
+      len: 8
