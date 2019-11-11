@@ -398,10 +398,10 @@ void io_remove_fd(int fd)
     RM_VEC_INDEX(s_ios.fds, index);
     RM_VEC_INDEX(s_ios.ctx, index);
 
+    io_resume_poll();
+
     xv_destroy(ctx->queues);
     free(ctx);
-
-    io_resume_poll();
 }
 
 hound_err io_add_queue(int fd, struct queue *queue)
