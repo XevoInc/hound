@@ -291,7 +291,7 @@ hound_err driver_register(
      * Finally, commit the driver into all the maps.
      */
     drv_path = strdup(path);
-    if (drv_path == NULL ) {
+    if (drv_path == NULL) {
         err = HOUND_OOM;
         goto error_alloc_drv_path;
     }
