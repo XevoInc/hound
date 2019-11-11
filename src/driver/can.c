@@ -165,7 +165,7 @@ hound_err can_device_name(char *device_name)
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
 
-    strcpy(device_name, "can-device");
+    strcpy(device_name, ctx->iface);
 
     return HOUND_OK;
 }

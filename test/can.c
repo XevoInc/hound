@@ -23,6 +23,7 @@ struct frame_ctx {
     size_t pos;
     size_t count;
     struct can_frame *frames;
+    char iface[HOUND_DEVICE_NAME_MAX];
 };
 
 /* These are chosen to look like common OBD II PIDs. */
@@ -44,12 +45,14 @@ static struct can_frame s_tx_frames[] = {
 static struct frame_ctx s_tx = {
     .pos = 0,
     .count = ARRAYLEN(s_tx_frames),
-    .frames = s_tx_frames
+    .frames = s_tx_frames,
 };
 
 void data_cb(const struct hound_record *record, void *data)
 {
     struct frame_ctx *ctx;
+    const char *dev_name;
+    hound_err err;
     uint8_t *p;
     int ret;
 
@@ -66,6 +69,10 @@ void data_cb(const struct hound_record *record, void *data)
         XASSERT_EQ(ret, 0);
         ctx->pos = (ctx->pos+1) % ctx->count;
     }
+
+    err = hound_get_dev_name(record->dev_id, &dev_name);
+    XASSERT_OK(err);
+    XASSERT_STREQ(dev_name, ctx->iface);
 }
 
 bool can_iface_exists(const char *iface)
@@ -143,6 +150,7 @@ int main(int argc, const char **argv)
         fprintf(stderr, "Device argument is longer than IFNAMSIZ\n");
         exit(EXIT_FAILURE);
     }
+    strcpy(s_tx.iface, argv[1]); /* NOLINT, string size already checked */
     strcpy(init.iface, argv[1]); /* NOLINT, string size already checked */
 
     if (strnlen(argv[2], PATH_MAX) == PATH_MAX) {
