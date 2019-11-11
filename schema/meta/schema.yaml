@@ -33,7 +33,7 @@ additionalProperties:
       description: The length of this entry
       oneOf:
         - type: integer
-          minimum: 0
+          minimum: 1
         - type: string
           const: all
 
