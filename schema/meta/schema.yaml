@@ -32,11 +32,9 @@ additionalProperties:
     len:
       description: The length of this entry
       oneOf:
-        -
-          type: integer
+        - type: integer
           minimum: 0
-        -
-          type: string
+        - type: string
           const: all
 
   required:
