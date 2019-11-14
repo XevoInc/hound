@@ -9,7 +9,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include <hound/hound.h>
-#include <hound_test/assert.h>
+#include <hound-test/assert.h>
 #include <linux/limits.h>
 #include <string.h>
 #include <valgrind.h>

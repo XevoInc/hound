@@ -12,7 +12,7 @@
 #include <hound-private/api.h>
 #include <hound-private/driver.h>
 #include <hound-private/driver/util.h>
-#include <hound_test/assert.h>
+#include <hound-test/assert.h>
 #include <linux/limits.h>
 #include <string.h>
 #include <unistd.h>

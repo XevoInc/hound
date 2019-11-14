@@ -8,7 +8,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <fcntl.h>
 #include <hound/hound.h>
-#include <hound_test/assert.h>
+#include <hound-test/assert.h>
 #include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>

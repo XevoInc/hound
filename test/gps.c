@@ -10,7 +10,7 @@
 #include <gps.h>
 #include <hound/driver/gps.h>
 #include <hound/hound.h>
-#include <hound_test/assert.h>
+#include <hound-test/assert.h>
 #include <signal.h>
 #include <string.h>
 

@@ -10,7 +10,7 @@
 #include <float.h>
 #include <hound/driver/iio.h>
 #include <hound/hound.h>
-#include <hound_test/assert.h>
+#include <hound-test/assert.h>
 #include <inttypes.h>
 #include <math.h>
 #include <signal.h>
