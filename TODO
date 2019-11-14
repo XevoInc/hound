@@ -1,4 +1,5 @@
 Things to do:
+- Allow drivers to be individually compiled in or not.
 - Document Hound design, including core, drivers, and schemas
 - IIO automated unit tests, using the kernel dummy IIO driver
 - GPS automated unit tests, automatically starting up gpsfake from the gpsd
@@ -6,7 +7,6 @@ Things to do:
 - IIO driver dynamically listing sysfs entries and doing string parsing to
   figure out possible channels (like iio_generic_buffer does), instead of
   hardcoding these.
-- Dynamically loadable drivers?
 - Optimize drv_alloc, since both record data and struct record_info are
   short-lived.
 - Audit logging to make it consistent throughout the code.
