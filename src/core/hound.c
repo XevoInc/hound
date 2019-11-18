@@ -20,12 +20,6 @@ hound_err hound_get_dev_name(hound_dev_id id, const char **name)
 }
 
 PUBLIC_API
-hound_err hound_get_unit_str(hound_unit unit, const char **unit_str)
-{
-    return schema_get_unit_str(unit, unit_str);
-}
-
-PUBLIC_API
 hound_err hound_get_datadesc(struct hound_datadesc **desc, size_t *len)
 {
     return driver_get_datadesc(desc, len);

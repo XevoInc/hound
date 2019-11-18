@@ -85,7 +85,6 @@ int main(int argc, const char **argv)
     struct cb_ctx cb_ctx;
     size_t total_bytes;
     size_t total_records;
-    const char *unit_str;
 
     if (argc != 2) {
         fprintf(stderr, "Usage: %s SCHEMA-BASE-PATH\n", argv[0]);
@@ -134,11 +133,9 @@ int main(int argc, const char **argv)
     fmt = desc->fmts;
     XASSERT_STREQ(fmt->name, "counter");
     XASSERT_STREQ(fmt->desc, "current count");
-    err = hound_get_unit_str(fmt->unit, &unit_str);
-    XASSERT_OK(err);
-    XASSERT_STREQ(unit_str, "none");
     XASSERT_EQ(fmt->offset, 0);
     XASSERT_EQ(fmt->len, sizeof(cb_ctx.count));
+    XASSERT_EQ(fmt->unit, HOUND_UNIT_NONE);
     XASSERT_EQ(fmt->type, HOUND_UINT64);
 
     cb_ctx.dev_id = desc->dev_id;

@@ -16,7 +16,6 @@
 void schema_init(void);
 void schema_destroy(void);
 
-hound_err schema_get_unit_str(hound_unit unit, const char **unit_str);
 hound_err schema_parse(
     const char *schema_base,
     const char *schema,

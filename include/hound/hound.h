@@ -42,8 +42,7 @@ typedef enum {
     HOUND_DRIVER_FAIL = -19,
     HOUND_INVALID_VAL = -20,
     HOUND_INTR = -21,
-    HOUND_DEV_DOES_NOT_EXIST = -22,
-    HOUND_UNKNOWN_UNIT = -23
+    HOUND_DEV_DOES_NOT_EXIST = -22
 } hound_err;
 
 /** Returns a human-readable error string. The string must not be modified or
@@ -86,6 +85,25 @@ typedef void (*hound_cb)(const struct hound_record *rec, void *cb_ctx);
 typedef uint_fast8_t hound_period_count;
 typedef uint_fast64_t hound_data_period;
 
+/*
+ * These are SI units as much as possible. Time is an exception, as specifying
+ * everything in seconds will result in floating point issues.
+ */
+typedef enum {
+    HOUND_UNIT_DEGREE,
+    HOUND_UNIT_KELVIN,
+    HOUND_UNIT_KG_PER_S,
+    HOUND_UNIT_METER,
+    HOUND_UNIT_METERS_PER_S,
+    HOUND_UNIT_METERS_PER_S_SQUARED,
+    HOUND_UNIT_NONE,
+    HOUND_UNIT_PASCAL,
+    HOUND_UNIT_PERCENT,
+    HOUND_UNIT_RAD,
+    HOUND_UNIT_RAD_PER_S,
+    HOUND_UNIT_NANOSECOND
+} hound_unit;
+
 typedef enum {
     HOUND_FLOAT,
     HOUND_DOUBLE,
@@ -99,8 +117,6 @@ typedef enum {
     HOUND_UINT64,
     HOUND_BYTES
 } hound_type;
-
-typedef uint_fast8_t hound_unit;
 
 struct hound_data_fmt {
     const char *name;
@@ -141,8 +157,6 @@ struct hound_rq {
 
 hound_err hound_get_datadesc(struct hound_datadesc **desc, size_t *len);
 void hound_free_datadesc(struct hound_datadesc *desc);
-
-hound_err hound_get_unit_str(hound_unit unit, const char **unit_str);
 
 /* Devices. */
 

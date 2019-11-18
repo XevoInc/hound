@@ -19,12 +19,6 @@
 
 #define MAX_FMT_ENTRIES 100
 
-XHASH_MAP_INIT_STR(UNIT_NAME_MAP, hound_unit)
-XHASH_MAP_INIT_INT8(UNIT_MAP, const char *)
-
-static pthread_mutex_t s_unit_map_lock = PTHREAD_MUTEX_INITIALIZER;
-static xhash_t(UNIT_MAP) *s_unit_map = NULL;
-
 typedef enum {
     MAP_NONE,
     MAP_ROOT,
@@ -44,44 +38,6 @@ struct parse_state {
     parse_map map;
     parse_key key;
 };
-
-void schema_init(void)
-{
-    s_unit_map = xh_init(UNIT_MAP);
-    XASSERT_NOT_NULL(s_unit_map);
-}
-
-void schema_destroy(void)
-{
-    const char *unit_str;
-
-    xh_foreach_value(s_unit_map, unit_str,
-        drv_free((void *) unit_str);
-    );
-    xh_destroy(UNIT_MAP, s_unit_map);
-}
-
-hound_err schema_get_unit_str(hound_unit unit, const char **unit_str)
-{
-    hound_err err;
-    xhiter_t iter;
-
-    NULL_CHECK(unit_str);
-
-    pthread_mutex_lock(&s_unit_map_lock);
-    iter = xh_get(UNIT_MAP, s_unit_map, unit);
-    if (iter == xh_end(s_unit_map)) {
-        err = HOUND_UNKNOWN_UNIT;
-        goto out;
-    }
-
-    err = HOUND_OK;
-    *unit_str = xh_val(s_unit_map, iter);
-
-out:
-    pthread_mutex_unlock(&s_unit_map_lock);
-    return err;
-}
 
 static
 void free_format_list(struct hound_data_fmt *fmt_list, size_t len)
@@ -119,6 +75,54 @@ int offset_cmp(const void *p1, const void *p2)
     }
     else {
         return 1;
+    }
+}
+
+static
+hound_unit find_unit(const char *val)
+{
+    if (strcmp(val, "degree") == 0) {
+        return HOUND_UNIT_DEGREE;
+    }
+    else if (strcmp(val, "K") == 0) {
+        return HOUND_UNIT_KELVIN;
+    }
+    else if (strcmp(val, "kg/s") == 0) {
+        return HOUND_UNIT_KG_PER_S;
+    }
+    else if (strcmp(val, "m") == 0) {
+        return HOUND_UNIT_METER;
+    }
+    else if (strcmp(val, "m/s") == 0) {
+        return HOUND_UNIT_METERS_PER_S;
+    }
+    else if (strcmp(val, "m/s^2") == 0) {
+        return HOUND_UNIT_METERS_PER_S_SQUARED;
+    }
+    else if (strcmp(val, "none") == 0) {
+        return HOUND_UNIT_NONE;
+    }
+    else if (strcmp(val, "Pa") == 0) {
+        return HOUND_UNIT_PASCAL;
+    }
+    else if (strcmp(val, "percent") == 0) {
+        return HOUND_UNIT_PERCENT;
+    }
+    else if (strcmp(val, "rad") == 0) {
+        return HOUND_UNIT_RAD;
+    }
+    else if (strcmp(val, "rad/s") == 0) {
+        return HOUND_UNIT_RAD_PER_S;
+    }
+    else if (strcmp(val, "ns") == 0) {
+        return HOUND_UNIT_NANOSECOND;
+    }
+    else {
+        /*
+         * An unknown type was encountered. Either the schema validator failed, or
+         * we need to add a new enum to hound_unit and to the cases list here.
+         */
+        XASSERT_ERROR;
     }
 }
 
@@ -161,7 +165,7 @@ hound_type find_type(const char *val)
     else {
         /*
          * An unknown type was encountered. Either the schema validator failed, or
-         * we need to add a new enum to hound_type and the cases list here.
+         * we need to add a new enum to hound_type and to the cases list here.
          */
         XASSERT_ERROR;
     }
@@ -197,20 +201,10 @@ hound_err parse(FILE *file, size_t *count_out, struct hound_data_fmt **fmt_out)
     struct hound_data_fmt *fmt;
     size_t fmt_count;
     struct hound_data_fmt *fmt_list;
-    xhiter_t iter;
-    hound_unit next_unit_id;
     int ret;
     yaml_parser_t parser;
     struct parse_state state;
-    hound_unit unit_id;
-    xhash_t(UNIT_NAME_MAP) *unit_name_map;
-    const char *unit_str;
     const char *val;
-
-    unit_name_map = xh_init(UNIT_NAME_MAP);
-    if (unit_name_map == NULL) {
-        return HOUND_OOM;
-    }
 
     ret = yaml_parser_initialize(&parser);
     if (ret == 0) {
@@ -233,9 +227,7 @@ hound_err parse(FILE *file, size_t *count_out, struct hound_data_fmt **fmt_out)
     done = false;
     fmt_count = 0;
     fmt = NULL;
-    next_unit_id = 0;
     err = HOUND_OK;
-    pthread_mutex_lock(&s_unit_map_lock);
     do {
         ret = yaml_parser_parse(&parser, &event);
         if (ret == 0) {
@@ -336,49 +328,7 @@ hound_err parse(FILE *file, size_t *count_out, struct hound_data_fmt **fmt_out)
                         XASSERT_EQ(state.map, MAP_FMT);
                         state.key = KEY_NONE;
 
-                        XASSERT_NOT_NULL(fmt);
-
-                        /* Check if we have seen this unit before. */
-                        iter = xh_get(UNIT_NAME_MAP, unit_name_map, val);
-                        if (iter != xh_end(unit_name_map)) {
-                            /* We've seen this unit before. */
-                            fmt->unit = xh_val(unit_name_map, iter);
-                            break;
-                        }
-
-                        /* This unit is new. */
-                        unit_str = drv_strdup(val);
-                        if (unit_str == NULL) {
-                            err = HOUND_OOM;
-                            done = true;
-                            break;
-                        }
-
-                        /* Get a new unit ID. */
-                        unit_id = next_unit_id;
-                        ++next_unit_id;
-
-                        /* Finally put the unit into our maps. */
-                        iter = xh_put(
-                            UNIT_MAP,
-                            s_unit_map,
-                            unit_id,
-                            &ret);
-                        if (ret == -1) {
-                            err = HOUND_OOM;
-                            done = true;
-                            break;
-                        }
-                        xh_val(s_unit_map, iter) = unit_str;
-
-                        iter = xh_put(UNIT_NAME_MAP, unit_name_map, unit_str, &ret);
-                        if (ret == -1) {
-                            err = HOUND_OOM;
-                            done = true;
-                            break;
-                        }
-
-                        fmt->unit = unit_id;
+                        fmt->unit = find_unit(val);
                         break;
 
                     case KEY_TYPE:
@@ -423,15 +373,7 @@ hound_err parse(FILE *file, size_t *count_out, struct hound_data_fmt **fmt_out)
     }
     else {
         free_format_list(fmt_list, fmt_count);
-        xh_clear(UNIT_MAP, s_unit_map);
-        xh_foreach_key(unit_name_map, unit_str,
-            drv_free((void *) unit_str);
-        );
     }
-
-    pthread_mutex_unlock(&s_unit_map_lock);
-
-    xh_destroy(UNIT_NAME_MAP, unit_name_map);
 
     *count_out = fmt_count;
     *fmt_out = fmt_list;

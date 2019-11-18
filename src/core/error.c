@@ -67,8 +67,6 @@ const char *error_strerror(hound_err err)
             return "operation was interrupted";
         case HOUND_DEV_DOES_NOT_EXIST:
             return "the given device ID does not exist";
-        case HOUND_UNKNOWN_UNIT:
-            return "the given unit ID does not exist";
     }
 
     /*
