@@ -41,7 +41,7 @@ struct chan_desc {
 };
 
 struct device_entry {
-    enum hound_datatype id;
+    hound_data_id id;
     size_t num_channels;
     const struct chan_desc *channels;
     const char *freqs_file;
@@ -50,7 +50,7 @@ struct device_entry {
 };
 
 struct device_parse_entry {
-    enum hound_datatype id;
+    hound_data_id id;
     size_t num_channels;
     size_t data_size;
     struct chan_parse_desc *channels;
@@ -63,21 +63,21 @@ struct device_parse_entry {
 
 static const struct chan_desc s_accel_chan[] = {
     {
-        .id = HOUND_DEVICE_ACCELEROMETER,
+        .id = HOUND_DATA_ACCEL,
         .scale_file = "in_accel_scale",
         .type_file = "in_accel_x_type",
         .index_file = "in_accel_x_index",
         .enable_file = "in_accel_x_en"
     },
     {
-        .id = HOUND_DEVICE_ACCELEROMETER,
+        .id = HOUND_DATA_ACCEL,
         .scale_file = "in_accel_scale",
         .type_file = "in_accel_y_type",
         .index_file = "in_accel_y_index",
         .enable_file = "in_accel_y_en"
     },
     {
-        .id = HOUND_DEVICE_ACCELEROMETER,
+        .id = HOUND_DATA_ACCEL,
         .scale_file = "in_accel_scale",
         .type_file = "in_accel_z_type",
         .index_file = "in_accel_z_index",
@@ -87,21 +87,21 @@ static const struct chan_desc s_accel_chan[] = {
 
 static const struct chan_desc s_gyro_chan[] = {
     {
-        .id = HOUND_DEVICE_GYROSCOPE,
+        .id = HOUND_DATA_GYRO,
         .scale_file = "in_anglvel_scale",
         .type_file = "in_anglvel_x_type",
         .index_file = "in_anglvel_x_index",
         .enable_file = "in_anglvel_x_en"
     },
     {
-        .id = HOUND_DEVICE_GYROSCOPE,
+        .id = HOUND_DATA_GYRO,
         .scale_file = "in_anglvel_scale",
         .type_file = "in_anglvel_y_type",
         .index_file = "in_anglvel_y_index",
         .enable_file = "in_anglvel_y_en"
     },
     {
-        .id = HOUND_DEVICE_GYROSCOPE,
+        .id = HOUND_DATA_GYRO,
         .scale_file = "in_anglvel_scale",
         .type_file = "in_anglvel_z_type",
         .index_file = "in_anglvel_z_index",
@@ -112,7 +112,7 @@ static const struct chan_desc s_gyro_chan[] = {
 /** Static map from data type to channel descriptors. */
 static const struct device_entry s_channels[] = {
     {
-        .id = HOUND_DEVICE_ACCELEROMETER,
+        .id = HOUND_DATA_ACCEL,
         .num_channels = 3,
         .channels = s_accel_chan,
         .freqs_file = "in_accel_sampling_frequency",
@@ -120,7 +120,7 @@ static const struct device_entry s_channels[] = {
         .schema = "accel.yaml"
     },
     {
-        .id = HOUND_DEVICE_GYROSCOPE,
+        .id = HOUND_DATA_GYRO,
         .num_channels = 3,
         .channels = s_gyro_chan,
         .freqs_file = "in_anglvel_sampling_frequency",
@@ -129,9 +129,11 @@ static const struct device_entry s_channels[] = {
     }
 };
 
+#define DESC_COUNT_MAX ARRAYLEN(s_channels)
+
 static struct chan_desc s_timestamp_chan = {
     /* Does not really have an ID, so set it to a bogus value. */
-    .id = UINT64_MAX,
+    .id = UINT32_MAX,
     .scale_file = NULL,
     .type_file = "in_timestamp_type",
     .index_file = "in_timestamp_index",
@@ -800,13 +802,13 @@ hound_err iio_datadesc(
      * Preallocate more data than we probably need. We will realloc it once
      * we've scanned the system and know the correct size.
      */
-    desc = malloc(HOUND_DEVICE_MAX*sizeof(*desc));
+    desc = malloc(DESC_COUNT_MAX * sizeof(*desc));
     if (desc == NULL) {
         err = HOUND_OOM;
         goto out;
     }
 
-    *schemas = malloc(HOUND_DEVICE_MAX*sizeof(**schemas));
+    *schemas = malloc(DESC_COUNT_MAX * sizeof(**schemas));
     if (*schemas == NULL) {
         err = HOUND_OOM;
         goto error_desc;
@@ -843,9 +845,6 @@ hound_err iio_datadesc(
         }
         (*schemas)[desc_count] = entry->schema;
         ++desc_count;
-        if (desc_count == HOUND_DEVICE_MAX) {
-            goto error_desc;
-        }
     }
 
     if (desc_count == 0) {
@@ -900,7 +899,7 @@ hound_err iio_datadesc(
     goto out;
 
 error_alloc_avail_periods:
-    for (i = i-1; i < desc_count; --i) {
+    for (--i; i < desc_count; --i) {
         free((hound_data_period *) desc[i].avail_periods);
     }
 error_parse_avail_periods:
@@ -1352,10 +1351,10 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
     struct iio_ctx *ctx;
     const struct device_entry *entry;
     hound_err err;
+    bool found_id;
     hound_data_period hz;
     size_t i;
     hound_data_id id;
-    uint8_t ids[HOUND_DEVICE_MAX];
     size_t j;
     size_t entry_index;
     size_t num_channels;
@@ -1468,29 +1467,6 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
         goto out_error;
     }
 
-    /* Make sure the channel indices for a given data type are contiguous. */
-    id = HOUND_DEVICE_MAX;
-    memset(ids, 0, sizeof(ids));
-    for (i = 0; i < num_channels; ++i) {
-        chan = sort_entries[i].chan;
-        if (chan == &s_timestamp_chan) {
-            continue;
-        }
-
-        if (chan->id != id) {
-            /*
-             * Found a different ID. If we've seen it before, it's not
-             * contiguous.
-             */
-            if (ids[chan->id] == 1) {
-                err = HOUND_DRIVER_UNSUPPORTED;
-                goto error_chan_id;
-            }
-            ids[chan->id] = 1;
-            id = chan->id;
-        }
-    }
-
     /*
      * Create the device parse entries. Note that timestamp doesn't get an
      * entry, as it is special-cased, since we produce one timestamp for each
@@ -1509,7 +1485,7 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
     }
 
     /* Enable the requested channels. */
-    id = HOUND_DEVICE_MAX;
+    found_id = false;
     entry_index = 0;
     for (i = 0; i < num_channels-1; ++i) {
         sort_entry = &sort_entries[i];
@@ -1520,8 +1496,9 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
          * timestamp doesn't get an entry, as it's parsed differently than the
          * other channels.
          */
-        if (chan->id != id) {
+        if (!found_id || chan->id != id) {
             id = chan->id;
+            found_id = true;
             chan_num = 0;
             parse_entry = &ctx->entries[entry_index];
             for (j = i+1; j < num_channels; ++j) {
@@ -1592,7 +1569,6 @@ error_chan_parse:
     }
     free(ctx->entries);
 error_malloc_entries:
-error_chan_id:
 out_success:
     free(sort_entries);
 out_error:

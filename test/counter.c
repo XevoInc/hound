@@ -10,6 +10,7 @@
 
 #include <hound/hound.h>
 #include <hound-test/assert.h>
+#include <hound-test/id.h>
 #include <linux/limits.h>
 #include <string.h>
 #include <valgrind.h>
@@ -76,7 +77,7 @@ int main(int argc, const char **argv)
     size_t count_bytes;
     size_t count_records;
     struct hound_data_rq data_rq =
-        { .id = HOUND_DEVICE_GYROSCOPE, .period_ns = 0 };
+        { .id = HOUND_DATA_COUNTER, .period_ns = 0 };
     const struct hound_data_fmt *fmt;
     size_t len;
     size_t records_read;

@@ -32,7 +32,7 @@ static_assert(
 static hound_data_period s_avail_periods = NSEC_PER_SEC;
 static struct hound_datadesc s_datadesc = {
     .name = "gps-data",
-    .data_id = HOUND_DEVICE_GPS,
+    .data_id = HOUND_DATA_GPS,
     .period_count = 1,
     .avail_periods = &s_avail_periods
 };
@@ -276,7 +276,7 @@ hound_err gps_parse(
     populate_gps_data((struct gps_data *) record->data, &ctx->gps.fix);
     record->size = sizeof(ctx->gps.fix);
 
-    record->data_id = HOUND_DEVICE_GPS;
+    record->data_id = HOUND_DATA_GPS;
     unix_to_timespec(ctx->gps.fix.time, &record->timestamp);
 
     *record_count = 1;
@@ -290,7 +290,7 @@ hound_err gps_next(hound_data_id id)
 {
     const struct gps_ctx *ctx;
 
-    XASSERT_EQ(id, HOUND_DEVICE_CAN);
+    XASSERT_EQ(id, HOUND_DATA_CAN);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);

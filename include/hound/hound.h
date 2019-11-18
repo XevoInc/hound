@@ -42,7 +42,9 @@ typedef enum {
     HOUND_DRIVER_FAIL = -19,
     HOUND_INVALID_VAL = -20,
     HOUND_INTR = -21,
-    HOUND_DEV_DOES_NOT_EXIST = -22
+    HOUND_DEV_DOES_NOT_EXIST = -22,
+    HOUND_TOO_MUCH_DATA_REQUESTED = -23,
+    HOUND_DUPLICATE_DATA_REQUESTED = -24
 } hound_err;
 
 /** Returns a human-readable error string. The string must not be modified or
@@ -51,26 +53,27 @@ typedef enum {
 const char *hound_strerror(hound_err err);
 
 /*
- * Current list of supported datatypes. IIO supports many more, which we can add
- * as needed when we have devices to test.
+ * Current list of datatypes for fixed-function devices (those that always
+ * generate the same types of data and thus can declare their data types in
+ * code).
  */
-enum hound_datatype {
-  HOUND_DEVICE_CAN = 0,
-  HOUND_DEVICE_GPS = 1,
-  HOUND_DEVICE_ACCELEROMETER = 2,
-  HOUND_DEVICE_GYROSCOPE = 3,
-  HOUND_DEVICE_MAX = 4
-};
+#define HOUND_DATA_CAN ((hound_data_id) 0x00000000)
+#define HOUND_DATA_GPS ((hound_data_id) 0x00000001)
+#define HOUND_DATA_ACCEL ((hound_data_id) 0x00000002)
+#define HOUND_DATA_GYRO ((hound_data_id) 0x00000003)
 
 /* Data. */
 
-typedef uint_least64_t hound_data_id;
+typedef uint_least32_t hound_data_id;
 typedef uint_least8_t hound_dev_id;
 typedef uint_least64_t hound_seqno;
 typedef uint_least32_t hound_record_size;
 
 /** Max length for a device name, including the null character. */
 #define HOUND_DEVICE_NAME_MAX 32
+
+/** Max number of data IDs requested per context. */
+#define HOUND_MAX_DATA_REQ 1000
 
 struct hound_record {
     hound_seqno seqno;

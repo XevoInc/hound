@@ -11,6 +11,7 @@
 #include <hound-private/driver.h>
 #include <hound-private/driver/util.h>
 #include <hound-test/assert.h>
+#include <hound-test/id.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -24,7 +25,7 @@
 #define UNUSED __attribute__((unused))
 
 static const char *s_device_name = "nop";
-static const hound_data_period s_accel_period[] = {
+static const hound_data_period s_nop1_period[] = {
     0,
     NSEC_PER_SEC,
     NSEC_PER_SEC/10,
@@ -32,19 +33,19 @@ static const hound_data_period s_accel_period[] = {
     NSEC_PER_SEC/1000,
     NSEC_PER_SEC/2000
 };
-static const hound_data_period s_gyro_period[] = { 0 };
+static const hound_data_period s_nop2_period[] = { 0 };
 static const struct hound_datadesc s_datadesc[] = {
     {
-        .data_id = HOUND_DEVICE_ACCELEROMETER,
-        .name = "super-extra-accelerometer",
-        .period_count = ARRAYLEN(s_accel_period),
-        .avail_periods = s_accel_period
+        .data_id = HOUND_DATA_NOP1,
+        .name = "nop1",
+        .period_count = ARRAYLEN(s_nop1_period),
+        .avail_periods = s_nop1_period
     },
     {
-        .data_id = HOUND_DEVICE_GYROSCOPE,
-        .name = "oneshot-gyroscope",
-        .period_count = ARRAYLEN(s_gyro_period),
-        .avail_periods = s_gyro_period
+        .data_id = HOUND_DATA_NOP2,
+        .name = "nop2",
+        .period_count = ARRAYLEN(s_nop2_period),
+        .avail_periods = s_nop2_period
     }
 };
 static int s_fd = FD_INVALID;

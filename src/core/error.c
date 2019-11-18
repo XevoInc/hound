@@ -67,6 +67,10 @@ const char *error_strerror(hound_err err)
             return "operation was interrupted";
         case HOUND_DEV_DOES_NOT_EXIST:
             return "the given device ID does not exist";
+        case HOUND_TOO_MUCH_DATA_REQUESTED:
+            return "the caller requested too many data IDs in a context";
+        case HOUND_DUPLICATE_DATA_REQUESTED:
+            return "the caller requested the same data ID twice in the same context";
     }
 
     /*

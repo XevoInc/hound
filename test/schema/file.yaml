@@ -1,6 +1,6 @@
 ---
 file:
-    name: file data
+    name: file
     unit: none
     type: bytes
     offset: 0

@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <hound/hound.h>
 #include <hound-test/assert.h>
+#include <hound-test/id.h>
 #include <limits.h>
 #include <linux/limits.h>
 #include <string.h>
@@ -57,9 +58,9 @@ void test_datadesc(void)
 
     err = hound_get_datadesc(&desc, &desc_len);
     XASSERT_OK(err);
-    err = strcmp(desc[0].name, "super-extra-accelerometer");
+    err = strcmp(desc[0].name, "nop1");
     XASSERT_EQ(err, 0);
-    err = strcmp(desc[1].name, "oneshot-gyroscope");
+    err = strcmp(desc[1].name, "nop2");
     XASSERT_EQ(err, 0);
 
     hound_free_datadesc(desc);
@@ -91,8 +92,8 @@ void test_alloc_ctx(struct hound_ctx **ctx)
 {
     hound_err err;
     struct hound_data_rq data_rq[] = {
-        { .id = HOUND_DEVICE_ACCELEROMETER, .period_ns = NSEC_PER_SEC/1000 },
-        { .id = HOUND_DEVICE_GYROSCOPE, .period_ns = 0 },
+        { .id = HOUND_DATA_NOP1, .period_ns = NSEC_PER_SEC/1000 },
+        { .id = HOUND_DATA_NOP2, .period_ns = 0 },
     };
     struct hound_data_rq bad_data_rq[ARRAYLEN(data_rq)];
 
@@ -106,7 +107,7 @@ void test_alloc_ctx(struct hound_ctx **ctx)
     ctx_test(ctx, 5, NULL, ARRAYLEN(data_rq), data_rq, HOUND_MISSING_CALLBACK);
 
     memcpy(bad_data_rq, data_rq, sizeof(data_rq));
-    bad_data_rq[0].id = HOUND_DEVICE_CAN;
+    bad_data_rq[0].id = HOUND_DATA_CAN;
     ctx_test(
         ctx,
         5,

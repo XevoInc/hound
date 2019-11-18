@@ -79,7 +79,7 @@ int main(int argc, const char **argv)
     const char *schema_base;
     struct text text;
     size_t total_count;
-    struct hound_data_rq data_rq = { .id = HOUND_DEVICE_ACCELEROMETER };
+    struct hound_data_rq data_rq = { .id = HOUND_DATA_ACCEL };
     struct hound_rq rq = {
         .queue_len = 100,
         .cb = data_cb,

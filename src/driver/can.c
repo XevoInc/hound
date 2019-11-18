@@ -37,7 +37,7 @@ struct bcm_payload {
 
 static struct hound_datadesc s_datadesc = {
     .name = "can-data",
-    .data_id = HOUND_DEVICE_CAN,
+    .data_id = HOUND_DATA_CAN,
     .period_count = 0,
     .avail_periods = NULL
 };
@@ -450,7 +450,7 @@ hound_err can_parse(
         record->timestamp.tv_sec = tv.tv_sec;
         record->timestamp.tv_nsec = tv.tv_usec * (NSEC_PER_SEC/US_PER_SEC);
 
-        record->data_id = HOUND_DEVICE_CAN;
+        record->data_id = HOUND_DATA_CAN;
 
         pos += sizeof(struct can_frame);
     }
@@ -474,7 +474,7 @@ hound_err can_next(hound_data_id id)
     size_t i;
     hound_err err;
 
-    XASSERT_EQ(id, HOUND_DEVICE_CAN);
+    XASSERT_EQ(id, HOUND_DATA_CAN);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);

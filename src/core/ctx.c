@@ -57,7 +57,6 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
     struct hound_data_rq_list *rq_list;
     hound_err err;
     size_t i;
-    uint8_t ids[HOUND_DEVICE_MAX];
     size_t j;
     size_t index;
     xhiter_t iter;
@@ -81,6 +80,11 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
         goto out;
     }
 
+    if (list->len > HOUND_MAX_DATA_REQ) {
+        err = HOUND_TOO_MUCH_DATA_REQUESTED;
+        goto out;
+    }
+
     NULL_CHECK(list->data);
 
     if (rq->cb == NULL) {
@@ -89,14 +93,15 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
     }
 
     /* Are the data IDs all valid? */
-    memset(ids, 0, sizeof(ids));
     for (i = 0; i < list->len; ++i) {
         data_rq = &list->data[i];
         /* We should not see the same data ID more than once in a request. */
-        if (ids[data_rq->id] != 0) {
-            goto out;
+        for (j = 0; j < i; ++j) {
+            if (data_rq->id == list->data[j].id) {
+                err = HOUND_DUPLICATE_DATA_REQUESTED;
+                goto out;
+            }
         }
-        ids[data_rq->id] = 1;
 
         err = driver_get(data_rq->id, &drv);
         if (err != HOUND_OK) {

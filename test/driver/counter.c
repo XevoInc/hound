@@ -12,6 +12,7 @@
 #include <hound-private/driver.h>
 #include <hound-private/driver/util.h>
 #include <hound-test/assert.h>
+#include <hound-test/id.h>
 #include <fcntl.h>
 #include <string.h>
 #include <time.h>
@@ -27,8 +28,8 @@
 static const char *s_device_name = "counter";
 static const hound_data_period s_period = 0;
 static const struct hound_datadesc s_datadesc = {
-    .data_id = HOUND_DEVICE_GYROSCOPE,
-    .name = "increasing-gyroscope-counter",
+    .data_id = HOUND_DATA_COUNTER,
+    .name = "current count",
     .period_count = 1,
     .avail_periods = &s_period
 };
