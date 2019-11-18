@@ -123,7 +123,7 @@ int offset_cmp(const void *p1, const void *p2)
 }
 
 static
-parse_key find_type(const char *val)
+hound_type find_type(const char *val)
 {
     if (strcmp(val, "int8") == 0) {
         return HOUND_INT8;
