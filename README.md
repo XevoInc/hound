@@ -27,8 +27,8 @@ issues, like queueing samples, minimizing latency, etc.
 
 - (optional, for developers) Python requirements, as documented in
   `dev-requirements.txt`. These are some build-time tools that are not required
-  for runtime. They are used for sanity-checking OBD II schemas. You can install
-  them from your distro or via `pip install -r requirements.txt`.
+  for runtime. They are used for sanity-checking schemas. You can install them
+  from your distro or via `pip install -r requirements.txt`.
 
 ### Custom requirements building
 
