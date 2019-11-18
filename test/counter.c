@@ -136,7 +136,7 @@ int main(int argc, const char **argv)
     XASSERT_EQ(fmt->offset, 0);
     XASSERT_EQ(fmt->len, sizeof(cb_ctx.count));
     XASSERT_EQ(fmt->unit, HOUND_UNIT_NONE);
-    XASSERT_EQ(fmt->type, HOUND_UINT64);
+    XASSERT_EQ(fmt->type, HOUND_TYPE_UINT64);
 
     cb_ctx.dev_id = desc->dev_id;
 

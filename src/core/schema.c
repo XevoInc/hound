@@ -130,37 +130,37 @@ static
 hound_type find_type(const char *val)
 {
     if (strcmp(val, "int8") == 0) {
-        return HOUND_INT8;
+        return HOUND_TYPE_INT8;
     }
     else if (strcmp(val, "uint8") == 0) {
-        return HOUND_UINT8;
+        return HOUND_TYPE_UINT8;
     }
     else if (strcmp(val, "int16") == 0) {
-        return HOUND_INT16;
+        return HOUND_TYPE_INT16;
     }
     else if (strcmp(val, "uint16") == 0) {
-        return HOUND_UINT16;
+        return HOUND_TYPE_UINT16;
     }
     else if (strcmp(val, "int32") == 0) {
-        return HOUND_INT32;
+        return HOUND_TYPE_INT32;
     }
     else if (strcmp(val, "uint32") == 0) {
-        return HOUND_UINT32;
+        return HOUND_TYPE_UINT32;
     }
     else if (strcmp(val, "int64") == 0) {
-        return HOUND_INT64;
+        return HOUND_TYPE_INT64;
     }
     else if (strcmp(val, "uint64") == 0) {
-        return HOUND_UINT64;
+        return HOUND_TYPE_UINT64;
     }
     else if (strcmp(val, "float") == 0) {
-        return HOUND_FLOAT;
+        return HOUND_TYPE_FLOAT;
     }
     else if (strcmp(val, "double") == 0) {
-        return HOUND_DOUBLE;
+        return HOUND_TYPE_DOUBLE;
     }
     else if (strcmp(val, "bytes") == 0) {
-        return HOUND_BYTES;
+        return HOUND_TYPE_BYTES;
     }
     else {
         /*

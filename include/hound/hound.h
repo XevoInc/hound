@@ -105,17 +105,17 @@ typedef enum {
 } hound_unit;
 
 typedef enum {
-    HOUND_FLOAT,
-    HOUND_DOUBLE,
-    HOUND_INT8,
-    HOUND_UINT8,
-    HOUND_INT16,
-    HOUND_UINT16,
-    HOUND_INT32,
-    HOUND_UINT32,
-    HOUND_INT64,
-    HOUND_UINT64,
-    HOUND_BYTES
+    HOUND_TYPE_FLOAT,
+    HOUND_TYPE_DOUBLE,
+    HOUND_TYPE_INT8,
+    HOUND_TYPE_UINT8,
+    HOUND_TYPE_INT16,
+    HOUND_TYPE_UINT16,
+    HOUND_TYPE_INT32,
+    HOUND_TYPE_UINT32,
+    HOUND_TYPE_INT64,
+    HOUND_TYPE_UINT64,
+    HOUND_TYPE_BYTES
 } hound_type;
 
 struct hound_data_fmt {
