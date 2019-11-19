@@ -207,7 +207,8 @@ hound_err driver_register(
     }
 
     /* Initialize driver fields. */
-    pthread_mutex_init(&drv->mutex, NULL);
+    pthread_mutex_init(&drv->state_lock, NULL);
+    pthread_mutex_init(&drv->op_lock, NULL);
     drv->refcount = 0;
     drv->fd = FD_INVALID;
     xv_init(drv->active_data);
@@ -397,7 +398,9 @@ hound_err driver_unregister(const char *path)
     }
     free(drv->data);
 
-    err = pthread_mutex_destroy(&drv->mutex);
+    err = pthread_mutex_destroy(&drv->state_lock);
+    XASSERT_EQ(err, 0);
+    err = pthread_mutex_destroy(&drv->op_lock);
     XASSERT_EQ(err, 0);
     xv_destroy(drv->active_data);
     free(drv);
@@ -456,14 +459,14 @@ hound_err driver_next(struct driver *drv, hound_data_id id, size_t n)
 
     XASSERT_NOT_NULL(drv);
 
-    pthread_mutex_lock(&drv->mutex);
+    pthread_mutex_lock(&drv->state_lock);
     for (i = 0; i < n; ++i) {
         err = drv_op_next(drv, id);
         if (err != HOUND_OK) {
             goto out;
         }
     }
-    pthread_mutex_unlock(&drv->mutex);
+    pthread_mutex_unlock(&drv->state_lock);
     err = HOUND_OK;
 
 out:
@@ -487,7 +490,7 @@ hound_err driver_ref(
     XASSERT_NOT_NULL(queue);
     XASSERT_NOT_NULL(drv_data_list);
 
-    pthread_mutex_lock(&drv->mutex);
+    pthread_mutex_lock(&drv->state_lock);
 
     /* Update the active data list. */
     changed = false;
@@ -564,7 +567,7 @@ error_driver_setdata:
         }
     }
 out:
-    pthread_mutex_unlock(&drv->mutex);
+    pthread_mutex_unlock(&drv->state_lock);
     return err;
 }
 
@@ -614,7 +617,7 @@ hound_err driver_unref(
     XASSERT_NOT_NULL(queue);
     XASSERT_NOT_NULL(drv_data_list);
 
-    pthread_mutex_lock(&drv->mutex);
+    pthread_mutex_lock(&drv->state_lock);
 
     /* Update the active data list. */
     changed = false;
@@ -668,7 +671,7 @@ error_driver_stop:
 error_driver_setdata:
     cleanup_drv_data(drv, drv_data_list);
 out:
-    pthread_mutex_unlock(&drv->mutex);
+    pthread_mutex_unlock(&drv->state_lock);
     return err;
 }
 

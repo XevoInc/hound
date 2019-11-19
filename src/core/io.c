@@ -35,7 +35,7 @@
  * pollfd's passed in be contiguous in memory.
  */
 struct fdctx {
-    const struct driver *drv;
+    struct driver *drv;
     hound_seqno next_seqno;
     xvec_t(struct queue *) queues;
 };
@@ -114,6 +114,7 @@ hound_err io_read(int fd, struct fdctx *ctx)
     while (bytes_left > 0) {
         bytes_total = bytes_left;
         record_count = 0;
+
         err = drv_op_parse(
             ctx->drv,
             pos,

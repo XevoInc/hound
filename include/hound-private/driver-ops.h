@@ -43,7 +43,8 @@ struct data {
 };
 
 struct driver {
-    pthread_mutex_t mutex;
+    pthread_mutex_t state_lock;
+    pthread_mutex_t op_lock;
     refcount_val refcount;
 
     hound_dev_id id;
@@ -64,14 +65,19 @@ struct driver {
     static inline \
     hound_err drv_op_##name(prototype) \
     { \
+        hound_err err; \
+        \
         set_active_drv(drv); \
-        return drv->ops.name(args); \
+        pthread_mutex_lock(&drv->op_lock); \
+        err = drv->ops.name(args); \
+        pthread_mutex_unlock(&drv->op_lock); \
+        return err; \
     }
 
 #define DEFINE_DRV_OP(name, prototype, args) \
-    _DEFINE_DRV_OP(name, TOKENIZE(const struct driver *drv, prototype), TOKENIZE(args))
+    _DEFINE_DRV_OP(name, TOKENIZE(struct driver *drv, prototype), TOKENIZE(args))
 
-#define DEFINE_DRV_OP_VOID(name) _DEFINE_DRV_OP(name, const struct driver *drv,)
+#define DEFINE_DRV_OP_VOID(name) _DEFINE_DRV_OP(name, struct driver *drv,)
 
 DEFINE_DRV_OP(init, void *data, data)
 DEFINE_DRV_OP_VOID(destroy)
