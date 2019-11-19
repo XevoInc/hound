@@ -1,66 +1,42 @@
 ---
-time uncertainty:
-    unit: ns
-    type: double
-    offset: 0
-    len: 8
-latitude:
-    unit: degree
-    type: double
-    offset: 8
-    len: 8
-latitude uncertainty:
-    unit: m
-    type: double
-    offset: 16
-    len: 8
-longitude:
-    unit: degree
-    type: double
-    offset: 24
-    len: 8
-longitude uncertainty:
-    unit: m
-    type: double
-    offset: 32
-    len: 8
-altitude:
-    unit: m
-    type: double
-    offset: 40
-    len: 8
-altitude uncertainty:
-    unit: m
-    type: double
-    offset: 48
-    len: 8
-course relative to true north:
-    unit: degree
-    type: double
-    offset: 56
-    len: 8
-track uncertainty:
-    unit: degree
-    type: double
-    offset: 64
-    len: 8
-speed over ground:
-    unit: m/s
-    type: double
-    offset: 72
-    len: 8
-speed uncertainty:
-    unit: m/s
-    type: double
-    offset: 80
-    len: 8
-vertical speed:
-    unit: m/s
-    type: double
-    offset: 88
-    len: 8
-vertical speed uncertainty:
-    unit: m/s
-    type: double
-    offset: 96
-    len: 8
+name: GPS
+fmt:
+    - name: time uncertainty
+      unit: s
+      type: double
+    - name: latitude
+      unit: degree
+      type: double
+    - name: latitude uncertainty
+      unit: m
+      type: double
+    - name: longitude
+      unit: degree
+      type: double
+    - name: longitude uncertainty
+      unit: m
+      type: double
+    - name: altitude
+      unit: m
+      type: double
+    - name: longitude uncertainty
+      unit: m
+      type: double
+    - name: course relative to true north
+      unit: degree
+      type: double
+    - name: longitude uncertainty
+      unit: m
+      type: double
+    - name: speed over ground
+      unit: m/s
+      type: double
+    - name: speed over ground
+      unit: m/s
+      type: double
+    - name: vertical speed
+      unit: m/s
+      type: double
+    - name: vertical speed
+      unit: m/s
+      type: double

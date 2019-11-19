@@ -29,7 +29,6 @@ static const char *s_device_name = "counter";
 static const hound_data_period s_period = 0;
 static const struct hound_datadesc s_datadesc = {
     .data_id = HOUND_DATA_COUNTER,
-    .name = "current count",
     .period_count = 1,
     .avail_periods = &s_period
 };

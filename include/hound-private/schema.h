@@ -19,6 +19,7 @@ void schema_destroy(void);
 hound_err schema_parse(
     const char *schema_base,
     const char *schema,
+    const char **name,
     size_t *fmt_count,
     struct hound_data_fmt **fmt_list);
 

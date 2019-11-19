@@ -58,10 +58,9 @@ void test_datadesc(void)
 
     err = hound_get_datadesc(&desc, &desc_len);
     XASSERT_OK(err);
-    err = strcmp(desc[0].name, "nop1");
-    XASSERT_EQ(err, 0);
-    err = strcmp(desc[1].name, "nop2");
-    XASSERT_EQ(err, 0);
+    XASSERT_STREQ(desc->name, "nop");
+    XASSERT_STREQ(desc->fmts[0].name, "nop1");
+    XASSERT_STREQ(desc->fmts[1].name, "nop2");
 
     hound_free_datadesc(desc);
 }

@@ -148,6 +148,37 @@ hound_dev_id next_dev_id(void)
     return id;
 }
 
+static
+size_t get_type_len(hound_type type)
+{
+    switch (type) {
+        case HOUND_TYPE_FLOAT:
+            return sizeof(float);
+        case HOUND_TYPE_DOUBLE:
+            return sizeof(double);
+        case HOUND_TYPE_INT8:
+            return sizeof(int8_t);
+        case HOUND_TYPE_UINT8:
+            return sizeof(uint8_t);
+        case HOUND_TYPE_INT16:
+            return sizeof(int16_t);
+        case HOUND_TYPE_UINT16:
+            return sizeof(uint16_t);
+        case HOUND_TYPE_INT32:
+            return sizeof(int32_t);
+        case HOUND_TYPE_UINT32:
+            return sizeof(uint32_t);
+        case HOUND_TYPE_INT64:
+            return sizeof(int64_t);
+        case HOUND_TYPE_UINT64:
+            return sizeof(uint64_t);
+        case HOUND_TYPE_BYTES:
+            return 0;
+    }
+
+    XASSERT_ERROR;
+}
+
 PUBLIC_API
 hound_err driver_register(
     const char *path,
@@ -159,8 +190,12 @@ hound_err driver_register(
     struct driver *drv;
     char *drv_path;
     hound_err err;
+    struct hound_data_fmt *fmt;
     size_t i;
+    size_t j;
     xhiter_t iter;
+    size_t len;
+    size_t offset;
     int ret;
     const char **schemas;
 
@@ -243,17 +278,6 @@ hound_err driver_register(
     /* Verify that all descriptors are sane. */
     for (i = 0; i < drv->datacount; ++i) {
         desc = &drv->data[i];
-        if (desc->name == NULL) {
-            err = HOUND_NULL_VAL;
-            goto error_datadesc;
-        }
-
-        if (strnlen(desc->name, HOUND_DATA_NAME_MAX) ==
-            HOUND_DATA_NAME_MAX) {
-            err = HOUND_INVALID_STRING;
-            goto error_datadesc;
-        }
-
         if (desc->period_count > 0 && desc->avail_periods == NULL) {
             err = HOUND_NULL_VAL;
             goto error_datadesc;
@@ -278,15 +302,40 @@ hound_err driver_register(
         desc->dev_id = drv->id;
     }
 
-    /* Parse each given schema and store its format. */
+    /*
+     * Parse and verify each schema, and calculate offsets from the provided
+     * lengths.
+     */
     for (i = 0; i < drv->datacount; ++i) {
+        desc = &drv->data[i];
         err = schema_parse(
             schema_base,
             schemas[i],
-            &drv->data[i].fmt_count,
-            &drv->data[i].fmts);
+            &desc->name,
+            &desc->fmt_count,
+            &desc->fmts);
         if (err != HOUND_OK) {
             break;
+        }
+        XASSERT_NOT_NULL(desc->name);
+        XASSERT_NEQ(
+            strnlen(desc->name, HOUND_DATA_NAME_MAX),
+            HOUND_DATA_NAME_MAX);
+        XASSERT_GTE(desc->fmt_count, 1);
+        XASSERT_NOT_NULL(desc->fmts);
+
+        offset = 0;
+        for (j = 0; j < desc->fmt_count; ++j) {
+            fmt = &desc->fmts[j];
+            /*
+             * A variable-length type (bytes) must be the last specified format,
+             * or else the caller won't be able to parse its records.
+             */
+            XASSERT_FALSE(fmt->type == HOUND_TYPE_BYTES && j != desc->fmt_count-1);
+            len = get_type_len(fmt->type);
+            fmt->len = len;
+            fmt->offset = offset;
+            offset += len;
         }
     }
     drv_free(schemas);

@@ -31,7 +31,6 @@ static_assert(
 /* GPS always yields data once per second. */
 static hound_data_period s_avail_periods = NSEC_PER_SEC;
 static struct hound_datadesc s_datadesc = {
-    .name = "gps-data",
     .data_id = HOUND_DATA_GPS,
     .period_count = 1,
     .avail_periods = &s_avail_periods

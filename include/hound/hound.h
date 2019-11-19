@@ -123,7 +123,6 @@ typedef enum {
 
 struct hound_data_fmt {
     const char *name;
-    const char *desc;
     hound_unit unit;
     size_t offset;
     /* Length 0 means "all of the data." */

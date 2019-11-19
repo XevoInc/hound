@@ -36,7 +36,6 @@ static hound_data_period s_period_ns = 0;
 static const char *s_filepath = NULL;
 static struct hound_datadesc s_datadesc = {
     .data_id = HOUND_DATA_FILE,
-    .name = "file",
     .period_count = 1,
     .avail_periods = &s_period_ns
 };

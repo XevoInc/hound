@@ -1,7 +1,9 @@
 ---
-nop:
-    name: no-op (no data)
-    unit: none
-    type: bytes
-    offset: 0
-    len: all
+name: nop
+fmt:
+    - name: nop1
+      unit: percent
+      type: uint8
+    - name: nop2
+      unit: none
+      type: bytes

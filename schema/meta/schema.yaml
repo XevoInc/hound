@@ -7,39 +7,44 @@
 $schema: http://json-schema.org/draft-07/schema#
 title: Sensor data description
 type: object
-minProperties: 1
-# It's useful for the parsing code to have a maximum number of entries it can
-# see.
-maxProperties: 100
-format: contiguous-indices
-additionalProperties:
-  properties:
-    name:
-      description: A description of the entry
-      type: string
-
-    unit:
-      $ref: include://si-unit.yaml
-
-    type:
-      $ref: include://type.yaml
-
-    offset:
-      description: The byte offset at which to read this entry
-      type: integer
-      minimum: 0
-
-    len:
-      description: The length of this entry
-      oneOf:
-        - type: integer
-          minimum: 1
-        - type: string
-          const: all
-
-  required:
-    - name
-    - unit
-    - type
-    - offset
-    - len
+required:
+  - name
+  - fmt
+properties:
+  name:
+    description: A sensor's friendly name, which will be advertised to consumers
+    type: string
+    minLength: 1
+    maxLength: 32
+  fmt:
+    type: array
+    # It's useful for the parsing code to have a maximum number of entries it can
+    # see.
+    minItems: 1
+    maxItems: 100
+    items:
+      type: object
+      required:
+        - name
+        - unit
+        - type
+        - len
+      properties:
+        name:
+          description: A description of the datapoint
+          type: string
+        unit:
+          $ref: include://si-unit.yaml
+        type:
+          $ref: include://type.yaml
+          type: integer
+          minimum: 0
+        len:
+          description: The length of this entry
+          oneOf:
+            -
+              type: integer
+              minimum: 1
+            -
+              type: string
+              const: all

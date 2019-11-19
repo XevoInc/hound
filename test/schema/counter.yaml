@@ -1,7 +1,6 @@
 ---
-counter:
-    name: current count
-    unit: none
-    type: uint64
-    offset: 0
-    len: 8
+name: counter
+fmt:
+    - name: counter
+      unit: none
+      type: uint64

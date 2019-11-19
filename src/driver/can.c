@@ -36,7 +36,6 @@ struct bcm_payload {
 };
 
 static struct hound_datadesc s_datadesc = {
-    .name = "can-data",
     .data_id = HOUND_DATA_CAN,
     .period_count = 0,
     .avail_periods = NULL

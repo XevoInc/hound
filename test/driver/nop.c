@@ -37,13 +37,11 @@ static const hound_data_period s_nop2_period[] = { 0 };
 static const struct hound_datadesc s_datadesc[] = {
     {
         .data_id = HOUND_DATA_NOP1,
-        .name = "nop1",
         .period_count = ARRAYLEN(s_nop1_period),
         .avail_periods = s_nop1_period
     },
     {
         .data_id = HOUND_DATA_NOP2,
-        .name = "nop2",
         .period_count = ARRAYLEN(s_nop2_period),
         .avail_periods = s_nop2_period
     }

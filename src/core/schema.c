@@ -19,65 +19,6 @@
 
 #define MAX_FMT_ENTRIES 100
 
-typedef enum {
-    MAP_NONE,
-    MAP_ROOT,
-    MAP_FMT
-} parse_map;
-
-typedef enum {
-    KEY_NAME,
-    KEY_UNIT,
-    KEY_TYPE,
-    KEY_OFFSET,
-    KEY_LEN,
-    KEY_NONE
-} parse_key;
-
-struct parse_state {
-    parse_map map;
-    parse_key key;
-};
-
-static
-void free_format_list(struct hound_data_fmt *fmt_list, size_t len)
-{
-    struct hound_data_fmt *fmt;
-    size_t i;
-
-    if (fmt_list == NULL) {
-        return;
-    }
-
-    for (i = 0; i < len; ++i) {
-        fmt = &fmt_list[i];
-        drv_free((void *) fmt->name);
-        drv_free((void *) fmt->desc);
-    }
-
-    drv_free(fmt_list);
-}
-
-static
-int offset_cmp(const void *p1, const void *p2)
-{
-    const struct hound_data_fmt *a;
-    const struct hound_data_fmt *b;
-
-    a = p1;
-    b = p2;
-
-    if (a->offset < b->offset) {
-        return -1;
-    }
-    else if (a->offset == b->offset) {
-        return 0;
-    }
-    else {
-        return 1;
-    }
-}
-
 static
 hound_unit find_unit(const char *val)
 {
@@ -172,39 +113,163 @@ hound_type find_type(const char *val)
 }
 
 static
-parse_key find_key(const char *val)
+const char *parse_str(yaml_node_t *node)
 {
-    size_t i;
-    /* Make sure this stays in sync with the parse_key enum! */
-    static const char *keys[] = {
-        [KEY_NAME] = "name",
-        [KEY_UNIT] = "unit",
-        [KEY_TYPE] = "type",
-        [KEY_OFFSET] = "offset",
-        [KEY_LEN] = "len",
-    };
+    XASSERT_EQ(node->type, YAML_SCALAR_NODE);
+    XASSERT_GT(node->data.scalar.length, 0);
 
-    for (i = 0; i < ARRAYLEN(keys); ++i) {
-        if (strcmp(keys[i], val) == 0) {
-            return i;
+    return drv_strdup((const char *) node->data.scalar.value);
+}
+
+static
+hound_err parse_fmt(
+    yaml_document_t *doc,
+    yaml_node_t *node,
+    struct hound_data_fmt *fmt)
+{
+    yaml_node_t *key;
+    const char *key_str;
+    yaml_node_pair_t *pair;
+    yaml_node_t *value;
+
+    XASSERT_EQ(node->type, YAML_MAPPING_NODE);
+    for (pair = node->data.mapping.pairs.start;
+         pair < node->data.mapping.pairs.top;
+         ++pair) {
+        key = yaml_document_get_node(doc, pair->key);
+        XASSERT_NOT_NULL(key);
+        XASSERT_EQ(key->type, YAML_SCALAR_NODE);
+        key_str = (const char *) key->data.scalar.value;
+
+        value = yaml_document_get_node(doc, pair->value);
+        XASSERT_NOT_NULL(value);
+
+        if (strcmp(key_str, "name") == 0) {
+            fmt->name = parse_str(value);
+            if (fmt->name == NULL) {
+                return HOUND_OOM;
+            }
+
+        }
+        else if (strcmp(key_str, "unit") == 0) {
+            XASSERT_EQ(value->type, YAML_SCALAR_NODE);
+            XASSERT_GT(value->data.scalar.length, 0);
+            fmt->unit = find_unit((const char *) value->data.scalar.value);
+        }
+        else if (strcmp(key_str, "type") == 0) {
+            XASSERT_EQ(value->type, YAML_SCALAR_NODE);
+            XASSERT_GT(value->data.scalar.length, 0);
+            fmt->type = find_type((const char *) value->data.scalar.value);
+
+        }
+        else {
+            XASSERT_ERROR;
         }
     }
 
-    XASSERT_ERROR;
+    return HOUND_OK;
 }
 
-hound_err parse(FILE *file, size_t *count_out, struct hound_data_fmt **fmt_out)
+static
+hound_err parse_fmts(
+    yaml_document_t *doc,
+    yaml_node_t *node,
+    size_t *out_count,
+    struct hound_data_fmt **out_fmts)
 {
-    bool done;
-    hound_err err;
-    yaml_event_t event;
-    struct hound_data_fmt *fmt;
     size_t fmt_count;
-    struct hound_data_fmt *fmt_list;
-    int ret;
+    hound_err err;
+    struct hound_data_fmt *fmts;
+    size_t i;
+    yaml_node_item_t *item;
+
+    fmt_count =
+        node->data.sequence.items.top - node->data.sequence.items.start;
+    XASSERT_GTE(fmt_count, 1);
+    XASSERT_LTE(fmt_count, MAX_FMT_ENTRIES);
+
+    fmts = drv_alloc(fmt_count * sizeof(*fmts));
+    if (fmts == NULL) {
+        return HOUND_OOM;
+    }
+
+    for (item = node->data.sequence.items.start, i = 0;
+         item < node->data.sequence.items.top;
+         ++item, ++i) {
+        err = parse_fmt(doc, yaml_document_get_node(doc, *item), &fmts[i]);
+        if (err != HOUND_OK) {
+            *out_count = i;
+            return err;
+        }
+    }
+
+    *out_count = fmt_count;
+    *out_fmts = fmts;
+
+    return HOUND_OK;
+}
+
+static
+hound_err parse_doc(
+    yaml_document_t *doc,
+    yaml_node_t *node,
+    const char **name,
+    size_t *count_out,
+    struct hound_data_fmt **fmts_out)
+{
+    hound_err err;
+    yaml_node_t *key;
+    const char *key_str;
+    yaml_node_pair_t *pair;
+    yaml_node_t *value;
+    const char *value_str;
+
+    XASSERT_EQ(node->type, YAML_MAPPING_NODE);
+    for (pair = node->data.mapping.pairs.start;
+         pair < node->data.mapping.pairs.top;
+         ++pair) {
+        key = yaml_document_get_node(doc, pair->key);
+        XASSERT_NOT_NULL(key);
+        XASSERT_EQ(key->type, YAML_SCALAR_NODE);
+        key_str = (const char *) key->data.scalar.value;
+
+        value = yaml_document_get_node(doc, pair->value);
+        XASSERT_NOT_NULL(value);
+
+        if (strcmp(key_str, "name") == 0) {
+            XASSERT_EQ(value->type, YAML_SCALAR_NODE);
+            value_str = (const char *) value->data.scalar.value;
+            *name = drv_strdup(value_str);
+            if (*name == NULL) {
+                return HOUND_OOM;
+            }
+        }
+        else if (strcmp(key_str, "fmt") == 0) {
+            XASSERT_EQ(value->type, YAML_SEQUENCE_NODE);
+            err = parse_fmts(doc, value, count_out, fmts_out);
+            if (err != HOUND_OK) {
+                return err;
+            }
+        }
+        else {
+            XASSERT_ERROR;
+        }
+    }
+
+    return HOUND_OK;
+}
+
+hound_err parse(
+    FILE *file,
+    const char **name_out,
+    size_t *count_out,
+    struct hound_data_fmt **fmts_out)
+{
+    yaml_document_t doc;
+    hound_err err;
+    yaml_node_t *node;
     yaml_parser_t parser;
-    struct parse_state state;
-    const char *val;
+    int ret;
 
     ret = yaml_parser_initialize(&parser);
     if (ret == 0) {
@@ -212,186 +277,35 @@ hound_err parse(FILE *file, size_t *count_out, struct hound_data_fmt **fmt_out)
     }
     yaml_parser_set_input_file(&parser, file);
 
-    /*
-     * Allocate more entries than we need. We will resize it the array when
-     * we're done.
-     */
-    fmt_list = drv_alloc(MAX_FMT_ENTRIES * sizeof(*fmt_list));
-    if (fmt_list == NULL) {
-        err = HOUND_OOM;
-        goto out;
-    }
-
-    state.map = MAP_NONE;
-    state.key = KEY_NONE;
-    done = false;
-    fmt_count = 0;
-    fmt = NULL;
     err = HOUND_OK;
-    do {
-        ret = yaml_parser_parse(&parser, &event);
-        if (ret == 0) {
-            err = HOUND_OOM;
-            break;
-        }
+    ret = yaml_parser_load(&parser, &doc);
+    XASSERT_NEQ(ret, 0);
 
-        switch (event.type) {
-            /* We don't handle these. */
-            case YAML_NO_EVENT:
-            case YAML_ALIAS_EVENT:
-            case YAML_SEQUENCE_START_EVENT:
-            case YAML_SEQUENCE_END_EVENT:
-                XASSERT_ERROR;
-                break;
+    node = yaml_document_get_root_node(&doc);
+    XASSERT_NOT_NULL(node);
 
-            case YAML_STREAM_START_EVENT:
-            case YAML_DOCUMENT_START_EVENT:
-                break;
-            case YAML_DOCUMENT_END_EVENT:
-            case YAML_STREAM_END_EVENT:
-                err = HOUND_OK;
-                done = true;
-                break;
+    err = parse_doc(&doc, node, name_out, count_out, fmts_out);
 
-            /*
-             * Start events push us one level down the map stack, while end
-             * events pop us one level up the map stack.
-             */
-            case YAML_MAPPING_START_EVENT:
-                switch (state.map) {
-                    case MAP_NONE:
-                        XASSERT_EQ(state.key, KEY_NONE);
-                        state.map = MAP_ROOT;
-                        break;
-                    case MAP_ROOT:
-                        XASSERT_EQ(state.key, KEY_NONE);
-                        state.map = MAP_FMT;
-                        break;
-                    case MAP_FMT:
-                        XASSERT_ERROR;
-                        break;
-                }
-                state.key = KEY_NONE;
-                break;
-            case YAML_MAPPING_END_EVENT:
-                XASSERT_EQ(state.key, KEY_NONE);
-                switch (state.map) {
-                    case MAP_NONE:
-                        XASSERT_ERROR;
-                        break;
-                    case MAP_ROOT:
-                        state.map = MAP_NONE;
-                        break;
-                    case MAP_FMT:
-                        state.map = MAP_ROOT;
-                        break;
-                }
-                break;
-
-            case YAML_SCALAR_EVENT:
-                val = (const char *) event.data.scalar.value;
-                switch (state.key) {
-                    case KEY_NONE:
-                        switch (state.map) {
-                            case MAP_NONE:
-                                XASSERT_ERROR;
-                            case MAP_ROOT:
-                                fmt = &fmt_list[fmt_count];
-                                ++fmt_count;
-
-                                fmt->name = drv_strdup(val);
-                                if (fmt->name == NULL) {
-                                    err = HOUND_OOM;
-                                    break;
-                                }
-                                break;
-                            case MAP_FMT:
-                                state.key = find_key(val);
-                                break;
-                        }
-                        break;
-
-                    case KEY_NAME:
-                        XASSERT_EQ(state.map, MAP_FMT);
-                        state.key = KEY_NONE;
-
-                        XASSERT_NOT_NULL(fmt);
-
-                        fmt->desc = drv_strdup(val);
-                        if (fmt->desc == NULL) {
-                            err = HOUND_OOM;
-                            done = true;
-                        }
-                        break;
-
-                    case KEY_UNIT:
-                        XASSERT_EQ(state.map, MAP_FMT);
-                        state.key = KEY_NONE;
-
-                        fmt->unit = find_unit(val);
-                        break;
-
-                    case KEY_TYPE:
-                        XASSERT_EQ(state.map, MAP_FMT);
-                        state.key = KEY_NONE;
-
-                        fmt->type = find_type(val);
-                        break;
-
-                    case KEY_OFFSET:
-                        XASSERT_EQ(state.map, MAP_FMT);
-                        state.key = KEY_NONE;
-
-                        errno = 0;
-                        fmt->offset = strtol(val, NULL, 0);
-                        XASSERT_EQ(errno, 0);
-                        break;
-
-                    case KEY_LEN:
-                        XASSERT_EQ(state.map, MAP_FMT);
-                        state.key = KEY_NONE;
-
-                        errno = 0;
-                        fmt->len = strtol(val, NULL, 0);
-                        XASSERT_EQ(errno, 0);
-                        break;
-                }
-                break;
-        }
-        yaml_event_delete(&event);
-
-    } while (!done);
-
-    /* Trim the format list size to match what we actually found. */
-    fmt_list = drv_realloc(fmt_list, fmt_count * sizeof(*fmt_list));
-    if (fmt_list == NULL) {
-        err = HOUND_OOM;
-    }
-
-    if (err == HOUND_OK) {
-        qsort(fmt_list, fmt_count, sizeof(*fmt_list), offset_cmp);
-    }
-    else {
-        free_format_list(fmt_list, fmt_count);
-    }
-
-    *count_out = fmt_count;
-    *fmt_out = fmt_list;
-
-out:
+    yaml_document_delete(&doc);
     yaml_parser_delete(&parser);
+
     return err;
 }
 
 hound_err schema_parse(
     const char *schema_base,
     const char *schema,
-    size_t *fmt_count,
-    struct hound_data_fmt **fmt_list)
+    const char **out_name,
+    size_t *out_fmt_count,
+    struct hound_data_fmt **out_fmts)
 {
     hound_err err;
     FILE *f;
+    struct hound_data_fmt *fmts;
+    size_t fmt_count;
+    size_t i;
     size_t len;
+    const char *name;
     size_t total_len;
     char *path;
 
@@ -427,8 +341,23 @@ hound_err schema_parse(
         goto out;
     }
 
-    err = parse(f, fmt_count, fmt_list);
+    name = NULL;
+    fmt_count = 0;
+    fmts = NULL;
+    err = parse(f, &name, &fmt_count, &fmts);
     fclose(f);
+    if (err == HOUND_OK) {
+        *out_name = name;
+        *out_fmt_count = fmt_count;
+        *out_fmts = fmts;
+    }
+    else {
+        drv_free((void *) name);
+        for (i = 0; i < fmt_count; ++i) {
+            drv_free((void *) fmts[i].name);
+        }
+        drv_free(fmts);
+    }
 
 out:
     return err;

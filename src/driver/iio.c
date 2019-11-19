@@ -530,23 +530,6 @@ out:
 }
 
 static
-hound_err populate_desc(
-    hound_data_id data_id,
-    const char *dev_name,
-    struct hound_datadesc *desc)
-{
-
-    desc->data_id = data_id;
-    desc->name = drv_strdup(dev_name);
-    if (desc->name == NULL) {
-        return HOUND_OOM;
-    }
-
-    return HOUND_OK;
-}
-
-
-static
 hound_err iio_disable_device(const char *dev_dir)
 {
     return iio_write(dev_dir, "buffer/enable", "0", 1);
@@ -839,10 +822,7 @@ hound_err iio_datadesc(
             continue;
         }
 
-        err = populate_desc(entry->id, ctx->dev_name, &desc[desc_count]);
-        if (err != HOUND_OK) {
-            goto error_desc;
-        }
+        desc[desc_count].data_id = entry->id;
         (*schemas)[desc_count] = entry->schema;
         ++desc_count;
     }
