@@ -155,6 +155,7 @@ hound_err driver_register(
     const char *schema_base,
     void *init_data)
 {
+    struct hound_datadesc *desc;
     struct driver *drv;
     char *drv_path;
     hound_err err;
@@ -240,14 +241,20 @@ hound_err driver_register(
 
     /* Verify that all descriptors are sane. */
     for (i = 0; i < drv->datacount; ++i) {
-        if (drv->data[i].name == NULL) {
+        desc = &drv->data[i];
+        if (desc->name == NULL) {
             err = HOUND_NULL_VAL;
             goto error_datadesc;
         }
 
-        if (strnlen(drv->data[i].name, HOUND_DATA_NAME_MAX) ==
+        if (strnlen(desc->name, HOUND_DATA_NAME_MAX) ==
             HOUND_DATA_NAME_MAX) {
             err = HOUND_INVALID_STRING;
+            goto error_datadesc;
+        }
+
+        if (desc->period_count > 0 && desc->avail_periods == NULL) {
+            err = HOUND_NULL_VAL;
             goto error_datadesc;
         }
 
@@ -267,7 +274,7 @@ hound_err driver_register(
             goto error_conflicting_drivers;
         }
 
-        drv->data[i].dev_id = drv->id;
+        desc->dev_id = drv->id;
     }
 
     /* Parse each given schema and store its format. */
