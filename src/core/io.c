@@ -5,7 +5,7 @@
  * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
-#define _POSIX_C_SOURCE 200809L
+#define _GNU_SOURCE
 #include <errno.h>
 #include <hound-private/driver.h>
 #include <hound-private/driver-ops.h>
@@ -46,10 +46,12 @@ static struct s_ios {
 } s_ios;
 
 static pthread_t s_poll_thread;
+static sigset_t s_origset;
 static pthread_mutex_t s_poll_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_poll_cond = PTHREAD_COND_INITIALIZER;
 static volatile bool s_poll_active_target = false;
 static volatile bool s_poll_active_current = false;
+
 static uint8_t s_read_buf[POLL_BUF_SIZE];
 static struct hound_record s_records[HOUND_DRIVER_MAX_RECORDS];
 
@@ -177,19 +179,37 @@ void io_wait_for_ready(void) {
 }
 
 static
+void io_sighandler(UNUSED int signum)
+{
+    /* Nothing to do. */
+}
+
+static
 void *io_poll(UNUSED void *data)
 {
+    struct sigaction action;
     struct fdctx *ctx;
     hound_err err;
     size_t i;
     int fds;
     struct pollfd *pfd;
 
+    /*
+     * Set a dummy action for PAUSE_SIGNAL just so that we can interrupt system
+     * calls by raising it. Note that we do *not* set SA_RESTART, as we actually
+     * want to be interrupted so that we can pause the thread when needed.
+     */
+    action.sa_handler = io_sighandler;
+    action.sa_flags = 0;
+    sigemptyset(&action.sa_mask);
+    err = sigaction(PAUSE_SIGNAL, &action, NULL);
+    XASSERT_EQ(err, 0);
+
     while (true) {
         io_wait_for_ready();
 
         /* Wait for I/O. */
-        fds = poll(xv_data(s_ios.fds), xv_size(s_ios.fds), -1);
+        fds = ppoll(xv_data(s_ios.fds), xv_size(s_ios.fds), NULL, &s_origset);
         if (fds == -1) {
             if (errno == EINTR) {
                 /* We got a signal; probably need to pause the loop. */
@@ -263,28 +283,10 @@ void io_resume_poll(void)
 }
 
 static
-void io_sighandler(UNUSED int signum)
-{
-    /* Nothing to do. */
-}
-
-static
 hound_err io_start_poll(void)
 {
-    struct sigaction action;
     pthread_attr_t attr;
     hound_err err;
-
-    /*
-     * Set a dummy action for PAUSE_SIGNAL just so that we can interrupt system
-     * calls by raising it. Note that we do *not* set SA_RESTART, as we actually
-     * want to be interrupted so that we can pause the thread when needed.
-     */
-    action.sa_handler = io_sighandler;
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;
-    err = sigaction(PAUSE_SIGNAL, &action, NULL);
-    XASSERT_EQ(err, 0);
 
     err = pthread_attr_init(&attr);
     if (err != 0) {
@@ -327,7 +329,7 @@ void io_stop_poll(void)
     XASSERT_EQ(ret, PTHREAD_CANCELED);
 }
 
-hound_err io_add_fd(int fd, const struct driver *drv)
+hound_err io_add_fd(int fd, struct driver *drv)
 {
     struct fdctx *ctx;
     hound_err err;
@@ -447,10 +449,26 @@ void io_remove_queue(int fd, struct queue *queue)
 
 void io_init(void)
 {
+    sigset_t blockset;
     hound_err err;
 
     xv_init(s_ios.fds);
     xv_init(s_ios.ctx);
+
+    /*
+     * Block our pause signal so it will get queued up if someone sends it.
+     * If the signal is sent after io_wait_for_ready() but before ppoll(),
+     * ppoll() will still see the signal because it gets queued up while
+     * blocked. If we didn't block the signal here, such a signal would be
+     * dropped and ppoll() would never act on the signal, leading to deadlock.
+     *
+     * See pselect(2) for more information.
+     */
+    sigemptyset(&blockset);
+    sigaddset(&blockset, PAUSE_SIGNAL);
+    err = pthread_sigmask(SIG_BLOCK, &blockset, &s_origset);
+    XASSERT_EQ(err, 0);
+
     err = io_start_poll();
     if (err != HOUND_OK) {
         hound_log_err_nofmt(err, "Failed io_start_poll");
