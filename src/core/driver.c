@@ -482,6 +482,7 @@ hound_err driver_ref(
     struct data *data;
     struct hound_data_rq *drv_data;
     hound_err err;
+    hound_err err2;
     bool found;
     size_t i;
     size_t index;
@@ -550,8 +551,16 @@ hound_err driver_ref(
     goto out;
 
 error_io_add_queue:
-    io_remove_fd(drv->fd);
+    if (drv->refcount == 1) {
+        io_remove_fd(drv->fd);
+    }
 error_io_add_fd:
+    if (drv->refcount == 1) {
+        err2 = drv_op_stop(drv);
+        if (err2 != HOUND_OK) {
+            hound_log_err(err2, "driver %p failed to stop", (void *) drv);
+        }
+    }
 error_driver_start:
     --drv->refcount;
 error_driver_setdata:
