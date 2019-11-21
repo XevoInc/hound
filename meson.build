@@ -109,14 +109,20 @@ test_schema_dir = join_paths(
     'test',
     'schema')
 tests = [
-    ['nop', ['test/driver/nop.c', 'test/nop.c'], test_schema_dir],
-    ['counter', ['test/driver/counter.c', 'test/counter.c'], test_schema_dir],
+    ['nop', ['test/driver/nop.c', 'test/nop.c'], test_schema_dir, true],
+    [
+        'counter',
+        ['test/driver/counter.c', 'test/counter.c'],
+        test_schema_dir,
+        true,
+    ],
     [
         'file',
         ['test/driver/file.c', 'test/file.c'],
-        [test_schema_dir, files('test/data/testfile')]
+        [test_schema_dir, files('test/data/testfile')],
+        true
     ],
-    ['can', ['test/can.c'], ['hound-vcan0', prod_schema_dir]]
+    ['can', ['test/can.c'], ['hound-vcan0', prod_schema_dir], false]
 ]
 foreach t : tests
     exe = executable(
@@ -124,7 +130,7 @@ foreach t : tests
         t.get(1),
         include_directories: test_include,
         dependencies: unit_test_deps)
-    test(t.get(0), exe, args: t.get(2), timeout: 50)
+    test(t.get(0), exe, args: t.get(2), is_parallel: t.get(3), timeout: 50)
 endforeach
 
 # These tests are manual.
