@@ -135,7 +135,7 @@ endforeach
 
 # These tests are manual.
 executable(
-    'iio_test',
+    'iio-test',
     'test/iio.c',
     include_directories: test_include,
     dependencies: manual_test_deps)
