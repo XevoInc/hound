@@ -238,19 +238,16 @@ void io_pause_poll(void)
 {
     hound_err err;
 
-    pthread_mutex_lock(&s_poll_mutex);
-    s_poll_active_target = false;
-    pthread_cond_signal(&s_poll_cond);
-    err = pthread_kill(s_poll_thread, PAUSE_SIGNAL);
-    XASSERT_EQ(err, 0);
-    pthread_mutex_unlock(&s_poll_mutex);
-
     /*
      * Wait until the poll has actually canceled. io_wait_for_ready will signal
      * on the condition variable when it is run.
      */
     pthread_mutex_lock(&s_poll_mutex);
+    err = pthread_kill(s_poll_thread, PAUSE_SIGNAL);
+    XASSERT_EQ(err, 0);
     while (s_poll_active_current) {
+        s_poll_active_target = false;
+        pthread_cond_signal(&s_poll_cond);
         pthread_cond_wait(&s_poll_cond, &s_poll_mutex);
     }
     pthread_mutex_unlock(&s_poll_mutex);
