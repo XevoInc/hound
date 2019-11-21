@@ -103,7 +103,7 @@ void test_read(hound_data_period period_ns)
     size_t n;
     struct hound_data_rq data_rq = { .id = HOUND_DEVICE_CAN };
     struct hound_rq rq = {
-        .queue_len = 100,
+        .queue_len = 10000,
         .cb = data_cb,
         .cb_ctx = &s_tx,
         .rq_list.len = 1,
