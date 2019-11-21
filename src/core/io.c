@@ -40,7 +40,7 @@ struct fdctx {
     xvec_t(struct queue *) queues;
 };
 
-static struct s_ios {
+static struct {
     xvec_t(struct fdctx *) ctx;
     xvec_t(struct pollfd) fds;
 } s_ios;
