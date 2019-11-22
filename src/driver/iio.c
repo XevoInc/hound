@@ -743,18 +743,17 @@ hound_err iio_device_name(char *device_name)
 }
 
 static
-bool iio_scan_exists(
+bool iio_scan_readable(
     const char *dev_dir,
     const char *file)
 {
     hound_err err;
     char path[PATH_MAX];
-    struct stat st;
 
     err = snprintf(path, ARRAYLEN(path), "%s/scan_elements/%s", dev_dir, file);
     XASSERT_GT(err, 0);
 
-    return (stat(path, &st) == 0);
+    return (access(path, R_OK) == 0);
 }
 
 static
@@ -807,9 +806,9 @@ hound_err iio_datadesc(
         entry = &s_channels[i];
         channels = entry->channels;
         for (j = 0; j < entry->num_channels; ++j) {
-            if (!iio_scan_exists(ctx->dev_dir, channels[j].type_file) ||
-                !iio_scan_exists(ctx->dev_dir, channels[j].index_file) ||
-                !iio_scan_exists(ctx->dev_dir, channels[j].enable_file)) {
+            if (!iio_scan_readable(ctx->dev_dir, channels[j].type_file) ||
+                !iio_scan_readable(ctx->dev_dir, channels[j].index_file) ||
+                !iio_scan_readable(ctx->dev_dir, channels[j].enable_file)) {
                 break;
             }
         }
