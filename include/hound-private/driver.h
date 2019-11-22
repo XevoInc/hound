@@ -48,12 +48,12 @@ struct driver_ops {
      * @param desc a pointer to an array of data descriptors. The memory for
      *             for this array is owned by the driver and must not be
      *             modified.
-     * @schemas a pointer to an array of schema names. The memory for this array
-     *          is owned by the driver and must not be modified. Each schema
-     *          name must point to constant memory and thus will never be freed.
-     *          The length of this array must be the same as that of desc, and a
-     *          schema and a given index matches the descriptor at the same
-     *          index.
+     * @param schemas a pointer to an array of schema names. The memory for this
+     *                array is owned by the driver and must not be modified.
+     *                Each schema name must point to constant memory and thus
+     *                will never be freed.  The length of this array must be the
+     *                same as that of desc, and a schema and a given index
+     *                matches the descriptor at the same index.
      * @param count the length of the array.
      *
      * @return an error code
