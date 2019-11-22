@@ -19,6 +19,7 @@
 #include <linux/can/bcm.h>
 #include <linux/can/raw.h>
 #include <linux/socket.h>
+#include <linux/sockios.h>
 #include <stdbool.h>
 #include <string.h>
 #include <sys/ioctl.h>
