@@ -41,7 +41,7 @@ struct fdctx {
 };
 
 static struct {
-    xvec_t(struct fdctx *) ctx;
+    xvec_t(struct fdctx) ctx;
     xvec_t(struct pollfd) fds;
 } s_ios;
 
@@ -75,7 +75,7 @@ size_t get_fd_index(int fd)
 static inline
 struct fdctx *get_fdctx(int fd)
 {
-    return xv_A(s_ios.ctx, get_fd_index(fd));
+    return &xv_A(s_ios.ctx, get_fd_index(fd));
 }
 
 static
@@ -237,7 +237,7 @@ void *io_poll(UNUSED void *data)
             }
             XASSERT(pfd->revents & POLL_HAS_DATA);
 
-            ctx = xv_A(s_ios.ctx, i);
+            ctx = &xv_A(s_ios.ctx, i);
             err = io_read(pfd->fd, ctx);
             if (err == HOUND_INTR) {
                 /* Someone wants to pause polling; finish reading later. */
@@ -356,28 +356,20 @@ hound_err io_add_fd(int fd, struct driver *drv)
     pfd->fd = fd;
     pfd->events = POLL_HAS_DATA;
 
-    ctx = malloc(sizeof(*ctx));
+    ctx = xv_pushp(struct fdctx, s_ios.ctx);
     if (ctx == NULL) {
         err = HOUND_OOM;
-        goto error_ctx_alloc;
+        goto error_ctx_push;
     }
     ctx->drv = drv;
     ctx->next_seqno = 0;
     xv_init(ctx->queues);
-
-    xv_push(struct fdctx *, s_ios.ctx, ctx);
-    if (xv_data(s_ios.ctx) == NULL) {
-        err = HOUND_OOM;
-        goto error_ctx_push;
-    }
 
     io_resume_poll();
 
     return HOUND_OK;
 
 error_ctx_push:
-    free(ctx);
-error_ctx_alloc:
     (void) xv_pop(s_ios.fds);
 error_xv_push:
     io_resume_poll();
@@ -390,7 +382,7 @@ void io_remove_fd(int fd)
     size_t index;
 
     index = get_fd_index(fd);
-    ctx = xv_A(s_ios.ctx, index);
+    ctx = &xv_A(s_ios.ctx, index);
 
     io_pause_poll();
 
@@ -401,7 +393,6 @@ void io_remove_fd(int fd)
     io_resume_poll();
 
     xv_destroy(ctx->queues);
-    free(ctx);
 }
 
 hound_err io_add_queue(int fd, struct queue *queue)
