@@ -55,7 +55,7 @@ static volatile bool s_poll_active_current = false;
 static uint8_t s_read_buf[POLL_BUF_SIZE];
 static struct hound_record s_records[HOUND_DRIVER_MAX_RECORDS];
 
-static inline
+static
 size_t get_fd_index(int fd)
 {
     size_t index;
@@ -72,7 +72,7 @@ size_t get_fd_index(int fd)
     return index;
 }
 
-static inline
+static
 struct fdctx *get_fdctx(int fd)
 {
     return &xv_A(s_ios.ctx, get_fd_index(fd));
