@@ -101,7 +101,7 @@ int main(int argc, const char **argv)
 
     init.dev = argv[1];
     buf_sec = strtod(argv[2], &end);
-    if (end == argv[2] || abs(buf_sec) < DBL_EPSILON) {
+    if (end == argv[2] || fabs(buf_sec) < DBL_EPSILON) {
         usage(argv);
         exit(EXIT_FAILURE);
     }
