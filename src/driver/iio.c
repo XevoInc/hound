@@ -44,6 +44,8 @@ struct device_entry {
     enum hound_datatype id;
     size_t num_channels;
     const struct chan_desc *channels;
+    const char *freqs_file;
+    const char *freqs_avail_file;
     const char *schema;
 };
 
@@ -113,12 +115,16 @@ static const struct device_entry s_channels[] = {
         .id = HOUND_DEVICE_ACCELEROMETER,
         .num_channels = 3,
         .channels = s_accel_chan,
+        .freqs_file = "in_accel_sampling_frequency",
+        .freqs_avail_file = "in_accel_sampling_frequency_available",
         .schema = "accel.yaml"
     },
     {
         .id = HOUND_DEVICE_GYROSCOPE,
         .num_channels = 3,
         .channels = s_gyro_chan,
+        .freqs_file = "in_anglvel_sampling_frequency",
+        .freqs_avail_file = "in_anglvel_sampling_frequency_available",
         .schema = "gyro.yaml"
     }
 };
@@ -434,6 +440,7 @@ hound_err iio_write(
 static
 hound_err parse_avail_periods(
     const char *dev_dir,
+    const char *freqs_avail_file,
     hound_period_count *count,
     hound_data_period **avail_periods)
 {
@@ -453,7 +460,7 @@ hound_err parse_avail_periods(
         dev_dir,
         buf,
         ARRAYLEN(buf),
-        "sampling_frequency_available");
+        freqs_avail_file);
     f = fopen(buf, "r");
     if (f == NULL) {
         /*
@@ -863,7 +870,11 @@ hound_err iio_datadesc(
      * The periods are the same for all channels, so just parse them once and
      * set them for each descriptor.
      */
-    err = parse_avail_periods(ctx->dev_dir, &period_count, &avail_periods);
+    err = parse_avail_periods(
+        ctx->dev_dir,
+        entry->freqs_avail_file,
+        &period_count,
+        &avail_periods);
     if (err != HOUND_OK) {
         goto error_parse_avail_periods;
     }
@@ -901,7 +912,10 @@ out:
 }
 
 static
-hound_err iio_set_period(const char *dev_dir, hound_data_period period)
+hound_err iio_set_period(
+    const char *dev_dir,
+    const char *freqs_file,
+    hound_data_period period)
 {
     hound_err err;
     hound_data_period hz;
@@ -917,7 +931,7 @@ hound_err iio_set_period(const char *dev_dir, hound_data_period period)
     len = snprintf(freq, ARRAYLEN(freq), "%" PRIu64, hz);
     XASSERT_GT(len, 0);
 
-    return iio_write(dev_dir, "sampling_frequency", freq, len);
+    return iio_write(dev_dir, freqs_file, freq, len);
 }
 
 static
@@ -1386,25 +1400,34 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
         goto out_error;
    }
 
-    /* Set the device frequency. */
-    period = data_list->data[0].period_ns;
-    for (i = 1; i < data_list->len; ++i) {
-        /*
-         * Since the available frequencies is a per-device, not per-channel,
-         * setting, and since the driver maps 1:1 to a device, all the requested
-         * data should be at the same frequency and period.
-         */
-        XASSERT_EQ(data_list->data[i].period_ns, period);
+    /* Set the data frequency, and calculate the buffer we'll need. */
+    buf_sec = ((double) ctx->buf_ns) / NSEC_PER_SEC;
+    buf_samples = 0;
+    for (i = 0; i < data_list->len; ++i) {
+        period = data_list->data[i].period_ns;
+        /* Find our corresponding device entry. */
+        for (j = 0; j < ARRAYLEN(s_channels); ++j) {
+            entry = &s_channels[j];
+            if (entry->id != data_list->data[i].id) {
+                continue;
+            }
+            err = iio_set_period(
+                ctx->dev_dir, 
+                entry->freqs_file,
+                period);
+            if (err != HOUND_OK) {
+                goto out_error;
+            }
+
+            err = iio_get_freq(period, &hz);
+            if (err != HOUND_OK) {
+                goto out_error;
+            }
+            buf_samples += (uint_fast64_t) (hz*buf_sec);
+        }
     }
-    err = iio_set_period(ctx->dev_dir, period);
 
     /* Set the buffer length to buffer the amount of time the user requested. */
-    err = iio_get_freq(period, &hz);
-    if (err != HOUND_OK) {
-        goto out_error;
-    }
-    buf_sec = ((double) ctx->buf_ns) / NSEC_PER_SEC;
-    buf_samples = (uint_fast64_t) (hz*buf_sec);
     err = iio_set_buffer_length(ctx->dev_dir, buf_samples);
     if (err != HOUND_OK) {
         goto out_error;
