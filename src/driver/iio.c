@@ -853,7 +853,7 @@ hound_err iio_datadesc(
         goto error_desc;
     };
 
-    *schemas = realloc(schemas, desc_count*sizeof(**schemas));
+    *schemas = realloc(*schemas, desc_count*sizeof(**schemas));
     if (*schemas == NULL) {
         err = HOUND_OOM;
         goto error_desc;
@@ -893,7 +893,7 @@ error_alloc_avail_periods:
         free((hound_data_period *) desc[i].avail_periods);
     }
 error_parse_avail_periods:
-    free((void *) **schemas);
+    free((void *) *schemas);
 error_desc:
     free(desc);
 out:
