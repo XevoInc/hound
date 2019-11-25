@@ -6,12 +6,12 @@
  */
 
 #include <hound/hound.h>
-#include <hound-private/api.h>
 #include <hound-private/ctx.h>
 #include <hound-private/error.h>
 #include <hound-private/driver.h>
 #include <hound-private/log.h>
 #include <hound-private/schema.h>
+#include <hound-private/util.h>
 
 PUBLIC_API
 hound_err hound_get_dev_name(hound_dev_id id, const char **name)

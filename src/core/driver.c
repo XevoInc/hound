@@ -7,7 +7,6 @@
 
 #define _GNU_SOURCE
 #include <hound/hound.h>
-#include <hound-private/api.h>
 #include <hound-private/driver.h>
 #include <hound-private/driver-ops.h>
 #include <hound-private/driver/util.h>

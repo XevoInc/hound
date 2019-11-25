@@ -11,6 +11,7 @@
 #include <stddef.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
+#define PUBLIC_API __attribute__ ((visibility ("default")))
 #define UNUSED __attribute__((unused))
 
 #define NULL_CHECK(x) \

@@ -10,11 +10,11 @@
 #include <gps.h>
 #include <hound/hound.h>
 #include <hound/driver/gps.h>
-#include <hound-private/api.h>
 #include <hound-private/driver.h>
 #include <hound-private/driver/util.h>
 #include <hound-private/error.h>
 #include <hound-private/log.h>
+#include <hound-private/util.h>
 #include <stdlib.h>
 #include <string.h>
 
