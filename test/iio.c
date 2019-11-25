@@ -10,6 +10,7 @@
 #include <float.h>
 #include <hound/driver/iio.h>
 #include <hound/hound.h>
+#include <hound-private/util.h>
 #include <hound-test/assert.h>
 #include <inttypes.h>
 #include <math.h>
@@ -18,7 +19,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#define NSEC_PER_SEC ((hound_data_period) 1e9)
 #define UNUSED __attribute__((unused))
 
 static

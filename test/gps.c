@@ -10,6 +10,7 @@
 #include <gps.h>
 #include <hound/driver/gps.h>
 #include <hound/hound.h>
+#include <hound-private/util.h>
 #include <hound-test/assert.h>
 #include <signal.h>
 #include <string.h>
@@ -17,7 +18,6 @@
 #define DUMP(fix, field, desc) \
     printf("%s: %g\n", desc, fix->field)
 
-#define NSEC_PER_SEC ((hound_data_period) 1e9)
 #define UNUSED __attribute__((unused))
 
 static volatile sig_atomic_t s_sig_pending = 0;

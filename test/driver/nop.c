@@ -10,6 +10,7 @@
 #include <hound/hound.h>
 #include <hound-private/driver.h>
 #include <hound-private/driver/util.h>
+#include <hound-private/util.h>
 #include <hound-test/assert.h>
 #include <hound-test/id.h>
 #include <string.h>
@@ -20,7 +21,6 @@
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 #define CTX_MAGIC ((void *) 0x1ceb00da)
-#define NSEC_PER_SEC (1e9)
 #define FD_INVALID (-1)
 #define UNUSED __attribute__((unused))
 

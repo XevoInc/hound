@@ -26,7 +26,6 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#define NSEC_PER_SEC ((uint64_t) 1e9)
 #define US_PER_SEC ((uint64_t) 1e6)
 #define FD_INVALID (-1)
 

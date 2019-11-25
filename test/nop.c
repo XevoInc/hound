@@ -1,5 +1,5 @@
 /**
- * @file      core.c
+ * @file      nop.c
  * @brief     Unit test for the core driver framework, using the no-op driver.
  * @author    Martin Kelly <mkelly@xevo.com>
  * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
@@ -8,6 +8,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <hound/hound.h>
+#include <hound-private/util.h>
 #include <hound-test/assert.h>
 #include <hound-test/id.h>
 #include <limits.h>
@@ -15,7 +16,6 @@
 #include <string.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
-#define NSEC_PER_SEC (1e9)
 
 extern hound_err register_nop_driver(const char *schema_base);
 

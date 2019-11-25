@@ -28,7 +28,6 @@
 #include <unistd.h>
 
 #define IIO_TOPDIR "/sys/bus/iio/devices"
-#define NSEC_PER_SEC ((hound_data_period) 1e9)
 #define FD_INVALID (-1)
 
 struct chan_desc {

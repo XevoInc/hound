@@ -26,8 +26,6 @@ static_assert(
     "we fix it at 4 bytes. Thus if the assumption of a 4-byte int ever "
     "changes, we will need code to handle it.");
 
-#define NSEC_PER_SEC ((uint64_t) 1e9)
-
 /* GPS always yields data once per second. */
 static hound_data_period s_avail_periods = NSEC_PER_SEC;
 static struct hound_datadesc s_datadesc = {
