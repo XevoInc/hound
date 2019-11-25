@@ -8,6 +8,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <hound/driver/can.h>
 #include <hound/hound.h>
+#include <hound-private/util.h>
 #include <hound-test/assert.h>
 #include <linux/can.h>
 #include <linux/limits.h>
@@ -16,8 +17,6 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <valgrind.h>
-
-#define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 
 struct frame_ctx {
     size_t pos;

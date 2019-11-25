@@ -18,9 +18,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 #define FD_INVALID (-1)
-#define UNUSED __attribute__((unused))
 
 #define READ_END (0)
 #define WRITE_END (1)

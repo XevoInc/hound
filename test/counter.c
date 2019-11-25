@@ -15,8 +15,6 @@
 #include <string.h>
 #include <valgrind.h>
 
-#define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
-
 extern hound_err register_counter_driver(
     const char *schema_base,
     size_t *count);

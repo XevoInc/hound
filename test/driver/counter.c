@@ -11,6 +11,7 @@
 #include <hound/hound.h>
 #include <hound-private/driver.h>
 #include <hound-private/driver/util.h>
+#include <hound-private/util.h>
 #include <hound-test/assert.h>
 #include <hound-test/id.h>
 #include <fcntl.h>
@@ -18,9 +19,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 #define FD_INVALID (-1)
-#define UNUSED __attribute__((unused))
 
 #define READ_END (0)
 #define WRITE_END (1)

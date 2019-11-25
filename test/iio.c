@@ -19,8 +19,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UNUSED __attribute__((unused))
-
 static
 void usage(const char **argv)
 {

@@ -18,8 +18,6 @@
 #define DUMP(fix, field, desc) \
     printf("%s: %g\n", desc, fix->field)
 
-#define UNUSED __attribute__((unused))
-
 static volatile sig_atomic_t s_sig_pending = 0;
 void sig_handler(int sig)
 {

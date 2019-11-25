@@ -15,8 +15,6 @@
 #include <linux/limits.h>
 #include <string.h>
 
-#define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
-
 extern hound_err register_nop_driver(const char *schema_base);
 
 void data_cb(const struct hound_record *rec, void *cb_ctx)

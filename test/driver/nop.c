@@ -19,10 +19,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 #define CTX_MAGIC ((void *) 0x1ceb00da)
 #define FD_INVALID (-1)
-#define UNUSED __attribute__((unused))
 
 static const char *s_device_name = "nop";
 static const hound_data_period s_nop1_period[] = {
