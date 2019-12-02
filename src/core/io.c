@@ -28,6 +28,11 @@
 #define POLL_BUF_SIZE (100*1024)
 #define POLL_HAS_DATA (POLLIN|POLLPRI)
 
+struct queue_entry {
+    hound_data_id id;
+    struct queue *queue;
+};
+
 /**
  * Provides the relevant information that the I/O system need to know about a
  * given fd (besides the fd value itself). This is stored separately from the
@@ -37,7 +42,7 @@
 struct fdctx {
     struct driver *drv;
     hound_seqno next_seqno;
-    xvec_t(struct queue *) queues;
+    xvec_t(struct queue_entry) queues;
 };
 
 static struct {
@@ -84,6 +89,7 @@ hound_err io_read(int fd, struct fdctx *ctx)
     ssize_t bytes_total;
     size_t bytes_left;
     const struct hound_record *end;
+    struct queue_entry *entry;
     hound_err err;
     size_t i;
     uint8_t *pos;
@@ -155,7 +161,10 @@ hound_err io_read(int fd, struct fdctx *ctx)
             atomic_ref_init(&rec_info->refcount, xv_size(ctx->queues));
 
             for (i = 0; i < xv_size(ctx->queues); ++i) {
-                queue_push(xv_A(ctx->queues, i), rec_info);
+                entry = &xv_A(ctx->queues, i);
+                if (record->data_id == entry->id) {
+                    queue_push(entry->queue, rec_info);
+                }
             }
         }
     }
@@ -395,46 +404,70 @@ void io_remove_fd(int fd)
     xv_destroy(ctx->queues);
 }
 
-hound_err io_add_queue(int fd, struct queue *queue)
+hound_err io_add_queue(
+    int fd,
+    const struct hound_data_rq_list *rq_list,
+    struct queue *queue)
 {
     struct fdctx *ctx;
+    struct queue_entry *entry;
+    hound_err err;
+    size_t i;
 
     ctx = get_fdctx(fd);
     XASSERT_NOT_NULL(ctx);
 
     io_pause_poll();
 
-    xv_push(struct queue *, ctx->queues, queue);
-    if (xv_data(ctx->queues) == NULL) {
-        /* Push failed to reallocate the queue. */
-        return HOUND_OOM;
+    err = HOUND_OK;
+    for (i = 0; i < rq_list->len; ++i) {
+        entry = xv_pushp(struct queue_entry, ctx->queues);
+        if (entry == NULL) {
+            err = HOUND_OOM;
+            for (--i; i < rq_list->len; --i) {
+                (void) xv_pop(ctx->queues);
+            }
+            goto out;
+        }
+        entry->id = rq_list->data[i].id;
+        entry->queue = queue;
     }
 
+out:
     io_resume_poll();
-
-    return HOUND_OK;
+    return err;
 }
 
-void io_remove_queue(int fd, struct queue *queue)
+void io_remove_queue(
+    int fd,
+    const struct hound_data_rq_list *rq_list,
+    struct queue *queue)
 {
     struct fdctx *ctx;
-    size_t index;
+    struct queue_entry *entry;
+    size_t i;
+    size_t j;
+    struct hound_data_rq *rq;
 
     ctx = get_fdctx(fd);
     XASSERT_NOT_NULL(ctx);
 
     io_pause_poll();
 
-    /* Find our queue. */
-    for (index = 0; index < xv_size(ctx->queues); ++index) {
-        if (xv_A(ctx->queues, index) == queue) {
-            break;
+    /* Remove all matching queue entries. */
+    for (i = 0; i < rq_list->len; ++i) {
+        rq = &rq_list->data[i];
+        for (j = 0; j < xv_size(ctx->queues); ++j) {
+            entry = &xv_A(ctx->queues, j);
+            if (rq->id != entry->id || queue != entry->queue) {
+                continue;
+            }
+            /* Remove the queue. */
+            RM_VEC_INDEX(ctx->queues, j);
         }
+        XASSERT_LT(j, xv_size(ctx->queues));
+        break;
     }
-    XASSERT_NEQ(index, xv_size(ctx->queues));
-
-    /* Remove the queue. */
-    RM_VEC_INDEX(ctx->queues, index);
 
     io_resume_poll();
 }
