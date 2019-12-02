@@ -19,6 +19,8 @@ void io_destroy(void);
 hound_err io_add_fd(int fd, struct driver *drv);
 void io_remove_fd(int fd);
 
+void io_set_sched_mode(int fd, drv_sched_mode mode);
+
 hound_err io_add_queue(
     int fd,
     const struct hound_data_rq_list *drv_data_list,

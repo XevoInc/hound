@@ -269,7 +269,12 @@ hound_err driver_register(
     }
 
     /* Get all the supported data for the driver. */
-    err = drv_op_datadesc(drv, &drv->data, &schemas, &drv->datacount);
+    err = drv_op_datadesc(
+        drv,
+        &drv->data,
+        &schemas,
+        &drv->datacount,
+        &drv->sched_mode);
     if (err != HOUND_OK) {
         goto error_datadesc;
     }

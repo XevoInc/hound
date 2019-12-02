@@ -758,7 +758,8 @@ static
 hound_err iio_datadesc(
     struct hound_datadesc **out,
     const char ***schemas,
-    hound_data_count *count)
+    hound_data_count *count,
+    drv_sched_mode *mode)
 {
     hound_data_period *avail_periods;
     const struct chan_desc *channels;
@@ -870,6 +871,7 @@ hound_err iio_datadesc(
             period_count * sizeof(*avail_periods));
     }
 
+    *mode = DRV_SCHED_PUSH;
     *out = desc;
     *count = desc_count;
     err = HOUND_OK;
@@ -1388,7 +1390,7 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
                 continue;
             }
             err = iio_set_period(
-                ctx->dev_dir, 
+                ctx->dev_dir,
                 entry->freqs_file,
                 period);
             if (err != HOUND_OK) {

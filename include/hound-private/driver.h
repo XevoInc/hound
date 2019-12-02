@@ -23,6 +23,11 @@
 
 typedef uint_least8_t hound_data_count;
 
+typedef enum {
+    DRV_SCHED_PULL,
+    DRV_SCHED_PUSH
+} drv_sched_mode;
+
 struct driver_ops {
     hound_err (*init)(void *data);
 
@@ -55,13 +60,15 @@ struct driver_ops {
      *                same as that of desc, and a schema and a given index
      *                matches the descriptor at the same index.
      * @param count the length of the array.
+     * @param mode the driver's scheduling mode
      *
      * @return an error code
      */
     hound_err (*datadesc)(
             struct hound_datadesc **desc,
             const char ***schemas,
-            hound_data_count *count);
+            hound_data_count *count,
+            drv_sched_mode *mode);
 
     hound_err (*setdata)(const struct hound_data_rq_list *data);
 

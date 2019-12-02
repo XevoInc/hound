@@ -99,7 +99,8 @@ static
 hound_err file_datadesc(
     struct hound_datadesc **out,
     const char ***schemas,
-    hound_data_count *count)
+    hound_data_count *count,
+    drv_sched_mode *mode)
 {
     struct hound_datadesc *desc;
     hound_err err;
@@ -127,6 +128,7 @@ hound_err file_datadesc(
         goto error_deepcopy;
     }
 
+    *mode = DRV_SCHED_PUSH;
     *out = desc;
     goto out;
 

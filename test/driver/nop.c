@@ -83,7 +83,8 @@ static
 hound_err nop_datadesc(
     struct hound_datadesc **out,
     const char ***schemas,
-    hound_data_count *count)
+    hound_data_count *count,
+    drv_sched_mode *mode)
 {
     struct hound_datadesc *desc;
     hound_err err;
@@ -114,6 +115,7 @@ hound_err nop_datadesc(
         (*schemas)[i] = "nop.yaml";
     }
 
+    *mode = DRV_SCHED_PUSH;
     *out = desc;
     return HOUND_OK;
 

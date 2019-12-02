@@ -25,14 +25,14 @@
 #define WRITE_END (1)
 
 static const char *s_device_name = "counter";
-static const hound_data_period s_period = 0;
 static const struct hound_datadesc s_datadesc = {
     .data_id = HOUND_DATA_COUNTER,
-    .period_count = 1,
-    .avail_periods = &s_period
+    .period_count = 0,
+    .avail_periods = NULL
 };
 
-int s_pipe[2] = { FD_INVALID, FD_INVALID };
+static int s_pipe[2] = { FD_INVALID, FD_INVALID };
+
 static uint64_t s_count;
 
 static
@@ -73,7 +73,8 @@ static
 hound_err counter_datadesc(
     struct hound_datadesc **out,
     const char ***schemas,
-    hound_data_count *count)
+    hound_data_count *count,
+    drv_sched_mode *mode)
 {
     struct hound_datadesc *desc;
     hound_err err;
@@ -101,6 +102,7 @@ hound_err counter_datadesc(
         goto error_deepcopy;
     }
 
+    *mode = DRV_SCHED_PULL;
     *out = desc;
     goto out;
 
@@ -113,7 +115,7 @@ out:
 }
 
 static
-hound_err counter_setdata(UNUSED const struct hound_data_rq_list *data)
+hound_err counter_setdata(UNUSED const struct hound_data_rq_list *rq_list)
 {
     return HOUND_OK;
 }
@@ -213,9 +215,11 @@ hound_err counter_stop(void)
 }
 
 static
-hound_err counter_next(UNUSED hound_data_id id)
+hound_err counter_next(hound_data_id id)
 {
     size_t written;
+
+    XASSERT_EQ(id, HOUND_DATA_COUNTER);
 
     written = write(s_pipe[WRITE_END], &s_count, sizeof(s_count));
     XASSERT_EQ(written, sizeof(s_count));

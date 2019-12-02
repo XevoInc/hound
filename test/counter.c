@@ -9,6 +9,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include <hound/hound.h>
+#include <hound-private/util.h>
 #include <hound-test/assert.h>
 #include <hound-test/id.h>
 #include <linux/limits.h>
@@ -21,22 +22,17 @@ extern hound_err register_counter_driver(
 extern void counter_zero(void);
 
 struct cb_ctx {
+    struct hound_ctx *ctx;
     hound_dev_id dev_id;
     uint64_t count;
     size_t seqno;
 };
 
-static void reset_counts(struct cb_ctx *ctx)
-{
-    counter_zero();
-    ctx->count = 0;
-}
-
 void data_cb(const struct hound_record *rec, void *cb_ctx)
 {
+    struct cb_ctx *ctx;
     const char *dev_name;
     hound_err err;
-    struct cb_ctx *ctx;
     int ret;
 
     XASSERT_NOT_NULL(rec);
@@ -69,13 +65,12 @@ void data_cb(const struct hound_record *rec, void *cb_ctx)
 int main(int argc, const char **argv)
 {
     size_t bytes_read;
-    struct hound_ctx *ctx;
     struct hound_datadesc *desc;
     hound_err err;
     size_t count_bytes;
     size_t count_records;
     struct hound_data_rq data_rq =
-        { .id = HOUND_DATA_COUNTER, .period_ns = 0 };
+        { .id = HOUND_DATA_COUNTER, .period_ns = NSEC_PER_SEC/10000 };
     const struct hound_data_fmt *fmt;
     size_t len;
     size_t records_read;
@@ -104,7 +99,7 @@ int main(int argc, const char **argv)
         total_records = 3;
     }
     else {
-        total_records = 4217;
+        total_records = 100;
     }
     total_bytes = total_records * sizeof(size_t);
 
@@ -112,16 +107,18 @@ int main(int argc, const char **argv)
     err = register_counter_driver(schema_base, &count_records);
     XASSERT_OK(err);
 
+    cb_ctx.count = 0;
     cb_ctx.seqno = 0;
-    rq.queue_len = total_records;
+    rq.queue_len = 100 * total_records;
     rq.cb = data_cb;
     rq.cb_ctx = &cb_ctx;
     rq.rq_list.len = 1;
     rq.rq_list.data = &data_rq;
-    hound_alloc_ctx(&ctx, &rq);
+    hound_alloc_ctx(&cb_ctx.ctx, &rq);
     XASSERT_OK(err);
+    XASSERT_NOT_NULL(cb_ctx.ctx);
 
-    err = hound_start(ctx);
+    err = hound_start(cb_ctx.ctx);
     XASSERT_OK(err);
 
     err = hound_get_datadesc(&desc, &len);
@@ -142,86 +139,69 @@ int main(int argc, const char **argv)
     hound_free_datadesc(desc);
 
     /* Do individual, sync reads. */
-    reset_counts(&cb_ctx);
     for (count_records = 0; count_records < total_records; ++count_records) {
-        err = hound_read(ctx, 1);
+        err = hound_read(cb_ctx.ctx, 1);
         XASSERT_OK(err);
     }
-    XASSERT_EQ(cb_ctx.count, count_records);
 
     /* Do one larger, sync read. */
-    reset_counts(&cb_ctx);
-    err = hound_read(ctx, total_records);
+    err = hound_read(cb_ctx.ctx, total_records);
     XASSERT_OK(err);
-    XASSERT_EQ(cb_ctx.count, count_records);
 
     /* Do single async reads. */
-    reset_counts(&cb_ctx);
-    err = hound_next(ctx, total_records);
-    XASSERT_OK(err);
     count_records = 0;
     while (count_records < total_records) {
         /*
          * A tight loop like this is not efficient, but it may help stress the
          * multithreaded code.
          */
-        err = hound_read_nowait(ctx, 1, &records_read);
+        err = hound_read_nowait(cb_ctx.ctx, 1, &records_read);
         XASSERT_OK(err);
         count_records += records_read;
     }
-    XASSERT_EQ(cb_ctx.count, count_records);
+    XASSERT_EQ(count_records, total_records);
 
     /* Do large async reads. */
-    reset_counts(&cb_ctx);
-    for (count_records = 0; count_records < total_records; ++count_records) {
-        hound_next(ctx, 1);
-        XASSERT_OK(err);
-    }
     count_records = 0;
     while (count_records < total_records) {
-        err = hound_read_nowait(ctx, total_records, &records_read);
+        err = hound_read_nowait(
+            cb_ctx.ctx,
+            total_records - count_records,
+            &records_read);
         XASSERT_OK(err);
         count_records += records_read;
     }
     XASSERT_EQ(count_records, total_records);
-    XASSERT_EQ(cb_ctx.count, count_records);
 
     /* Read all at once. */
-    reset_counts(&cb_ctx);
-    err = hound_next(ctx, total_records);
-    XASSERT_OK(err);
     count_records = 0;
     while (count_records < total_records) {
-        err = hound_read_all_nowait(ctx, &records_read);
+        err = hound_read_all_nowait(cb_ctx.ctx, &records_read);
         XASSERT_OK(err);
         count_records += records_read;
     }
-    XASSERT_EQ(count_records, total_records);
-    XASSERT_EQ(cb_ctx.count, count_records);
+    XASSERT_GTE(count_records, total_records);
 
     /* Do async byte reads. */
-    reset_counts(&cb_ctx);
-    hound_next(ctx, total_records);
     count_bytes = 0;
     count_records = 0;
     while (count_bytes < total_bytes) {
         err = hound_read_bytes_nowait(
-            ctx,
-            total_bytes,
+            cb_ctx.ctx,
+            total_bytes - count_bytes,
             &records_read,
             &bytes_read);
         XASSERT_OK(err);
         count_records += records_read;
         count_bytes += bytes_read;
     }
-    XASSERT_EQ(count_bytes, total_bytes);
-    XASSERT_EQ(count_records, total_records);
-    XASSERT_EQ(cb_ctx.count, total_records);
+    XASSERT_EQ(count_bytes, total_bytes)
+    XASSERT_GTE(count_records, total_records);
 
-    err = hound_stop(ctx);
+    err = hound_stop(cb_ctx.ctx);
     XASSERT_OK(err);
 
-    hound_free_ctx(ctx);
+    hound_free_ctx(cb_ctx.ctx);
     XASSERT_OK(err);
 
     err = hound_unregister_driver("/dev/counter");
