@@ -68,8 +68,11 @@ int main(int argc, const char **argv)
     hound_err err;
     size_t count_bytes;
     size_t count_records;
-    struct hound_data_rq data_rq =
-        { .id = HOUND_DATA_COUNTER, .period_ns = NSEC_PER_SEC/10000 };
+    struct hound_data_rq rq_list[] =
+        {
+            {.id = HOUND_DATA_COUNTER, .period_ns = NSEC_PER_SEC/10000},
+            {.id = HOUND_DATA_COUNTER, .period_ns = NSEC_PER_SEC/1000}
+        };
     const struct hound_data_fmt *fmt;
     size_t len;
     size_t records_read;
@@ -112,8 +115,8 @@ int main(int argc, const char **argv)
     rq.queue_len = 100 * total_records;
     rq.cb = data_cb;
     rq.cb_ctx = &cb_ctx;
-    rq.rq_list.len = 1;
-    rq.rq_list.data = &data_rq;
+    rq.rq_list.len = ARRAYLEN(rq_list);
+    rq.rq_list.data = rq_list;
     err = hound_alloc_ctx(&cb_ctx.ctx, &rq);
     XASSERT_OK(err);
     XASSERT_NOT_NULL(cb_ctx.ctx);

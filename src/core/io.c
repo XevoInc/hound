@@ -28,11 +28,15 @@
 #define POLL_BUF_SIZE (100*1024)
 #define POLL_HAS_DATA (POLLIN|POLLPRI)
 
+struct pull_timing_entry {
+    hound_data_id id;
+    hound_data_period current_timeout;
+    hound_data_period max_timeout;
+};
+
 struct queue_entry {
     hound_data_id id;
     struct queue *queue;
-    hound_data_period current_timeout;
-    hound_data_period max_timeout;
 };
 
 /**
@@ -44,6 +48,7 @@ struct queue_entry {
 struct fdctx {
     struct driver *drv;
     hound_seqno next_seqno;
+    xvec_t(struct pull_timing_entry) timings;
     xvec_t(struct queue_entry) queues;
 };
 
@@ -224,7 +229,6 @@ void *io_poll(UNUSED void *data)
 {
     struct sigaction action;
     struct fdctx *ctx;
-    struct queue_entry *entry;
     hound_err err;
     size_t i;
     size_t j;
@@ -236,6 +240,7 @@ void *io_poll(UNUSED void *data)
     struct timespec *timeout;
     struct timespec timeout_spec;
     hound_data_period time_since_last_poll;
+    struct pull_timing_entry *timing_entry;
 
     /*
      * Set a dummy action for PAUSE_SIGNAL just so that we can interrupt system
@@ -262,9 +267,11 @@ void *io_poll(UNUSED void *data)
             for (i = 0; i < xv_size(s_ios.pull_mode_indices); ++i) {
                 ctx = &xv_A(s_ios.ctx, i);
 
-                for (j = 0; j < xv_size(ctx->queues); ++j) {
-                    entry = &xv_A(ctx->queues, j);
-                    min_timeout = min(min_timeout, entry->current_timeout);
+                for (j = 0; j < xv_size(ctx->timings); ++j) {
+                    timing_entry = &xv_A(ctx->timings, j);
+                    min_timeout = min(
+                        min_timeout,
+                        timing_entry->current_timeout);
                 }
             }
             populate_timespec(min_timeout, &timeout_spec);
@@ -301,28 +308,30 @@ void *io_poll(UNUSED void *data)
             time_since_last_poll = now - s_ios.last_poll_ns;
             for (i = 0; i < xv_size(s_ios.pull_mode_indices); ++i) {
                 ctx = &xv_A(s_ios.ctx, i);
-                for (j = 0; j < xv_size(ctx->queues); ++j) {
-                    entry = &xv_A(ctx->queues, j);
-                    if (time_since_last_poll >= entry->current_timeout) {
+                for (j = 0; j < xv_size(ctx->timings); ++j) {
+                    timing_entry = &xv_A(ctx->timings, j);
+                    if (time_since_last_poll >= timing_entry->current_timeout) {
                         /* Driver is ready to pull data. */
-                        lateness = time_since_last_poll - entry->current_timeout;
-                        err = drv_op_next(ctx->drv, entry->id);
+                        lateness =
+                            time_since_last_poll - timing_entry->current_timeout;
+                        err = drv_op_next(ctx->drv, timing_entry->id);
                         if (err != HOUND_OK) {
                             hound_log_err(
                                 err,
                                 "driver %p failed to pull data",
                                 (void *) ctx->drv);
                         }
-                        if (lateness >= entry->max_timeout) {
+                        if (lateness >= timing_entry->max_timeout) {
                             /* We were so late that the driver is ready again. */
-                            entry->current_timeout = 0;
+                            timing_entry->current_timeout = 0;
                         }
                         else {
-                            entry->current_timeout = entry->max_timeout - lateness;
+                            timing_entry->current_timeout =
+                                timing_entry->max_timeout - lateness;
                         }
                     }
                     else {
-                        entry->current_timeout -= time_since_last_poll;
+                        timing_entry->current_timeout -= time_since_last_poll;
                     }
                 }
             }
@@ -463,6 +472,7 @@ hound_err io_add_fd(int fd, struct driver *drv)
     }
     ctx->drv = drv;
     ctx->next_seqno = 0;
+    xv_init(ctx->timings);
     xv_init(ctx->queues);
 
     if (drv->sched_mode == DRV_SCHED_PULL) {
@@ -517,6 +527,7 @@ void io_remove_fd(int fd)
 
     io_resume_poll();
 
+    xv_destroy(ctx->timings);
     xv_destroy(ctx->queues);
 }
 
@@ -529,7 +540,10 @@ hound_err io_add_queue(
     struct queue_entry *entry;
     hound_err err;
     size_t i;
+    size_t j;
+    size_t queue_count;
     struct hound_data_rq *rq;
+    struct pull_timing_entry *timing_entry;
 
     ctx = get_fdctx(fd);
     XASSERT_NOT_NULL(ctx);
@@ -537,18 +551,35 @@ hound_err io_add_queue(
     io_pause_poll();
 
     err = HOUND_OK;
+    queue_count = 0;
     for (i = 0; i < rq_list->len; ++i) {
-        entry = xv_pushp(struct queue_entry, ctx->queues);
-        if (entry == NULL) {
-            err = HOUND_OOM;
-            for (--i; i < rq_list->len; --i) {
-                (void) xv_pop(ctx->queues);
-            }
-            goto out;
-        }
+        /*
+         * Add exactly one queue entry per data ID in this request. If we add
+         * more than one queue entry, then the same record will get delivered
+         * twice to the same queue, which should never happen. Note two
+         * *different* user contexts can still have queue entries for the same
+         * data ID, but the same data ID in *a single user context* should
+         * result in just one queue entry.
+         */
         rq = &rq_list->data[i];
-        entry->id = rq->id;
-        entry->queue = queue;
+        for (j = 0; j < i; ++j) {
+            if (rq->id == rq_list->data[j].id) {
+                /* We already added a queue entry, so don't add another. */
+                break;
+            }
+        }
+        if (j == i) {
+            /* We haven't yet added a queue entry for this data ID. */
+            entry = xv_pushp(struct queue_entry, ctx->queues);
+            if (entry == NULL) {
+                err = HOUND_OOM;
+                goto out;
+            }
+            entry->id = rq->id;
+            entry->queue = queue;
+            ++queue_count;
+        }
+
         if (ctx->drv->sched_mode == DRV_SCHED_PULL) {
             /*
              * Push-mode doesn't need timeout data, as the driver manages the
@@ -560,13 +591,23 @@ hound_err io_add_queue(
                  * all other data producers and is almost certainly a mistake.
                  */
                 err = HOUND_PERIOD_UNSUPPORTED;
-                for (; i < rq_list->len; --i) {
+                for (j = 0; j < queue_count; ++j) {
                     (void) xv_pop(ctx->queues);
                     goto out;
                 }
             }
-            entry->current_timeout = rq->period_ns;
-            entry->max_timeout = rq->period_ns;
+
+            timing_entry = xv_pushp(struct pull_timing_entry, ctx->timings);
+            if (timing_entry == NULL) {
+                err = HOUND_OOM;
+                for (j = 0; j < queue_count; ++j) {
+                    (void) xv_pop(ctx->queues);
+                    goto out;
+                }
+            }
+            timing_entry->id = entry->id;
+            timing_entry->current_timeout = rq->period_ns;
+            timing_entry->max_timeout = rq->period_ns;
         }
     }
 

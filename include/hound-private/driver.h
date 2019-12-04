@@ -200,6 +200,7 @@ hound_err driver_unref(
     const struct hound_data_rq_list *data_rq_list);
 
 hound_err driver_get(hound_data_id id, struct driver **drv);
+drv_sched_mode driver_get_sched_mode(const struct driver *drv);
 
 bool driver_period_supported(
     struct driver *drv,

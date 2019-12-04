@@ -95,18 +95,28 @@ hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
     /* Are the data IDs all valid? */
     for (i = 0; i < list->len; ++i) {
         data_rq = &list->data[i];
-        /* We should not see the same data ID more than once in a request. */
-        for (j = 0; j < i; ++j) {
-            if (data_rq->id == list->data[j].id) {
-                err = HOUND_DUPLICATE_DATA_REQUESTED;
-                goto out;
-            }
-        }
 
         err = driver_get(data_rq->id, &drv);
         if (err != HOUND_OK) {
             goto out;
         }
+
+        for (j = 0; j < i; ++j) {
+            if (data_rq->id == list->data[j].id) {
+                if (data_rq->period_ns == list->data[j].period_ns ||
+                    driver_get_sched_mode(drv) == DRV_SCHED_PUSH) {
+                    /*
+                     * Push-mode drivers can push data at only one rate, so this is
+                     * an error. Pull-mode drivers can handle the same data at
+                     * multiple frequencies without issue, but the exact same ID
+                     * and frequency should still not be requested.
+                     */
+                    err = HOUND_DUPLICATE_DATA_REQUESTED;
+                    goto out;
+                }
+            }
+        }
+
         if (!driver_period_supported(drv, data_rq->id, data_rq->period_ns)) {
             err = HOUND_PERIOD_UNSUPPORTED;
             goto out;

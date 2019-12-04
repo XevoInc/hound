@@ -474,7 +474,8 @@ size_t get_active_data_index(
 
     for (i = 0; i < xv_size(drv->active_data); ++i) {
         data = &xv_A(drv->active_data, i);
-        if (data->data->id == drv_data->id) {
+        if (data->data->id == drv_data->id &&
+            data->data->period_ns == drv_data->period_ns) {
             *found = true;
             return i;
         }
@@ -490,7 +491,7 @@ hound_err push_drv_data(struct driver *drv, struct hound_data_rq *drv_data)
     struct data *data;
 
     data = xv_pushp(struct data, drv->active_data);
-    if (xv_data(drv->active_data) == NULL) {
+    if (data == NULL) {
         hound_log_err(
             HOUND_OOM,
             "Failed to push drv data onto active data list",
@@ -552,11 +553,6 @@ hound_err driver_ref(
         index = get_active_data_index(drv, rq, &found);
         if (found) {
             data = &xv_A(drv->active_data, index);
-            /*
-             * We can assert this because ctx_alloc should have failed if the
-             * periods did not match.
-             */
-            XASSERT_EQ(data->data->period_ns, rq->period_ns);
             ++data->refcount;
         }
         else {
@@ -755,6 +751,17 @@ hound_err driver_get(hound_data_id data_id, struct driver **drv)
 out:
     pthread_rwlock_unlock(&s_driver_rwlock);
     return err;
+}
+
+drv_sched_mode driver_get_sched_mode(const struct driver *drv)
+{
+    drv_sched_mode mode;
+
+    pthread_rwlock_rdlock(&s_driver_rwlock);
+    mode = drv->sched_mode;
+    pthread_rwlock_unlock(&s_driver_rwlock);
+
+    return mode;
 }
 
 bool driver_period_supported(
