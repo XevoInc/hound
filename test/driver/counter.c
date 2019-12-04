@@ -220,11 +220,6 @@ hound_err counter_next(hound_data_id id)
 	return HOUND_OK;
 }
 
-void counter_zero(void)
-{
-    s_count = 0;
-}
-
 static struct driver_ops counter_driver = {
     .init = counter_init,
     .destroy = counter_destroy,

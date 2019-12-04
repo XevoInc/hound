@@ -19,7 +19,6 @@
 extern hound_err register_counter_driver(
     const char *schema_base,
     size_t *count);
-extern void counter_zero(void);
 
 struct cb_ctx {
     struct hound_ctx *ctx;
