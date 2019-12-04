@@ -113,7 +113,7 @@ int main(int argc, const char **argv)
     rq.cb_ctx = &cb_ctx;
     rq.rq_list.len = 1;
     rq.rq_list.data = &data_rq;
-    hound_alloc_ctx(&cb_ctx.ctx, &rq);
+    err = hound_alloc_ctx(&cb_ctx.ctx, &rq);
     XASSERT_OK(err);
     XASSERT_NOT_NULL(cb_ctx.ctx);
 
