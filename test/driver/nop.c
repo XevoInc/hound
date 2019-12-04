@@ -19,7 +19,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define CTX_MAGIC ((void *) 0x1ceb00da)
 #define FD_INVALID (-1)
 
 static const char *s_device_name = "nop";
@@ -44,15 +43,22 @@ static const struct hound_datadesc s_datadesc[] = {
         .avail_periods = s_nop2_period
     }
 };
-static int s_fd = FD_INVALID;
+
+struct nop_ctx {
+    int fd;
+};
 
 hound_err nop_init(UNUSED void *data)
 {
-    void *ctx;
+    struct nop_ctx *ctx;
 
-    ctx = drv_ctx();
-    XASSERT_NULL(ctx);
-    drv_set_ctx(CTX_MAGIC);
+    ctx = malloc(sizeof(*ctx));
+    if (ctx == NULL) {
+        return HOUND_OOM;
+    }
+    ctx->fd = FD_INVALID;
+
+    drv_set_ctx(ctx);
 
     return HOUND_OK;
 }
@@ -60,6 +66,8 @@ hound_err nop_init(UNUSED void *data)
 static
 hound_err nop_destroy(void)
 {
+    free(drv_ctx());
+
     return HOUND_OK;
 }
 
@@ -137,16 +145,11 @@ hound_err nop_parse(
     struct hound_record *records,
     size_t *record_count)
 {
-    void *ctx;
-
     XASSERT_NOT_NULL(buf);
     XASSERT_NOT_NULL(bytes);
     XASSERT_EQ(*bytes, 0);
     XASSERT_NOT_NULL(records);
     XASSERT_NOT_NULL(record_count);
-
-    ctx = drv_ctx();
-    XASSERT_EQ(ctx, CTX_MAGIC);
 
     *record_count = 0;
 
@@ -156,16 +159,15 @@ hound_err nop_parse(
 static
 hound_err nop_start(int *fd)
 {
-    void *ctx;
+    struct nop_ctx *ctx;
 
-    XASSERT_EQ(s_fd, FD_INVALID);
-    s_fd = open("/dev/null", 0);
-    XASSERT_NEQ(s_fd, -1);
-    *fd = s_fd;
-
-    /* Make sure the context we set in init is still set. */
     ctx = drv_ctx();
-    XASSERT_EQ(ctx, CTX_MAGIC);
+    XASSERT_NOT_NULL(ctx);
+
+    XASSERT_EQ(ctx->fd, FD_INVALID);
+    ctx->fd = open("/dev/null", 0);
+    XASSERT_NEQ(ctx->fd, -1);
+    *fd = ctx->fd;
 
     return HOUND_OK;
 }
@@ -179,11 +181,16 @@ hound_err nop_next(UNUSED hound_data_id id)
 static
 hound_err nop_stop(void)
 {
+    struct nop_ctx *ctx;
     hound_err err;
 
-    XASSERT_NEQ(s_fd, FD_INVALID);
-    err = close(s_fd);
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
+
+    XASSERT_NEQ(ctx->fd, FD_INVALID);
+    err = close(ctx->fd);
     XASSERT_NEQ(err, -1);
+    ctx->fd = FD_INVALID;
 
     return HOUND_OK;
 }
