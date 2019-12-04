@@ -25,7 +25,6 @@
 
 static const char *s_device_name = "file";
 static hound_data_period s_period_ns = 0;
-static char s_filepath[PATH_MAX];
 static struct hound_datadesc s_datadesc = {
     .data_id = HOUND_DATA_FILE,
     .period_count = 1,
@@ -33,19 +32,28 @@ static struct hound_datadesc s_datadesc = {
 };
 
 
-static int s_fd;
-static int s_pipe[2];
-static char s_file_buf[4096];
+struct file_ctx {
+    char filepath[PATH_MAX];
+    int fd;
+    int pipe[2];
+    char buf[4096];
+};
 
 static
 hound_err file_init(void *data)
 {
+    struct file_ctx *ctx;
     const char *filepath;
 
     if (data == NULL) {
         return HOUND_NULL_VAL;
     }
     filepath = data;
+
+    ctx = malloc(sizeof(*ctx));
+    if (ctx == NULL) {
+        return HOUND_OOM;
+    }
 
     /*
      * PATH_MAX includes '\0', so if the len is PATH_MAX, then no '\0' character
@@ -54,10 +62,12 @@ hound_err file_init(void *data)
     if (strnlen(filepath, PATH_MAX) == PATH_MAX) {
         return HOUND_INVALID_STRING;
     }
-    strcpy(s_filepath, filepath);
-    s_fd = FD_INVALID;
-    s_pipe[READ_END] = FD_INVALID;
-    s_pipe[WRITE_END] = FD_INVALID;
+    strcpy(ctx->filepath, filepath);
+    ctx->fd = FD_INVALID;
+    ctx->pipe[READ_END] = FD_INVALID;
+    ctx->pipe[WRITE_END] = FD_INVALID;
+
+    drv_set_ctx(ctx);
 
     return HOUND_OK;
 }
@@ -65,7 +75,7 @@ hound_err file_init(void *data)
 static
 hound_err file_destroy(void)
 {
-    memset(s_filepath, '\0', sizeof(s_filepath));
+    free(drv_ctx());
 
     return HOUND_OK;
 }
@@ -180,51 +190,59 @@ static
 hound_err file_next(hound_data_id id)
 {
     ssize_t bytes;
+    struct file_ctx *ctx;
+
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
 
     XASSERT_EQ(id, HOUND_DATA_FILE);
 
-	bytes = read(s_fd, s_file_buf, ARRAYLEN(s_file_buf));
-	XASSERT_NEQ(bytes, -1);
-	if (bytes == 0) {
-		/* End of file. */
-		return HOUND_OK;
-	}
+    bytes = read(ctx->fd, ctx->buf, ARRAYLEN(ctx->buf));
+    XASSERT_NEQ(bytes, -1);
+    if (bytes == 0) {
+        /* End of file. */
+        return HOUND_OK;
+    }
 
-	bytes = write(s_pipe[WRITE_END], s_file_buf, bytes);
-	XASSERT_NEQ(bytes, -1);
+    bytes = write(ctx->pipe[WRITE_END], ctx->buf, bytes);
+    XASSERT_NEQ(bytes, -1);
 
-	return HOUND_OK;
+    return HOUND_OK;
 }
 
 static
 hound_err file_start(int *out_fd)
 {
+    struct file_ctx *ctx;
     hound_err err;
 
-    XASSERT_NOT_NULL(out_fd);
-    XASSERT_EQ(s_pipe[READ_END], FD_INVALID);
-    XASSERT_EQ(s_pipe[WRITE_END], FD_INVALID);
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
 
-    err = open(s_filepath, 0, O_RDONLY);
+    XASSERT_NOT_NULL(out_fd);
+    XASSERT_EQ(ctx->pipe[READ_END], FD_INVALID);
+    XASSERT_EQ(ctx->pipe[WRITE_END], FD_INVALID);
+
+    err = open(ctx->filepath, 0, O_RDONLY);
     if (err == -1) {
         err = errno;
         goto out;
     }
-    s_fd = err;
+    ctx->fd = err;
 
-    err = pipe(s_pipe);
+    err = pipe(ctx->pipe);
     if (err == -1) {
         goto error_pipe_fail;
     }
 
-    *out_fd = s_pipe[READ_END];
+    *out_fd = ctx->pipe[READ_END];
     err = HOUND_OK;
 
     goto out;
 
 error_pipe_fail:
-    close(s_fd);
-    s_fd = FD_INVALID;
+    close(ctx->fd);
+    ctx->fd = FD_INVALID;
 out:
     return err;
 }
@@ -232,13 +250,17 @@ out:
 static
 hound_err file_stop(void)
 {
+    struct file_ctx *ctx;
     hound_err err;
 
-    XASSERT_NEQ(s_fd, FD_INVALID);
-    XASSERT_NEQ(s_pipe[READ_END], FD_INVALID);
-    XASSERT_NEQ(s_pipe[WRITE_END], FD_INVALID);
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
 
-    err = close(s_fd);
+    XASSERT_NEQ(ctx->fd, FD_INVALID);
+    XASSERT_NEQ(ctx->pipe[READ_END], FD_INVALID);
+    XASSERT_NEQ(ctx->pipe[WRITE_END], FD_INVALID);
+
+    err = close(ctx->fd);
     if (err != -1) {
         return err;
     }
@@ -254,7 +276,7 @@ static struct driver_ops file_driver = {
     .setdata = file_setdata,
     .parse = file_parse,
     .start = file_start,
-	.next = file_next,
+    .next = file_next,
     .stop = file_stop
 };
 
@@ -263,5 +285,5 @@ hound_err hound_register_file_driver(
     const char *filepath,
     const char *schema_base)
 {
-	return driver_register(filepath, &file_driver, schema_base, (void *) filepath);
+    return driver_register(filepath, &file_driver, schema_base, (void *) filepath);
 }
