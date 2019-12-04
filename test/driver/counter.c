@@ -31,17 +31,29 @@ static const struct hound_datadesc s_datadesc = {
     .avail_periods = NULL
 };
 
-static int s_pipe[2] = { FD_INVALID, FD_INVALID };
-
-static uint64_t s_count;
+struct counter_ctx {
+    int pipe[2];
+    uint64_t count;
+};
 
 static
 hound_err counter_init(void *data)
 {
+    struct counter_ctx *ctx;
+
     if (data == NULL) {
         return HOUND_NULL_VAL;
     }
-    s_count = *((__typeof__(s_count) *) data);
+
+    ctx = malloc(sizeof(*ctx));
+    if (ctx == NULL) {
+        return HOUND_OOM;
+    }
+    ctx->pipe[READ_END] = FD_INVALID;
+    ctx->pipe[WRITE_END] = FD_INVALID;
+    ctx->count = *((__typeof__(ctx->count) *) data);
+
+    drv_set_ctx(ctx);
 
     return HOUND_OK;
 }
@@ -49,6 +61,8 @@ hound_err counter_init(void *data)
 static
 hound_err counter_destroy(void)
 {
+    free(drv_ctx());
+
     return HOUND_OK;
 }
 
@@ -119,6 +133,7 @@ hound_err counter_parse(
     size_t *record_count)
 {
     size_t count;
+    struct counter_ctx *ctx;
     hound_err err;
     size_t i;
     struct hound_record *record;
@@ -129,12 +144,15 @@ hound_err counter_parse(
     XASSERT_GT(*bytes, 0);
     XASSERT_NOT_NULL(records);
 
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
+
     /* We write full counts, so we should not get partial reads. */
-    if (*bytes % sizeof(s_count) != 0) {
+    if (*bytes % sizeof(ctx->count) != 0) {
         return HOUND_DRIVER_FAIL;
     }
 
-    count = *bytes / sizeof(s_count);
+    count = *bytes / sizeof(ctx->count);
     if (count > HOUND_DRIVER_MAX_RECORDS) {
         count = HOUND_DRIVER_MAX_RECORDS;
     }
@@ -142,7 +160,7 @@ hound_err counter_parse(
     pos = buf;
     for (i = 0; i < count; ++i) {
         record = &records[i];
-        record->data = drv_alloc(sizeof(s_count));
+        record->data = drv_alloc(sizeof(ctx->count));
         if (record->data == NULL) {
             err = HOUND_OOM;
             goto error_drv_alloc;
@@ -152,13 +170,13 @@ hound_err counter_parse(
         err = clock_gettime(CLOCK_REALTIME, &record->timestamp);
         XASSERT_EQ(err, 0);
         record->data_id = s_datadesc.data_id;
-        record->size = sizeof(s_count);
-        memcpy(record->data, pos, sizeof(s_count));
-        pos += sizeof(s_count);
+        record->size = sizeof(ctx->count);
+        memcpy(record->data, pos, sizeof(ctx->count));
+        pos += sizeof(ctx->count);
     }
 
     *record_count = count;
-    *bytes -= count * sizeof(s_count);
+    *bytes -= count * sizeof(ctx->count);
 
     return HOUND_OK;
 
@@ -172,16 +190,20 @@ error_drv_alloc:
 static
 hound_err counter_start(int *fd)
 {
+    struct counter_ctx *ctx;
     hound_err err;
 
-    XASSERT_EQ(s_pipe[READ_END], FD_INVALID);
-    XASSERT_EQ(s_pipe[WRITE_END], FD_INVALID);
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
 
-    err = pipe(s_pipe);
+    XASSERT_EQ(ctx->pipe[READ_END], FD_INVALID);
+    XASSERT_EQ(ctx->pipe[WRITE_END], FD_INVALID);
+
+    err = pipe(ctx->pipe);
     if (err != 0) {
         return err;
     }
-    *fd = s_pipe[READ_END];
+    *fd = ctx->pipe[READ_END];
 
     return HOUND_OK;
 }
@@ -189,18 +211,22 @@ hound_err counter_start(int *fd)
 static
 hound_err counter_stop(void)
 {
+    struct counter_ctx *ctx;
     hound_err err;
 
-    XASSERT_NEQ(s_pipe[READ_END], FD_INVALID);
-    XASSERT_NEQ(s_pipe[WRITE_END], FD_INVALID);
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
 
-    err = close(s_pipe[READ_END]);
+    XASSERT_NEQ(ctx->pipe[READ_END], FD_INVALID);
+    XASSERT_NEQ(ctx->pipe[WRITE_END], FD_INVALID);
+
+    err = close(ctx->pipe[READ_END]);
     XASSERT_EQ(err, 0);
-    err = close(s_pipe[WRITE_END]);
+    err = close(ctx->pipe[WRITE_END]);
     XASSERT_EQ(err, 0);
 
-    s_pipe[READ_END] = FD_INVALID;
-    s_pipe[WRITE_END] = FD_INVALID;
+    ctx->pipe[READ_END] = FD_INVALID;
+    ctx->pipe[WRITE_END] = FD_INVALID;
 
     return HOUND_OK;
 }
@@ -208,14 +234,18 @@ hound_err counter_stop(void)
 static
 hound_err counter_next(hound_data_id id)
 {
+    struct counter_ctx *ctx;
     size_t written;
+
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
 
     XASSERT_EQ(id, HOUND_DATA_COUNTER);
 
-    written = write(s_pipe[WRITE_END], &s_count, sizeof(s_count));
-    XASSERT_EQ(written, sizeof(s_count));
+    written = write(ctx->pipe[WRITE_END], &ctx->count, sizeof(ctx->count));
+    XASSERT_EQ(written, sizeof(ctx->count));
 
-    ++s_count;
+    ++ctx->count;
 
 	return HOUND_OK;
 }
