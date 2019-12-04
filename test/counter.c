@@ -108,6 +108,7 @@ int main(int argc, const char **argv)
 
     cb_ctx.count = 0;
     cb_ctx.seqno = 0;
+    cb_ctx.ctx = NULL;
     rq.queue_len = 100 * total_records;
     rq.cb = data_cb;
     rq.cb_ctx = &cb_ctx;
