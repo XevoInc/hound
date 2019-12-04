@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <hound/hound.h>
 #include <hound-test/assert.h>
+#include <hound-test/id.h>
 #include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +19,8 @@
 #include <unistd.h>
 
 extern hound_err hound_register_file_driver(
-    const char *filepath, const char *schema_base, hound_data_id id);
+    const char *filepath,
+    const char *schema_base);
 
 struct text {
     char *data;
@@ -79,7 +81,7 @@ int main(int argc, const char **argv)
     const char *schema_base;
     struct text text;
     size_t total_count;
-    struct hound_data_rq data_rq = { .id = HOUND_DATA_ACCEL };
+    struct hound_data_rq data_rq = { .id = HOUND_DATA_FILE };
     struct hound_rq rq = {
         .queue_len = 100,
         .cb = data_cb,
@@ -105,7 +107,7 @@ int main(int argc, const char **argv)
     }
     filepath = argv[2];
 
-    err = hound_register_file_driver(filepath, schema_base, data_rq.id);
+    err = hound_register_file_driver(filepath, schema_base);
     XASSERT_OK(err);
 
     err = hound_alloc_ctx(&ctx, &rq);

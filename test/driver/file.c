@@ -23,14 +23,9 @@
 #define READ_END (0)
 #define WRITE_END (1)
 
-struct driver_init {
-    const char *filepath;
-    hound_data_id data_id;
-};
-
 static const char *s_device_name = "file";
 static hound_data_period s_period_ns = 0;
-static const char *s_filepath = NULL;
+static char s_filepath[PATH_MAX];
 static struct hound_datadesc s_datadesc = {
     .data_id = HOUND_DATA_FILE,
     .period_count = 1,
@@ -45,22 +40,21 @@ static char s_file_buf[4096];
 static
 hound_err file_init(void *data)
 {
-    struct driver_init *init;
+    const char *filepath;
 
     if (data == NULL) {
         return HOUND_NULL_VAL;
     }
-    init = data;
+    filepath = data;
 
     /*
      * PATH_MAX includes '\0', so if the len is PATH_MAX, then no '\0' character
      * was found.
      */
-    if (strnlen(init->filepath, PATH_MAX) == PATH_MAX) {
+    if (strnlen(filepath, PATH_MAX) == PATH_MAX) {
         return HOUND_INVALID_STRING;
     }
-    s_filepath = init->filepath;
-    s_datadesc.data_id = init->data_id;
+    strcpy(s_filepath, filepath);
     s_fd = FD_INVALID;
     s_pipe[READ_END] = FD_INVALID;
     s_pipe[WRITE_END] = FD_INVALID;
@@ -71,7 +65,7 @@ hound_err file_init(void *data)
 static
 hound_err file_destroy(void)
 {
-    s_filepath = NULL;
+    memset(s_filepath, '\0', sizeof(s_filepath));
 
     return HOUND_OK;
 }
@@ -183,9 +177,11 @@ hound_err file_parse(
 }
 
 static
-hound_err file_next(UNUSED hound_data_id id)
+hound_err file_next(hound_data_id id)
 {
     ssize_t bytes;
+
+    XASSERT_EQ(id, HOUND_DATA_FILE);
 
 	bytes = read(s_fd, s_file_buf, ARRAYLEN(s_file_buf));
 	XASSERT_NEQ(bytes, -1);
@@ -265,12 +261,7 @@ static struct driver_ops file_driver = {
 PUBLIC_API
 hound_err hound_register_file_driver(
     const char *filepath,
-    const char *schema_base,
-    hound_data_id id)
+    const char *schema_base)
 {
-	struct driver_init init;
-
-	init.filepath = filepath;
-	init.data_id = id;
-	return driver_register(filepath, &file_driver, schema_base, &init);
+	return driver_register(filepath, &file_driver, schema_base, (void *) filepath);
 }
