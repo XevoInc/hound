@@ -77,15 +77,6 @@ hound_err file_destroy(void)
 }
 
 static
-hound_err file_reset(void *data)
-{
-    file_destroy();
-    file_init(data);
-
-    return HOUND_OK;
-}
-
-static
 hound_err file_device_name(char *device_name)
 {
     XASSERT_NOT_NULL(device_name);
@@ -262,7 +253,6 @@ hound_err file_stop(void)
 static struct driver_ops file_driver = {
     .init = file_init,
     .destroy = file_destroy,
-    .reset = file_reset,
     .device_name = file_device_name,
     .datadesc = file_datadesc,
     .setdata = file_setdata,

@@ -576,27 +576,9 @@ hound_err can_stop(void)
     return err;
 }
 
-static
-hound_err can_reset(void *data)
-{
-    struct can_ctx *ctx;
-
-    ctx = drv_ctx();
-    XASSERT_NOT_NULL(ctx);
-
-    if (ctx->active) {
-        can_stop();
-    }
-    can_destroy();
-    can_init(data);
-
-    return HOUND_OK;
-}
-
 static struct driver_ops can_driver = {
     .init = can_init,
     .destroy = can_destroy,
-    .reset = can_reset,
     .device_name = can_device_name,
     .datadesc = can_datadesc,
     .setdata = can_setdata,

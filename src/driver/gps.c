@@ -370,27 +370,9 @@ hound_err gps_stop(void)
     return HOUND_OK;
 }
 
-static
-hound_err gps_reset(void *data)
-{
-    struct gps_ctx *ctx;
-
-    ctx = drv_ctx();
-    XASSERT_NOT_NULL(ctx);
-
-    if (ctx->active) {
-        gps_stop();
-    }
-    gps_destroy();
-    gps_init(data);
-
-    return HOUND_OK;
-}
-
 static struct driver_ops gps_driver = {
     .init = gps_init,
     .destroy = gps_destroy,
-    .reset = gps_reset,
     .device_name = gps_device_name,
     .datadesc = gps_datadesc,
     .setdata = gps_setdata,

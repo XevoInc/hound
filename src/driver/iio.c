@@ -1688,19 +1688,9 @@ hound_err iio_next(UNUSED hound_data_id id)
     return HOUND_DRIVER_UNSUPPORTED;
 }
 
-static
-hound_err iio_reset(void *data)
-{
-    iio_destroy();
-    iio_init(data);
-
-    return HOUND_OK;
-}
-
 static struct driver_ops iio_driver = {
     .init = iio_init,
     .destroy = iio_destroy,
-    .reset = iio_reset,
     .device_name = iio_device_name,
     .datadesc = iio_datadesc,
     .setdata = iio_setdata,

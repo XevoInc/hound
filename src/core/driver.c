@@ -224,7 +224,6 @@ hound_err driver_register(
     NULL_CHECK(ops);
     NULL_CHECK(ops->init);
     NULL_CHECK(ops->destroy);
-    NULL_CHECK(ops->reset);
     NULL_CHECK(ops->device_name);
     NULL_CHECK(ops->datadesc);
     NULL_CHECK(ops->setdata);

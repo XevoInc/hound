@@ -53,15 +53,6 @@ hound_err counter_destroy(void)
 }
 
 static
-hound_err counter_reset(void *data)
-{
-    counter_destroy();
-    counter_init(data);
-
-    return HOUND_OK;
-}
-
-static
 hound_err counter_device_name(char *device_name)
 {
     strcpy(device_name, s_device_name);
@@ -237,7 +228,6 @@ void counter_zero(void)
 static struct driver_ops counter_driver = {
     .init = counter_init,
     .destroy = counter_destroy,
-    .reset = counter_reset,
     .device_name = counter_device_name,
     .datadesc = counter_datadesc,
     .setdata = counter_setdata,

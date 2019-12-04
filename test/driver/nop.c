@@ -64,12 +64,6 @@ hound_err nop_destroy(void)
 }
 
 static
-hound_err nop_reset(UNUSED void *data)
-{
-    return HOUND_OK;
-}
-
-static
 hound_err nop_device_name(char *device_name)
 {
     XASSERT_NOT_NULL(device_name);
@@ -197,7 +191,6 @@ hound_err nop_stop(void)
 static struct driver_ops nop_driver = {
     .init = nop_init,
     .destroy = nop_destroy,
-    .reset = nop_reset,
     .device_name = nop_device_name,
     .datadesc = nop_datadesc,
     .setdata = nop_setdata,

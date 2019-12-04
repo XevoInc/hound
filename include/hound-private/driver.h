@@ -32,7 +32,6 @@ struct driver_ops {
     hound_err (*init)(void *data);
 
     hound_err (*destroy)(void);
-    hound_err (*reset)(void *data);
 
     /**
      * Get the device ID for the backing device.

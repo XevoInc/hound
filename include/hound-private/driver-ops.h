@@ -82,7 +82,6 @@ struct driver {
 
 DEFINE_DRV_OP(init, void *data, data)
 DEFINE_DRV_OP_VOID(destroy)
-DEFINE_DRV_OP(reset, void *data, data)
 DEFINE_DRV_OP(device_name, char *device_name, device_name)
 DEFINE_DRV_OP(
     datadesc,
