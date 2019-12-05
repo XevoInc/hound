@@ -103,7 +103,7 @@ hound_err nop_datadesc(
         goto out;
     }
 
-    *schemas = drv_alloc(sizeof(**schemas));
+    *schemas = drv_alloc(*count*sizeof(**schemas));
     if (*schemas == NULL) {
         err = HOUND_OOM;
         goto error_schema_alloc;
