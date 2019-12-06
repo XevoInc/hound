@@ -20,6 +20,7 @@
 #include <linux/can/raw.h>
 #include <linux/socket.h>
 #include <linux/sockios.h>
+#include <net/if.h>
 #include <stdbool.h>
 #include <string.h>
 #include <sys/ioctl.h>
@@ -86,7 +87,6 @@ static
 hound_err can_init(void *data)
 {
     struct can_ctx *ctx;
-    struct ifreq ifr;
     hound_err err;
     int fd;
     size_t frames_size;
@@ -114,9 +114,8 @@ hound_err can_init(void *data)
     if (fd == -1) {
         return errno;
     }
-    strcpy(ifr.ifr_name, init->iface); /* NOLINT, string size already checked */
-    err = ioctl(fd, SIOCGIFINDEX, &ifr);
-    if (err == -1) {
+    err = if_nametoindex(init->iface);
+    if (err == 0) {
         return errno;
     }
     close(fd);
@@ -215,19 +214,17 @@ out:
 }
 
 static
-hound_err populate_addr(int fd, struct sockaddr_can *addr, const char *iface)
+hound_err populate_addr(struct sockaddr_can *addr, const char *iface)
 {
-    hound_err err;
-    struct ifreq ifr;
+    unsigned int index;
 
-    strcpy(ifr.ifr_name, iface); /* NOLINT, string size already checked */
-    err = ioctl(fd, SIOCGIFINDEX, &ifr);
-    if (err == -1) {
+    index = if_nametoindex(iface);
+    if (index == 0) {
         return errno;
     }
 
     addr->can_family = AF_CAN;
-    addr->can_ifindex = ifr.ifr_ifindex;
+    addr->can_ifindex = index;
 
     return HOUND_OK;
 }
@@ -247,7 +244,7 @@ hound_err make_raw_socket(struct can_ctx *ctx, int *out_fd)
         goto out;
     }
 
-    err = populate_addr(fd, &addr, ctx->iface);
+    err = populate_addr(&addr, ctx->iface);
     if (err != HOUND_OK) {
         goto error;
     }
@@ -294,7 +291,7 @@ hound_err make_bcm_socket(struct can_ctx *ctx, int *out_fd)
         goto out;
     }
 
-    err = populate_addr(fd, &addr, ctx->iface);
+    err = populate_addr(&addr, ctx->iface);
     if (err != HOUND_OK) {
         goto error;
     }
