@@ -112,7 +112,7 @@ hound_err can_init(void *data)
     /* Verify the interface exists and is usable. */
     fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (fd == -1) {
-        return fd;
+        return errno;
     }
     strcpy(ifr.ifr_name, init->iface); /* NOLINT, string size already checked */
     err = ioctl(fd, SIOCGIFINDEX, &ifr);
