@@ -190,13 +190,17 @@ hound_err driver_register(
     char *drv_path;
     hound_err err;
     struct hound_data_fmt *fmt;
-    size_t i;
-    size_t j;
+    bool found;
+    hound_data_count i;
+    hound_data_count j;
     xhiter_t iter;
     size_t len;
     size_t offset;
     int ret;
-    const char **schemas;
+    char schema[PATH_MAX];
+    hound_data_count schema_desc_count;
+    struct hound_schema_desc *schema_desc;
+    struct hound_schema_desc *schema_descs;
 
     NULL_CHECK(path);
 
@@ -270,15 +274,55 @@ hound_err driver_register(
     /* Get all the supported data for the driver. */
     err = drv_op_datadesc(
         drv,
-        &drv->data,
-        &schemas,
         &drv->datacount,
+        &drv->data,
+        schema,
         &drv->sched_mode);
     if (err != HOUND_OK) {
         goto error_datadesc;
     }
 
-    /* Verify that all descriptors are sane. */
+    /*
+     * Parse and verify the schema, and calculate offsets from the provided
+     * lengths.
+     */
+    if (strnlen(schema, PATH_MAX) == PATH_MAX) {
+        err = HOUND_INVALID_STRING;
+        goto error_datadesc;
+    }
+
+    err = schema_parse(schema_base, schema, &schema_desc_count, &schema_descs);
+    if (err != HOUND_OK) {
+        goto error_datadesc;
+    }
+
+    /* Make sure the descriptors and formats are sane. */
+    for (i = 0; i < schema_desc_count; ++i) {
+        schema_desc = &schema_descs[i];
+        XASSERT_NOT_NULL(schema_desc->name);
+        XASSERT_NEQ(
+            strnlen(schema_desc->name, HOUND_DATA_NAME_MAX),
+            HOUND_DATA_NAME_MAX);
+        XASSERT_GTE(schema_desc->fmt_count, 1);
+        XASSERT_NOT_NULL(schema_desc->fmts);
+
+        offset = 0;
+        for (j = 0; j < schema_desc->fmt_count; ++j) {
+            fmt = &schema_desc->fmts[j];
+            /*
+             * A variable-length type (bytes) must be the last specified format,
+             * or else the caller won't be able to parse its records.
+             */
+            XASSERT_FALSE(fmt->type == HOUND_TYPE_BYTES &&
+                          j != schema_desc->fmt_count-1);
+            len = get_type_len(fmt->type);
+            fmt->len = len;
+            fmt->offset = offset;
+            offset += len;
+        }
+    }
+
+    /* Verify that all driver descriptors are sane. */
     for (i = 0; i < drv->datacount; ++i) {
         desc = &drv->data[i];
         if (desc->period_count > 0 && desc->avail_periods == NULL) {
@@ -286,65 +330,58 @@ hound_err driver_register(
             goto error_datadesc;
         }
 
-        if (schemas[i] == NULL) {
-            err = HOUND_NULL_VAL;
+        /* Make sure the driver provides at most one entry for each data ID. */
+        for (j = i+1; j < drv->datacount; ++j) {
+            if (desc->data_id == drv->data[j].data_id) {
+                err = HOUND_DESC_DUPLICATE;
             goto error_datadesc;
+            }
         }
 
-        if (strnlen(schemas[i], PATH_MAX) == PATH_MAX) {
-            err = HOUND_INVALID_STRING;
+        /*
+         * Make sure this data ID is mentioned in the schema, and copy its
+         * format data.
+         */
+        found = false;
+        for (j = 0; j < schema_desc_count; ++j) {
+            schema_desc = &schema_descs[j];
+            if (desc->data_id == schema_desc->data_id) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            err = HOUND_ID_NOT_IN_SCHEMA;
             goto error_datadesc;
         }
+        /*
+         * We need to nullify the pointer members of the schema descriptor
+         * because we are moving them into the driver data descriptor. When we
+         * free the schema descriptors, we need to not do a double-free.
+         *
+         * If you like C++, pretend this is std::move :).
+         */
+        desc->name = schema_desc->name;
+        schema_desc->name = NULL;
+        desc->fmt_count = schema_desc->fmt_count;
+        desc->fmts = schema_desc->fmts;
+        schema_desc->fmts = NULL;
 
         iter = xh_get(DATA_MAP, s_data_map, drv->data[i].data_id);
         if (iter != xh_end(s_data_map)) {
             err = HOUND_CONFLICTING_DRIVERS;
-            goto error_conflicting_drivers;
+            goto error_datadesc;
         }
 
         desc->dev_id = drv->id;
     }
 
-    /*
-     * Parse and verify each schema, and calculate offsets from the provided
-     * lengths.
-     */
-    for (i = 0; i < drv->datacount; ++i) {
-        desc = &drv->data[i];
-        err = schema_parse(
-            schema_base,
-            schemas[i],
-            &desc->name,
-            &desc->fmt_count,
-            &desc->fmts);
-        if (err != HOUND_OK) {
-            break;
-        }
-        XASSERT_NOT_NULL(desc->name);
-        XASSERT_NEQ(
-            strnlen(desc->name, HOUND_DATA_NAME_MAX),
-            HOUND_DATA_NAME_MAX);
-        XASSERT_GTE(desc->fmt_count, 1);
-        XASSERT_NOT_NULL(desc->fmts);
-
-        offset = 0;
-        for (j = 0; j < desc->fmt_count; ++j) {
-            fmt = &desc->fmts[j];
-            /*
-             * A variable-length type (bytes) must be the last specified format,
-             * or else the caller won't be able to parse its records.
-             */
-            XASSERT_FALSE(fmt->type == HOUND_TYPE_BYTES && j != desc->fmt_count-1);
-            len = get_type_len(fmt->type);
-            fmt->len = len;
-            fmt->offset = offset;
-            offset += len;
-        }
+    for (i = 0; i < schema_desc_count; ++i) {
+        schema_desc = &schema_descs[i];
+        drv_free(schema_desc->name);
+        drv_free(schema_desc->fmts);
     }
-    drv_free(schemas);
-    if (err != HOUND_OK) {
-        goto error_schema_parse;
-    }
+    drv_free(schema_descs);
 
     /*
      * Finally, commit the driver into all the maps.
@@ -381,8 +418,6 @@ error_data_map_put:
 error_device_map_put:
     free(drv_path);
 error_alloc_drv_path:
-error_schema_parse:
-error_conflicting_drivers:
 error_datadesc:
 error_device_name:
 error_init:

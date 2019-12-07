@@ -56,9 +56,25 @@ void test_datadesc(void)
 
     err = hound_get_datadesc(&desc, &desc_len);
     XASSERT_OK(err);
-    XASSERT_STREQ(desc->name, "nop");
-    XASSERT_STREQ(desc->fmts[0].name, "nop1");
-    XASSERT_STREQ(desc->fmts[1].name, "nop2");
+
+    XASSERT_EQ(desc[0].data_id, HOUND_DATA_NOP1);
+    XASSERT_STREQ(desc[0].name, "nop");
+
+    XASSERT_EQ(desc[0].fmt_count, 2);
+    XASSERT_STREQ(desc[0].fmts[0].name, "a");
+    XASSERT_EQ(desc[0].fmts[0].unit, HOUND_UNIT_PERCENT);
+    XASSERT_EQ(desc[0].fmts[0].type, HOUND_TYPE_UINT8);
+    XASSERT_STREQ(desc[0].fmts[1].name, "b");
+    XASSERT_EQ(desc[0].fmts[1].unit, HOUND_UNIT_NONE);
+    XASSERT_EQ(desc[0].fmts[1].type, HOUND_TYPE_BYTES);
+
+    XASSERT_EQ(desc[1].data_id, HOUND_DATA_NOP2);
+    XASSERT_STREQ(desc[1].name, "nop2");
+
+    XASSERT_EQ(desc[1].fmt_count, 1);
+    XASSERT_STREQ(desc[1].fmts[0].name, "x");
+    XASSERT_EQ(desc[1].fmts[0].unit, HOUND_UNIT_NONE);
+    XASSERT_EQ(desc[1].fmts[0].type, HOUND_TYPE_BYTES);
 
     hound_free_datadesc(desc);
 }

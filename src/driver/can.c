@@ -170,31 +170,26 @@ hound_err can_device_name(char *device_name)
 
 static
 hound_err can_datadesc(
-    struct hound_datadesc **out,
-    const char ***schemas,
-    hound_data_count *count,
+    hound_data_count *desc_count,
+    struct hound_datadesc **out_descs,
+    char *schema,
     drv_sched_mode *mode)
 {
     struct hound_datadesc *desc;
     hound_err err;
 
-    XASSERT_NOT_NULL(out);
-    XASSERT_NOT_NULL(count);
-    XASSERT_NOT_NULL(schemas);
+    XASSERT_NOT_NULL(desc_count);
+    XASSERT_NOT_NULL(out_descs);
+    XASSERT_NOT_NULL(schema);
 
-    *count = 1;
+    *desc_count = 1;
     desc = drv_alloc(sizeof(*desc));
     if (desc == NULL) {
         err = HOUND_OOM;
         goto out;
     }
 
-    *schemas = drv_alloc(sizeof(**schemas));
-    if (*schemas == NULL) {
-        err = HOUND_OOM;
-        goto error_alloc_schemas;
-    }
-    **schemas = "can.yaml";
+    strcpy(schema, "can.yaml");
 
     err = drv_deepcopy_desc(desc, &s_datadesc);
     if (err != HOUND_OK) {
@@ -202,12 +197,10 @@ hound_err can_datadesc(
     }
 
     *mode = DRV_SCHED_PUSH;
-    *out = desc;
+    *out_descs = desc;
     goto out;
 
 error_deepcopy:
-    drv_free(schemas);
-error_alloc_schemas:
     drv_free(desc);
 out:
     return err;

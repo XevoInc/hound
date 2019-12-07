@@ -10,14 +10,32 @@
 #include <hound/hound.h>
 #include <hound-private/driver.h>
 #include <hound-private/error.h>
+#include <hound-private/driver.h>
 #include <hound-private/driver/util.h>
+#include <hound-private/schema.h>
 #include <hound-private/util.h>
+#include <linux/limits.h>
 #include <pthread.h>
 #include <string.h>
-#include <xlib/xhash.h>
+#include <xlib/xvec.h>
 #include <yaml.h>
 
 #define MAX_FMT_ENTRIES 100
+
+static
+hound_data_id parse_id(yaml_node_t *node)
+{
+    hound_data_id id;
+
+    XASSERT_EQ(node->type, YAML_SCALAR_NODE);
+    XASSERT_GT(node->data.scalar.length, 0);
+
+    errno = 0;
+    id = strtol((const char *) node->data.scalar.value, NULL, 0);
+    XASSERT_OK(errno);
+
+    return id;
+}
 
 static
 hound_unit find_unit(const char *val)
@@ -174,7 +192,7 @@ static
 hound_err parse_fmts(
     yaml_document_t *doc,
     yaml_node_t *node,
-    size_t *out_count,
+    hound_data_count *out_count,
     struct hound_data_fmt **out_fmts)
 {
     size_t fmt_count;
@@ -182,6 +200,8 @@ hound_err parse_fmts(
     struct hound_data_fmt *fmts;
     size_t i;
     yaml_node_item_t *item;
+
+    XASSERT_EQ(node->type, YAML_SEQUENCE_NODE);
 
     fmt_count =
         node->data.sequence.items.top - node->data.sequence.items.start;
@@ -213,9 +233,7 @@ static
 hound_err parse_doc(
     yaml_document_t *doc,
     yaml_node_t *node,
-    const char **name,
-    size_t *count_out,
-    struct hound_data_fmt **fmts_out)
+    struct hound_schema_desc *desc)
 {
     hound_err err;
     yaml_node_t *key;
@@ -236,17 +254,19 @@ hound_err parse_doc(
         value = yaml_document_get_node(doc, pair->value);
         XASSERT_NOT_NULL(value);
 
-        if (strcmp(key_str, "name") == 0) {
+        if (strcmp(key_str, "id") == 0) {
+            desc->data_id = parse_id(value);
+        }
+        else if (strcmp(key_str, "name") == 0) {
             XASSERT_EQ(value->type, YAML_SCALAR_NODE);
             value_str = (const char *) value->data.scalar.value;
-            *name = drv_strdup(value_str);
-            if (*name == NULL) {
+            desc->name = drv_strdup(value_str);
+            if (desc->name == NULL) {
                 return HOUND_OOM;
             }
         }
         else if (strcmp(key_str, "fmt") == 0) {
-            XASSERT_EQ(value->type, YAML_SEQUENCE_NODE);
-            err = parse_fmts(doc, value, count_out, fmts_out);
+            err = parse_fmts(doc, value, &desc->fmt_count, &desc->fmts);
             if (err != HOUND_OK) {
                 return err;
             }
@@ -261,12 +281,16 @@ hound_err parse_doc(
 
 hound_err parse(
     FILE *file,
-    const char **name_out,
-    size_t *count_out,
-    struct hound_data_fmt **fmts_out)
+    hound_data_count *out_desc_count,
+    struct hound_schema_desc **out_descs)
 {
+    struct hound_schema_desc *desc;
+    xvec_t(struct hound_schema_desc) descs;
+    size_t descs_size;
     yaml_document_t doc;
     hound_err err;
+    size_t i;
+    size_t j;
     yaml_node_t *node;
     yaml_parser_t parser;
     int ret;
@@ -278,16 +302,60 @@ hound_err parse(
     yaml_parser_set_input_file(&parser, file);
 
     err = HOUND_OK;
-    ret = yaml_parser_load(&parser, &doc);
-    XASSERT_NEQ(ret, 0);
+    xv_init(descs);
+    while (true) {
+        ret = yaml_parser_load(&parser, &doc);
+        XASSERT_NEQ(ret, 0);
 
-    node = yaml_document_get_root_node(&doc);
-    XASSERT_NOT_NULL(node);
+        node = yaml_document_get_root_node(&doc);
+        if (node == NULL) {
+            /* End of stream. */
+            break;
+        }
 
-    err = parse_doc(&doc, node, name_out, count_out, fmts_out);
+        desc = xv_pushp(struct hound_schema_desc, descs);
+        if (desc == NULL) {
+            err = HOUND_OOM;
+            break;
+        }
+        /* NULL this out so that if we fail, we can call drv_free on members. */
+        desc->name = NULL;
+        desc->fmt_count = 0;
+        desc->fmts = NULL;
 
+        err = parse_doc(&doc, node, desc);
+        if (err != HOUND_OK) {
+            break;
+        }
+
+        yaml_document_delete(&doc);
+    }
     yaml_document_delete(&doc);
     yaml_parser_delete(&parser);
+
+    if (err == HOUND_OK) {
+        descs_size = xv_size(descs) * sizeof(**out_descs);
+        *out_descs = drv_alloc(descs_size);
+        if (*out_descs == NULL) {
+            err = HOUND_OOM;
+        }
+        else {
+            memcpy(*out_descs, xv_data(descs), descs_size);
+            *out_desc_count = xv_size(descs);
+        }
+    }
+
+    if (err != HOUND_OK) {
+        for (i = 0; i < xv_size(descs); ++i) {
+            desc = &xv_A(descs, i);
+            drv_free(desc->name);
+            for (j = 0; j < desc->fmt_count; ++j) {
+                drv_free((char *) desc->fmts[j].name);
+            }
+            drv_free(desc->fmts);
+        }
+    }
+    xv_destroy(descs);
 
     return err;
 }
@@ -295,17 +363,14 @@ hound_err parse(
 hound_err schema_parse(
     const char *schema_base,
     const char *schema,
-    const char **out_name,
-    size_t *out_fmt_count,
-    struct hound_data_fmt **out_fmts)
+    hound_data_count *out_desc_count,
+    struct hound_schema_desc **out_descs)
 {
     hound_err err;
     FILE *f;
-    struct hound_data_fmt *fmts;
-    size_t fmt_count;
-    size_t i;
+    hound_data_count desc_count;
+    struct hound_schema_desc *descs;
     size_t len;
-    const char *name;
     size_t total_len;
     char *path;
 
@@ -341,22 +406,11 @@ hound_err schema_parse(
         goto out;
     }
 
-    name = NULL;
-    fmt_count = 0;
-    fmts = NULL;
-    err = parse(f, &name, &fmt_count, &fmts);
+    err = parse(f, &desc_count, &descs);
     fclose(f);
     if (err == HOUND_OK) {
-        *out_name = name;
-        *out_fmt_count = fmt_count;
-        *out_fmts = fmts;
-    }
-    else {
-        drv_free((void *) name);
-        for (i = 0; i < fmt_count; ++i) {
-            drv_free((void *) fmts[i].name);
-        }
-        drv_free(fmts);
+        *out_desc_count = desc_count;
+        *out_descs = descs;
     }
 
 out:

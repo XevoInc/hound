@@ -8,9 +8,16 @@ $schema: http://json-schema.org/draft-07/schema#
 title: Sensor data description
 type: object
 required:
+  - id
   - name
   - fmt
+additionalProperties: false
 properties:
+  id:
+    description: A sensor's hound data ID, which must either match what's encoded in header files or be programatically generateable (e.g. OBD-II)
+    type: integer
+    minimum: 0
+    maximum: 0xffffffff
   name:
     description: A sensor's friendly name, which will be advertised to consumers
     type: string
@@ -28,7 +35,6 @@ properties:
         - name
         - unit
         - type
-        - len
       properties:
         name:
           description: A description of the datapoint

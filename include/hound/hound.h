@@ -44,7 +44,9 @@ typedef enum {
     HOUND_INTR = -21,
     HOUND_DEV_DOES_NOT_EXIST = -22,
     HOUND_TOO_MUCH_DATA_REQUESTED = -23,
-    HOUND_DUPLICATE_DATA_REQUESTED = -24
+    HOUND_DUPLICATE_DATA_REQUESTED = -24,
+    HOUND_ID_NOT_IN_SCHEMA = -25,
+    HOUND_DESC_DUPLICATE = -26
 } hound_err;
 
 /** Returns a human-readable error string. The string must not be modified or

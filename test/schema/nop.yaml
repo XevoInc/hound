@@ -1,9 +1,17 @@
 ---
+id: 0xffffff02
 name: nop
 fmt:
-    - name: nop1
+    - name: a
       unit: percent
       type: uint8
-    - name: nop2
+    - name: b
+      unit: none
+      type: bytes
+---
+id: 0xffffff03
+name: nop2
+fmt:
+    - name: x
       unit: none
       type: bytes

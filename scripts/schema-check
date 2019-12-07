@@ -52,26 +52,30 @@ def main():
     with open(args.schema, 'r') as f:
         schema = yaml.safe_load(f)
 
-    with open(args.datafile, 'r') as f:
-        data = yaml.safe_load(f)
-
     handler = make_default_handler()
     resolver = make_resolver(schema, [handler])
-    errors = list(jsonschema.Draft7Validator(
-                      schema,
-                      resolver=resolver).iter_errors(data))
-    count = len(errors)
-    if count > 0:
-        ret = 1
-        if not args.quiet:
-            errors.sort(key=jsonschema.exceptions.relevance)
-            print('Schema validation failed with %d errors:' % count)
-            for error in errors:
-                print('-')
-                s = str(error).replace('\n', '\n    ')
-                print('    %s' % s)
-    else:
-        ret = 0
+
+    with open(args.datafile, 'r') as f:
+        doc_count = 0
+        for doc in yaml.safe_load_all(f):
+            doc_count += 1
+            errors = list(jsonschema.Draft7Validator(
+                              schema,
+                              resolver=resolver).iter_errors(doc))
+            err_count = len(errors)
+            if err_count > 0:
+                ret = 1
+                if not args.quiet:
+                    errors.sort(key=jsonschema.exceptions.relevance)
+                    print('Schema validation failed with %d errors:'
+                          % err_count)
+                    for error in errors:
+                        print('-')
+                        s = str(error).replace('\n', '\n    ')
+                        print('    %s' % s)
+                break
+            else:
+                ret = 0
 
     return ret
 
