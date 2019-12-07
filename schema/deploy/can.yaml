@@ -1,4 +1,5 @@
 ---
+id: 0x00000000
 name: CAN
 fmt:
     # CAN is a bus and not a data type, so nothing more can be said about it.

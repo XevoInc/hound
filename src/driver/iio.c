@@ -756,15 +756,15 @@ bool iio_scan_readable(
 
 static
 hound_err iio_datadesc(
-    struct hound_datadesc **out,
-    const char ***schemas,
-    hound_data_count *count,
+    hound_data_count *out_desc_count,
+    struct hound_datadesc **out_descs,
+    char *schema,
     drv_sched_mode *mode)
 {
     hound_data_period *avail_periods;
     const struct chan_desc *channels;
     struct iio_ctx *ctx;
-    struct hound_datadesc *desc;
+    struct hound_datadesc *descs;
     size_t desc_count;
     const struct device_entry *entry;
     hound_err err;
@@ -772,9 +772,9 @@ hound_err iio_datadesc(
     size_t j;
     hound_period_count period_count;
 
-    XASSERT_NOT_NULL(out);
-    XASSERT_NOT_NULL(schemas);
-    XASSERT_NOT_NULL(count);
+    XASSERT_NOT_NULL(out_desc_count);
+    XASSERT_NOT_NULL(out_descs);
+    XASSERT_NOT_NULL(schema);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
@@ -783,16 +783,10 @@ hound_err iio_datadesc(
      * Preallocate more data than we probably need. We will realloc it once
      * we've scanned the system and know the correct size.
      */
-    desc = malloc(DESC_COUNT_MAX * sizeof(*desc));
-    if (desc == NULL) {
+    descs = malloc(DESC_COUNT_MAX * sizeof(*descs));
+    if (descs == NULL) {
         err = HOUND_OOM;
         goto out;
-    }
-
-    *schemas = malloc(DESC_COUNT_MAX * sizeof(**schemas));
-    if (*schemas == NULL) {
-        err = HOUND_OOM;
-        goto error_desc;
     }
 
     /*
@@ -820,8 +814,7 @@ hound_err iio_datadesc(
             continue;
         }
 
-        desc[desc_count].data_id = entry->id;
-        (*schemas)[desc_count] = entry->schema;
+        descs[desc_count].data_id = entry->id;
         ++desc_count;
     }
 
@@ -831,14 +824,8 @@ hound_err iio_datadesc(
         goto error_desc;
     };
 
-    desc = realloc(desc, desc_count*sizeof(*desc));
-    if (desc == NULL) {
-        err = HOUND_OOM;
-        goto error_desc;
-    };
-
-    *schemas = realloc(*schemas, desc_count*sizeof(**schemas));
-    if (*schemas == NULL) {
+    descs = realloc(descs, desc_count*sizeof(*descs));
+    if (descs == NULL) {
         err = HOUND_OOM;
         goto error_desc;
     };
@@ -856,35 +843,35 @@ hound_err iio_datadesc(
         goto error_parse_avail_periods;
     }
 
-    desc[0].period_count = period_count;
-    desc[0].avail_periods = avail_periods;
+    descs[0].period_count = period_count;
+    descs[0].avail_periods = avail_periods;
     for (i = 1; i < desc_count; ++i) {
-        desc[i].period_count = period_count;
-        desc[i].avail_periods = malloc(period_count * sizeof(*avail_periods));
-        if (desc[i].avail_periods == NULL) {
+        descs[i].period_count = period_count;
+        descs[i].avail_periods = malloc(period_count * sizeof(*avail_periods));
+        if (descs[i].avail_periods == NULL) {
             goto error_alloc_avail_periods;
         }
 
         memcpy(
-            (hound_data_period *) desc[i].avail_periods,
+            (hound_data_period *) descs[i].avail_periods,
             avail_periods,
             period_count * sizeof(*avail_periods));
     }
 
     *mode = DRV_SCHED_PUSH;
-    *out = desc;
-    *count = desc_count;
+    strcpy(schema, "iio.yaml");
+    *out_descs = descs;
+    *out_desc_count = desc_count;
     err = HOUND_OK;
     goto out;
 
 error_alloc_avail_periods:
     for (--i; i < desc_count; --i) {
-        free((hound_data_period *) desc[i].avail_periods);
+        free((hound_data_period *) descs[i].avail_periods);
     }
 error_parse_avail_periods:
-    free((void *) *schemas);
 error_desc:
-    free(desc);
+    free(descs);
 out:
     return err;
 }

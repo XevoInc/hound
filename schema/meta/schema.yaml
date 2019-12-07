@@ -11,6 +11,10 @@ required:
   - name
   - fmt
 properties:
+  id:
+    description: A sensor's hound data ID, which must either match what's encoded in header files or be programatically generateable (e.g. OBD-II)
+    type: string
+    pattern: "0x[0-9a-f]{8}"
   name:
     description: A sensor's friendly name, which will be advertised to consumers
     type: string

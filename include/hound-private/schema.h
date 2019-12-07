@@ -16,11 +16,17 @@
 void schema_init(void);
 void schema_destroy(void);
 
+struct hound_schema_desc {
+    hound_data_id data_id;
+    char *name;
+    hound_data_count fmt_count;
+    struct hound_data_fmt *fmts;
+};
+
 hound_err schema_parse(
     const char *schema_base,
     const char *schema,
-    const char **name,
-    size_t *fmt_count,
-    struct hound_data_fmt **fmt_list);
+    hound_data_count *out_desc_count,
+    struct hound_schema_desc **out_descs);
 
 #endif /* HOUND_PRIVATE_SCHEMA_H_ */

@@ -71,6 +71,10 @@ const char *error_strerror(hound_err err)
             return "the caller requested too many data IDs in a context";
         case HOUND_DUPLICATE_DATA_REQUESTED:
             return "the caller requested the same data ID twice in the same context";
+        case HOUND_ID_NOT_IN_SCHEMA:
+            return "driver provided a data ID that was not in its schema";
+        case HOUND_DESC_DUPLICATE:
+            return "driver provided the same data ID in multiple descriptors";
     }
 
     /*

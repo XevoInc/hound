@@ -83,50 +83,43 @@ hound_err nop_device_name(char *device_name)
 
 static
 hound_err nop_datadesc(
-    struct hound_datadesc **out,
-    const char ***schemas,
-    hound_data_count *count,
+    hound_data_count *desc_count,
+    struct hound_datadesc **out_descs,
+    char *schema,
     drv_sched_mode *mode)
 {
     struct hound_datadesc *desc;
     hound_err err;
     size_t i;
 
-    XASSERT_NOT_NULL(out);
-    XASSERT_NOT_NULL(schemas);
-    XASSERT_NOT_NULL(count);
+    XASSERT_NOT_NULL(desc_count);
+    XASSERT_NOT_NULL(out_descs);
+    XASSERT_NOT_NULL(schema);
 
-    *count = ARRAYLEN(s_datadesc);
-    desc = drv_alloc(*count*sizeof(*desc));
+    *desc_count = ARRAYLEN(s_datadesc);
+    desc = drv_alloc(*desc_count*sizeof(*desc));
     if (desc == NULL) {
         err = HOUND_OOM;
         goto out;
     }
 
-    *schemas = drv_alloc(*count*sizeof(**schemas));
-    if (*schemas == NULL) {
-        err = HOUND_OOM;
-        goto error_schema_alloc;
-    }
+    strcpy(schema, "nop.yaml");
 
     for (i = 0; i < ARRAYLEN(s_datadesc); ++i) {
         err = drv_deepcopy_desc(&desc[i], &s_datadesc[i]);
         if (err != HOUND_OK) {
+            for (--i; i < ARRAYLEN(s_datadesc); --i) {
+                drv_destroy_desc(&desc[i]);
+            }
             goto error_deepcopy;
         }
-        (*schemas)[i] = "nop.yaml";
     }
 
     *mode = DRV_SCHED_PUSH;
-    *out = desc;
+    *out_descs = desc;
     return HOUND_OK;
 
 error_deepcopy:
-    for (; i < *count; --i) {
-        drv_destroy_desc(&desc[i]);
-    }
-    drv_free(desc);
-error_schema_alloc:
     drv_free(desc);
 out:
     return err;

@@ -23,6 +23,13 @@
 
 typedef uint_least8_t hound_data_count;
 
+struct schema_desc {
+    hound_data_id data_id;
+    const char *name;
+    size_t fmt_count;
+    struct hound_data_fmt *fmts;
+};
+
 typedef enum {
     DRV_SCHED_PULL,
     DRV_SCHED_PUSH
@@ -49,25 +56,22 @@ struct driver_ops {
      * Get the data descriptors supported by this driver. These descriptors must
      * be allocated with drv_alloc. Their memory is owned by the driver core.
      *
-     * @param desc a pointer to an array of data descriptors. The memory for
-     *             for this array is owned by the driver and must not be
-     *             modified.
-     * @param schemas a pointer to an array of schema names. The memory for this
-     *                array is owned by the driver and must not be modified.
-     *                Each schema name must point to constant memory and thus
-     *                will never be freed.  The length of this array must be the
-     *                same as that of desc, and a schema and a given index
-     *                matches the descriptor at the same index.
-     * @param count the length of the array.
+     * @param desc_count the length of the descriptors array
+     * @param descs a pointer to an array of data descriptors. The memory for
+     *             for this array is owned by the driver core when this driver
+     *             op finishes, so it must be allocated via drv_alloc().
+     * @param schema a schema string, guaranteed to hold storage up to PATH_MAX
+     *               characters. The driver should copy the schema name into
+     *               this string.
      * @param mode the driver's scheduling mode
      *
      * @return an error code
      */
     hound_err (*datadesc)(
-            struct hound_datadesc **desc,
-            const char ***schemas,
-            hound_data_count *count,
-            drv_sched_mode *mode);
+        hound_data_count *desc_count,
+        struct hound_datadesc **descs,
+        char *schema,
+        drv_sched_mode *mode);
 
     hound_err (*setdata)(const struct hound_data_rq_list *data);
 
