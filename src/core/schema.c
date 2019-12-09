@@ -370,37 +370,12 @@ hound_err schema_parse(
     FILE *f;
     hound_data_count desc_count;
     struct hound_schema_desc *descs;
-    size_t len;
-    size_t total_len;
-    char *path;
+    char path[PATH_MAX];
 
     XASSERT_NOT_NULL(schema);
 
-    total_len = 0;
-    len = strnlen(schema_base, PATH_MAX);
-    XASSERT_NEQ(len, PATH_MAX);
-    total_len += len;
-
-    len = strnlen(schema, PATH_MAX);
-    XASSERT_NEQ(len, PATH_MAX);
-    /*
-     * len --> schema dir length
-     * + 1 --> '/' to join paths
-     * len --> length of path relative to schema dir
-     * + 1 --> '\0'
-     */
-    total_len += len + 2;
-    XASSERT_LTE(total_len, PATH_MAX);
-
-    path = drv_alloc(total_len);
-    if (path == NULL) {
-        return HOUND_OOM;
-    }
     sprintf(path, "%s/%s", schema_base, schema);
-
     f = fopen(path, "r");
-    drv_free(path);
-
     if (f == NULL) {
         err = HOUND_IO_ERROR;
         goto out;
