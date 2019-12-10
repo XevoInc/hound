@@ -447,7 +447,7 @@ hound_err obd_setdata(const struct hound_data_rq_list *rq_list)
      * list.
      */
     i = 0;
-    do {
+    while (i < xv_size(ctx->bcm_rqs)) {
         bcm_info = &xv_A(ctx->bcm_rqs, i);
         match = false;
         for (j = 0; j < rq_list->len; ++j) {
@@ -476,12 +476,17 @@ hound_err obd_setdata(const struct hound_data_rq_list *rq_list)
             }
             RM_VEC_INDEX(ctx->bcm_rqs, i);
         }
-    } while (i < xv_size(ctx->bcm_rqs));
+    }
 
-    /* Create BCM info for all new requests. */
+    /* Create BCM info for all new periodic requests. */
     for (i = 0; i < rq_list->len; ++i) {
-        /* Only add a new BCM info if we don't already have it. */
         rq = &rq_list->data[i];
+        /* Only add a new BCM info if the request is periodic. */
+        if (rq->period_ns == 0) {
+            continue;
+        }
+
+        /* Only add a new BCM info if we don't already have it. */
         match = false;
         for (j = 0; j < xv_size(ctx->bcm_rqs); ++j) {
             bcm_info = &xv_A(ctx->bcm_rqs, j);
@@ -526,6 +531,7 @@ hound_err obd_parse(
     struct hound_record *record;
     struct timeval tv;
     float val;
+    yobd_err yerr;
 
     XASSERT_NOT_NULL(buf);
     XASSERT_NOT_NULL(bytes);
@@ -558,18 +564,17 @@ hound_err obd_parse(
         record->timestamp.tv_sec = tv.tv_sec;
         record->timestamp.tv_nsec = tv.tv_usec * (NSEC_PER_SEC/USEC_PER_SEC);
 
-        err = yobd_parse_can_headers(
+        yerr = yobd_parse_can_headers(
             ctx->yobd_ctx,
-            (struct can_frame *)
-            record->data,
+            (struct can_frame *) buf,
             &mode,
             &pid);
-        XASSERT_OK(err);
+        XASSERT_EQ(yerr, YOBD_OK);
         hound_obd_get_data_id(mode, pid, &record->data_id);
 
         err = yobd_parse_can_response(
             ctx->yobd_ctx,
-            (struct can_frame *) record->data,
+            (struct can_frame *) buf,
             &val);
         XASSERT_OK(err);
 
@@ -677,7 +682,7 @@ hound_err obd_start(int *out_fd)
     for (i = 0; i < xv_size(ctx->bcm_rqs); ++i) {
         bcm_info = &xv_A(ctx->bcm_rqs, i);
         err = write_loop(bcm_fd, &bcm_info->payload, sizeof(bcm_info->payload));
-        if (err != HOUND_OK) {
+        if (err == HOUND_OK) {
             bcm_info->active = true;
         }
         else {
