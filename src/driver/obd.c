@@ -243,6 +243,8 @@ hound_err obd_datadesc(
     XASSERT_EQ(yerr, YOBD_OK);
     XASSERT_EQ(iter.i, *desc_count);
 
+    *out_descs = descs;
+
     return HOUND_OK;
 }
 
