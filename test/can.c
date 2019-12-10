@@ -108,6 +108,7 @@ void test_read(hound_data_period period_ns)
         .rq_list.len = 1,
         .rq_list.data = &data_rq
     };
+    data_rq.period_ns = period_ns;
 
     err = hound_alloc_ctx(&ctx, &rq);
     XASSERT_OK(err);
@@ -115,7 +116,6 @@ void test_read(hound_data_period period_ns)
     err = hound_start(ctx);
     XASSERT_OK(err);
 
-    data_rq.period_ns = period_ns;
     if (RUNNING_ON_VALGRIND) {
         n = 2;
     }
