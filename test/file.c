@@ -119,6 +119,8 @@ int main(int argc, const char **argv)
     text.data = slurp_file(filepath, &total_count);
     text.index = 0;
     while (text.index < total_count) {
+        err = hound_next(ctx, 1);
+        XASSERT_OK(err);
         err = hound_read(ctx, 1);
         XASSERT_OK(err);
     }

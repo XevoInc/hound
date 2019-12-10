@@ -458,8 +458,7 @@ void process_callbacks(
     }
 }
 
-static
-void ctx_next_nolock(struct hound_ctx *ctx, size_t n)
+hound_err ctx_next(struct hound_ctx *ctx, size_t n)
 {
     const struct hound_data_rq *data;
     struct driver *drv;
@@ -468,6 +467,9 @@ void ctx_next_nolock(struct hound_ctx *ctx, size_t n)
     size_t i;
     xhiter_t iter;
 
+    NULL_CHECK(ctx);
+
+    pthread_rwlock_rdlock(&ctx->rwlock);
     xh_iter(ctx->on_demand_data_map, iter,
         drv = xh_key(ctx->on_demand_data_map, iter);
         rq_list = &xh_val(ctx->on_demand_data_map, iter);
@@ -484,14 +486,6 @@ void ctx_next_nolock(struct hound_ctx *ctx, size_t n)
             }
         }
     );
-}
-
-hound_err ctx_next(struct hound_ctx *ctx, size_t n)
-{
-    NULL_CHECK(ctx);
-
-    pthread_rwlock_rdlock(&ctx->rwlock);
-    ctx_next_nolock(ctx, n);
     pthread_rwlock_unlock(&ctx->rwlock);
 
     return HOUND_OK;
@@ -512,9 +506,6 @@ hound_err ctx_read(struct hound_ctx *ctx, size_t records)
         err = HOUND_QUEUE_TOO_SMALL;
         goto out;
     }
-
-    /* Request data from any on-demand data types. */
-    ctx_next_nolock(ctx, records);
 
     /* Dequeue and process callbacks. */
     total = 0;

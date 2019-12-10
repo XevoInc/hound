@@ -123,7 +123,11 @@ void test_read(hound_data_period period_ns)
         n = 100;
     }
     for (i = 0; i < n; ++i) {
-        err = hound_read(ctx, 1);
+        if (period_ns == 0) {
+            err = hound_next(ctx, 1);
+            XASSERT_OK(err);
+        }
+        err = hound_read(ctx, s_tx.count);
         XASSERT_OK(err);
     }
 
