@@ -108,29 +108,40 @@ test_schema_dir = join_paths(
     meson.current_source_dir(),
     'test',
     'schema')
-tests = [
-    ['nop', ['test/driver/nop.c', 'test/nop.c'], test_schema_dir, true],
-    [
-        'counter',
-        ['test/driver/counter.c', 'test/counter.c'],
-        test_schema_dir,
-        true,
-    ],
-    [
-        'file',
-        ['test/driver/file.c', 'test/file.c'],
-        [test_schema_dir, files('test/data/testfile')],
-        true
-    ],
-    ['can', ['test/can.c'], ['hound-vcan0', prod_schema_dir], false]
-]
-foreach t : tests
+tests = {
+    'nop': {
+        'src': ['test/driver/nop.c', 'test/nop.c'],
+        'args': test_schema_dir,
+        'is-parallel': true
+    },
+    'counter': {
+        'src': ['test/driver/counter.c', 'test/counter.c'],
+        'args': test_schema_dir,
+        'is-parallel': true
+    },
+    'file': {
+        'src': ['test/driver/file.c', 'test/file.c'],
+        'args': [test_schema_dir, files('test/data/testfile')],
+        'is-parallel': true
+    },
+    'can': {
+        'src': ['test/can.c'],
+        'args': ['hound-vcan0', prod_schema_dir],
+        'is-parallel': false
+    }
+}
+foreach name, t : tests
     exe = executable(
-        t.get(0),
-        t.get(1),
+        name,
+        t.get('src'),
         include_directories: test_include,
         dependencies: unit_test_deps)
-    test(t.get(0), exe, args: t.get(2), is_parallel: t.get(3), timeout: 50)
+    test(
+        name,
+        exe,
+        args: t.get('args'),
+        is_parallel: t.get('is-parallel'),
+        timeout: 50)
 endforeach
 
 # These tests are manual.
