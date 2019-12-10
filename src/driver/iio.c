@@ -756,7 +756,7 @@ bool iio_scan_readable(
 
 static
 hound_err iio_datadesc(
-    hound_data_count *out_desc_count,
+    size_t *out_desc_count,
     struct hound_datadesc **out_descs,
     char *schema,
     drv_sched_mode *mode)

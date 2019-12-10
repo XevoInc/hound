@@ -153,7 +153,7 @@ hound_err gps_device_name(char *device_name)
 
 static
 hound_err gps_datadesc(
-    hound_data_count *desc_count,
+    size_t *desc_count,
     struct hound_datadesc **out_descs,
     char *schema,
     drv_sched_mode *mode)
@@ -282,7 +282,7 @@ hound_err gps_next(hound_data_id id)
 {
     const struct gps_ctx *ctx;
 
-    XASSERT_EQ(id, HOUND_DATA_CAN);
+    XASSERT_EQ(id, HOUND_DATA_GPS);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);

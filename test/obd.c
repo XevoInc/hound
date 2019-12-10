@@ -1,12 +1,12 @@
 /**
- * @file      can.c
- * @brief     Unit test for the file driver.
+ * @file      obd.c
+ * @brief     Unit test for the OBD-II driver.
  * @author    Martin Kelly <mkelly@xevo.com>
  * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
 #define _POSIX_C_SOURCE 200809L
-#include <hound/driver/can.h>
+#include <hound/driver/obd.h>
 #include <hound/hound.h>
 #include <hound-private/util.h>
 #include <hound-test/assert.h>
@@ -18,56 +18,54 @@
 #include <unistd.h>
 #include <valgrind.h>
 
-struct frame_ctx {
+struct test_ctx {
     size_t pos;
     size_t count;
-    struct can_frame *frames;
+    struct modepid *obd_rqs;
     char iface[HOUND_DEVICE_NAME_MAX];
 };
 
-/* These are chosen to look like common OBD II PIDs. */
-static struct can_frame s_tx_frames[] = {
-    /* Engine RPM query */
+struct modepid {
+    yobd_mode mode;
+    yobd_pid pid;
+};
+
+static struct modepid s_obd_rqs[] = {
     {
-        .can_id = 0x7df,
-        .can_dlc = 8,
-        .data =  { 0x2, 0x1, 0x0c, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc },
+        .mode = 0x01,
+        .pid = 0x0c
     },
-    /* Vehicle speed query */
     {
-        .can_id = 0x7df,
-        .can_dlc = 8,
-        .data =  { 0x2, 0x1, 0x0d, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc },
+        .mode = 0x01,
+        .pid = 0x0d
     }
 };
 
-static struct frame_ctx s_tx = {
+static struct test_ctx s_ctx = {
     .pos = 0,
-    .count = ARRAYLEN(s_tx_frames),
-    .frames = s_tx_frames,
+    .count = ARRAYLEN(s_obd_rqs),
+    .obd_rqs = s_obd_rqs
 };
 
 void data_cb(const struct hound_record *record, void *data)
 {
-    struct frame_ctx *ctx;
+    struct test_ctx *ctx;
     const char *dev_name;
     hound_err err;
-    uint8_t *p;
-    int ret;
+    yobd_mode mode;
+    yobd_pid pid;
 
     XASSERT_NOT_NULL(record);
     XASSERT_NOT_NULL(record->data);
-    XASSERT_GT(record->size, 0);
+    XASSERT_EQ(record->size, sizeof(float));
     XASSERT_NOT_NULL(data);
 
-    XASSERT_EQ(record->size % sizeof(*ctx->frames), 0);
-
     ctx = data;
-    for (p = record->data; p < record->data + record->size; p += sizeof(*ctx)) {
-        ret = memcmp(p, ctx->frames + ctx->pos, sizeof(*ctx->frames));
-        XASSERT_EQ(ret, 0);
-        ctx->pos = (ctx->pos+1) % ctx->count;
-    }
+    hound_obd_get_mode_pid(record->data_id, &mode, &pid);
+    XASSERT_EQ(ctx->obd_rqs[ctx->pos].mode, mode);
+    XASSERT_EQ(ctx->obd_rqs[ctx->pos].pid, pid);
+
+    ctx->pos = (ctx->pos+1) % ctx->count;
 
     err = hound_get_dev_name(record->dev_id, &dev_name);
     XASSERT_OK(err);
@@ -99,15 +97,24 @@ void test_read(hound_data_period period_ns)
     struct hound_ctx *ctx;
     hound_err err;
     size_t i;
+    struct modepid *modepid;
     size_t n;
-    struct hound_data_rq data_rq = { .id = HOUND_DATA_CAN };
+    struct hound_data_rq *data_rq;
+    struct hound_data_rq data_rqs[s_ctx.count];
     struct hound_rq rq = {
         .queue_len = 10000,
         .cb = data_cb,
-        .cb_ctx = &s_tx,
-        .rq_list.len = 1,
-        .rq_list.data = &data_rq
+        .cb_ctx = &s_ctx,
+        .rq_list.len = ARRAYLEN(data_rqs),
+        .rq_list.data = data_rqs
     };
+
+    for (i = 0; i < ARRAYLEN(data_rqs); ++i) {
+        data_rq = &data_rqs[i];
+        modepid = &s_ctx.obd_rqs[i];
+        hound_obd_get_data_id(modepid->mode, modepid->pid, &data_rq->id);
+        data_rq->period_ns = period_ns;
+    }
 
     err = hound_alloc_ctx(&ctx, &rq);
     XASSERT_OK(err);
@@ -115,7 +122,6 @@ void test_read(hound_data_period period_ns)
     err = hound_start(ctx);
     XASSERT_OK(err);
 
-    data_rq.period_ns = period_ns;
     if (RUNNING_ON_VALGRIND) {
         n = 2;
     }
@@ -137,7 +143,7 @@ void test_read(hound_data_period period_ns)
 int main(int argc, const char **argv)
 {
     hound_err err;
-    struct hound_can_driver_init init;
+    struct hound_obd_driver_init init;
     const char *schema_base;
 
     if (argc != 3) {
@@ -149,7 +155,7 @@ int main(int argc, const char **argv)
         fprintf(stderr, "Device argument is longer than IFNAMSIZ\n");
         exit(EXIT_FAILURE);
     }
-    strcpy(s_tx.iface, argv[1]); /* NOLINT, string size already checked */
+    strcpy(s_ctx.iface, argv[1]); /* NOLINT, string size already checked */
     strcpy(init.iface, argv[1]); /* NOLINT, string size already checked */
 
     if (strnlen(argv[2], PATH_MAX) == PATH_MAX) {
@@ -168,12 +174,9 @@ int main(int argc, const char **argv)
         exit(EXIT_FAILURE);
     }
 
-    init.tx_count = ARRAYLEN(s_tx_frames);
-    init.tx_frames = s_tx_frames;
-    /* Don't filter responses; we want to receive our own queries. */
-    init.rx_can_id = 0;
+    init.yobd_schema = "standard-pids.yaml";
 
-    err = hound_register_can_driver(schema_base, &init);
+    err = hound_register_obd_driver(schema_base, &init);
     XASSERT_OK(err);
 
     /* On-demand data. */

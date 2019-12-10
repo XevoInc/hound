@@ -59,10 +59,9 @@ const char *hound_strerror(hound_err err);
  * generate the same types of data and thus can declare their data types in
  * code).
  */
-#define HOUND_DATA_CAN ((hound_data_id) 0x00000000)
-#define HOUND_DATA_GPS ((hound_data_id) 0x00000001)
 #define HOUND_DATA_ACCEL ((hound_data_id) 0x00000002)
-#define HOUND_DATA_GYRO ((hound_data_id) 0x00000003)
+#define HOUND_DATA_GYRO ((hound_data_id) 0x00000002)
+#define HOUND_DATA_GPS ((hound_data_id) 0x00000001)
 
 /* Data. */
 

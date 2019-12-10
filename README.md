@@ -22,6 +22,8 @@ issues, like queueing samples, minimizing latency, etc.
 
 - xlib: compile from source: https://github.com/XevoInc/xlib
 
+- yobd: compile from source: https://github.com/XevoInc/yobd
+
 - (optional, for developers) `clang-tidy`. This is used for static analysis and
   is thus a build but not runtime requirement.
 

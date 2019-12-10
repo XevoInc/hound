@@ -191,14 +191,14 @@ hound_err driver_register(
     hound_err err;
     struct hound_data_fmt *fmt;
     bool found;
-    hound_data_count i;
-    hound_data_count j;
+    size_t i;
+    size_t j;
     xhiter_t iter;
     size_t len;
     size_t offset;
     int ret;
     char schema[PATH_MAX];
-    hound_data_count schema_desc_count;
+    size_t schema_desc_count;
     struct hound_schema_desc *schema_desc;
     struct hound_schema_desc *schema_descs;
 
