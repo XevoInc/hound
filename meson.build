@@ -140,7 +140,7 @@ executable(
     include_directories: test_include,
     dependencies: manual_test_deps)
 executable(
-    'gps_test',
+    'gps-test',
     'test/gps.c',
     include_directories: test_include,
     dependencies: manual_test_deps + [gps_dep])
