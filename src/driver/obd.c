@@ -320,11 +320,9 @@ void set_bcm_timers(struct bcm_msg_head *bcm, hound_data_period period_ns)
 static
 hound_err make_bcm_socket(struct obd_ctx *ctx, int *out_fd)
 {
-    struct bcm_info *bcm_info;
     struct sockaddr_can addr;
     hound_err err;
     int fd;
-    size_t i;
 
     memset(&addr, 0, sizeof(addr));
     fd = socket(PF_CAN, SOCK_DGRAM, CAN_BCM);
@@ -343,14 +341,6 @@ hound_err make_bcm_socket(struct obd_ctx *ctx, int *out_fd)
     if (err == -1) {
         err = errno;
         goto error;
-    }
-
-    for (i = 0; i < xv_size(ctx->bcm_rqs); ++i) {
-        bcm_info = &xv_A(ctx->bcm_rqs, i);
-        err = write_loop(fd, &bcm_info->payload, sizeof(bcm_info->payload));
-        if (err != HOUND_OK) {
-            goto error;
-        }
     }
 
     *out_fd = fd;
