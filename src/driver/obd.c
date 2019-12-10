@@ -180,6 +180,34 @@ hound_err obd_device_name(char *device_name)
     return HOUND_OK;
 }
 
+struct iter_helper {
+    obd_ctx *ctx;
+    size_t i;
+    struct hound_datadesc *descs;
+    hound_err err;
+};
+
+static
+bool make_desc(
+    const struct yobd_pid_desc *desc,
+    yobd_mode mode,
+    yobd_pid pid,
+    void *data)
+{
+    struct hound_datadesc *desc;
+    struct iter_helper *iter;
+
+    iter = data;
+    desc = &iter->descs[i];
+
+    hound_obd_get_data_id(&desc->data_id, mode, pid);
+    desc->dev_id =
+
+    ++iter->i;
+
+    return false;
+}
+
 static
 hound_err obd_datadesc(
     size_t *desc_count,
@@ -189,6 +217,7 @@ hound_err obd_datadesc(
 {
     struct obd_ctx *ctx;
     struct hound_datadesc *descs;
+    struct iter_helper iter;
     yobd_err yerr;
 
     XASSERT_NOT_NULL(desc_count);
@@ -209,7 +238,22 @@ hound_err obd_datadesc(
         return HOUND_OOM;
     }
 
-    return HOUND_OK;
+    iter.ctx = ctx;
+    iter.i = 0;
+    iter.descs = descs;
+    iter.err = HOUND_OK;
+    yerr = yobd_pid_foreach(ctx->yobd_ctx, make_desc, iter);
+    if (yerr == YOBD_OK) {
+        XASSERT_EQ(iter->i, *desc_count);
+    }
+    else if (yerr == YOBD_OOM) {
+        err = HOUND_OOM;
+    }
+    else {
+        err = HOUND_INVALID_VAL;
+    }
+
+    return err;
 }
 
 static
