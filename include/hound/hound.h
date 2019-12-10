@@ -192,8 +192,8 @@ hound_err hound_stop(struct hound_ctx *ctx);
 
 /**
  * Asks all drivers underlying this context to produce data. This call is useful
- * only for pull mode (non-periodic, period == 0) data, and it does nothing for
- * periodic drivers.
+ * only for on-demand (period == 0) data, and it does nothing for periodic
+ * drivers.
  *
  * @param ctx a context
  * @param n the number of records to produce.
