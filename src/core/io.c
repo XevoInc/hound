@@ -394,15 +394,7 @@ void io_resume_poll(void)
 static
 hound_err io_start_poll(void)
 {
-    pthread_attr_t attr;
     hound_err err;
-
-    err = pthread_attr_init(&attr);
-    if (err != 0) {
-        return err;
-    }
-    err = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    XASSERT_EQ(err, 0);
 
     err = pthread_create(&s_poll_thread, NULL, io_poll, NULL);
     if (err != 0) {
