@@ -172,7 +172,7 @@ struct iio_ctx {
     bool active;
     char *dev;
     char *dev_dir;
-    char dev_name[HOUND_DATA_NAME_MAX];
+    char dev_name[HOUND_DEVICE_NAME_MAX];
     uint_fast64_t buf_ns;
     size_t num_entries;
     struct device_parse_entry *entries;
