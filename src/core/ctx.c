@@ -245,20 +245,14 @@ out:
 static
 void destroy_cb_queue(struct queue *queue)
 {
-    refcount_val count;
     size_t i;
     struct record_info *buf[DEQUEUE_BUF_SIZE];
-    struct record_info *rec_info;
     size_t read;
 
     /* First drain the queue. */
     read = queue_pop_records_nowait(queue, buf, SIZE_MAX);
     for (i = 0; i < read; ++i) {
-        rec_info = buf[i];
-        count = atomic_ref_dec(&rec_info->refcount);
-        if (count == 1) {
-            free_record_info(rec_info);
-        }
+        record_ref_dec(buf[i]);
     }
 
     /* Then destroy the queue. */
@@ -440,21 +434,13 @@ void process_callbacks(
     struct record_info **buf,
     size_t n)
 {
-    refcount_val count;
     size_t i;
     struct record_info *rec_info;
 
     for (i = 0; i < n; ++i) {
         rec_info = buf[i];
         ctx->cb(&rec_info->record, ctx->cb_ctx);
-        count = atomic_ref_dec(&rec_info->refcount);
-        if (count == 1) {
-            /*
-             * atomic_ref_dec returns the value *before* decrement, so this
-             * means the refcount has now reached 0.
-             */
-            free_record_info(rec_info);
-        }
+        record_ref_dec(rec_info);
     }
 }
 

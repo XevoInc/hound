@@ -24,7 +24,7 @@ struct record_info {
     struct hound_record record;
 };
 
-void free_record_info(struct record_info *info);
+void record_ref_dec(struct record_info *info);
 
 hound_err queue_alloc(
     struct queue **queue,

@@ -29,10 +29,25 @@ struct queue {
     struct record_info *data[];
 };
 
+static
 void free_record_info(struct record_info *info)
 {
     drv_free(info->record.data);
     drv_free(info);
+}
+
+void record_ref_dec(struct record_info *info)
+{
+    refcount_val count;
+
+    count = atomic_ref_dec(&info->refcount);
+    if (count == 1) {
+        /*
+         * atomic_ref_dec returns the value *before* decrement, so this
+         * means the refcount has now reached 0.
+         */
+        free_record_info(info);
+    }
 }
 
 hound_err queue_alloc(
