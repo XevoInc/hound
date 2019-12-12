@@ -167,11 +167,12 @@ hound_err io_read(int fd, struct fdctx *ctx)
             ++ctx->next_seqno;
             record->dev_id = ctx->drv->id;
             memcpy(&rec_info->record, record, sizeof(*record));
-            atomic_ref_init(&rec_info->refcount, xv_size(ctx->queues));
+            atomic_ref_init(&rec_info->refcount, 0);
 
             for (i = 0; i < xv_size(ctx->queues); ++i) {
                 entry = &xv_A(ctx->queues, i);
                 if (record->data_id == entry->id) {
+                    atomic_ref_inc(&rec_info->refcount);
                     queue_push(entry->queue, rec_info);
                 }
             }
