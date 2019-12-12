@@ -22,7 +22,6 @@ properties:
     description: A sensor's friendly name, which will be advertised to consumers
     type: string
     minLength: 1
-    maxLength: 32
   fmt:
     type: array
     # It's useful for the parsing code to have a maximum number of entries it can

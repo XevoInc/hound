@@ -192,7 +192,7 @@ static
 hound_err parse_fmts(
     yaml_document_t *doc,
     yaml_node_t *node,
-    hound_data_count *out_count,
+    size_t *out_count,
     struct hound_data_fmt **out_fmts)
 {
     size_t fmt_count;
@@ -281,7 +281,7 @@ hound_err parse_doc(
 
 hound_err parse(
     FILE *file,
-    hound_data_count *out_desc_count,
+    size_t *out_desc_count,
     struct hound_schema_desc **out_descs)
 {
     struct hound_schema_desc *desc;
@@ -363,12 +363,12 @@ hound_err parse(
 hound_err schema_parse(
     const char *schema_base,
     const char *schema,
-    hound_data_count *out_desc_count,
+    size_t *out_desc_count,
     struct hound_schema_desc **out_descs)
 {
     hound_err err;
     FILE *f;
-    hound_data_count desc_count;
+    size_t desc_count;
     struct hound_schema_desc *descs;
     char path[PATH_MAX];
 

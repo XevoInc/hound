@@ -32,14 +32,16 @@ configure_file(
 
 # Library.
 gps_dep = dependency('libgps')
-yaml_dep = dependency('yaml-0.1')
 thread_dep = dependency('threads')
 xlib_dep = dependency('xlib')
+yaml_dep = dependency('yaml-0.1')
+yobd_dep = dependency('yobd')
 lib_deps = [
     gps_dep,
-    yaml_dep,
     thread_dep,
-    xlib_dep
+    xlib_dep,
+    yaml_dep,
+    yobd_dep
 ]
 
 # Install schemas.
@@ -63,9 +65,9 @@ src = [
     'src/core/refcount.c',
     'src/core/schema.c',
     'src/core/util.c',
-    'src/driver/can.c',
     'src/driver/gps.c',
     'src/driver/iio.c',
+    'src/driver/obd.c',
     'src/driver/util.c',
 ]
 
@@ -112,22 +114,26 @@ tests = {
     'nop': {
         'src': ['test/driver/nop.c', 'test/nop.c'],
         'args': test_schema_dir,
-        'is-parallel': true
+        'is-parallel': true,
+        'deps': unit_test_deps
     },
     'counter': {
         'src': ['test/driver/counter.c', 'test/counter.c'],
         'args': test_schema_dir,
-        'is-parallel': true
+        'is-parallel': true,
+        'deps': unit_test_deps
     },
     'file': {
         'src': ['test/driver/file.c', 'test/file.c'],
         'args': [test_schema_dir, files('test/data/testfile')],
-        'is-parallel': true
+        'is-parallel': true,
+        'deps': unit_test_deps
     },
-    'can': {
-        'src': ['test/can.c'],
+    'obd': {
+        'src': ['test/obd/sim.c', 'test/obd/test.c'],
         'args': ['hound-vcan0', prod_schema_dir],
-        'is-parallel': false
+        'is-parallel': false,
+        'deps': unit_test_deps + [yobd_dep]
     }
 }
 foreach name, t : tests
@@ -135,7 +141,7 @@ foreach name, t : tests
         name,
         t.get('src'),
         include_directories: test_include,
-        dependencies: unit_test_deps)
+        dependencies: t.get('deps'))
     test(
         name,
         exe,

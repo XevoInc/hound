@@ -83,7 +83,7 @@ hound_err nop_device_name(char *device_name)
 
 static
 hound_err nop_datadesc(
-    hound_data_count *desc_count,
+    size_t *desc_count,
     struct hound_datadesc **out_descs,
     char *schema,
     drv_sched_mode *mode)

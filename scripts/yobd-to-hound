@@ -1,0 +1,77 @@
+#!/usr/bin/python3
+#
+# Converts from a yobd to a hound schema.
+#
+# Copyright (c) 2019 Xevo Inc. All rights reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+
+import sys
+import yaml
+
+def dump_hound_desc(desc):
+    '''Prints a hound data descriptor as a YAML document.'''
+    # Yes, we could define our own Representer class and use yaml.dump to do
+    # this, but getting it to look *exactly* right would be a lot more effort
+    # than it's worth.
+    print('---')
+    print('id: %s' % desc['id'])
+    print('name: %s' % desc['name'])
+    fmt = desc['fmt']
+    print('''\
+fmt:
+    - name: %s
+      unit: %s
+      type: %s''' % (fmt['name'], fmt['unit'], fmt['type']))
+
+def dump_hound_schema(schema):
+    '''Prints a hound schema to stdin.'''
+    for desc in schema:
+        dump_hound_desc(desc)
+
+def make_hound_schema(yobd_schema):
+    '''
+    Given a yobd schema, returns the corresponding hound schema in
+    the form of a list of dictionaries. Each dictionary corresponds to a YAML
+    document and data descriptor and will be merged together into a single
+    file.
+    '''
+    hound_schema = []
+    modepid = yobd_schema['modepid']
+    for mode, pids in modepid.items():
+        mode = int(mode, 0)
+        for pid, yobd_desc in pids.items():
+            hound_desc = {}
+            pid = int(pid, 0)
+            hound_desc['id'] = hex(0xff000000 | (mode<<16) | pid)
+            hound_desc['name'] = yobd_desc['name']
+            hound_desc['fmt'] = {
+                'name': yobd_desc['name'],
+                'unit': yobd_desc['si-unit'],
+                'type': 'float'
+            }
+            hound_schema.append(hound_desc)
+
+    hound_schema.sort(key=lambda desc: int(desc['id'], 0))
+    return hound_schema
+
+yobd_schema = yaml.safe_load(sys.stdin)
+hound_schema = make_hound_schema(yobd_schema)
+dump_hound_schema(hound_schema)

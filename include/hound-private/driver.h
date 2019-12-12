@@ -15,14 +15,6 @@
 /** Maximum number of records a driver can produce from a single parse call. */
 #define HOUND_DRIVER_MAX_RECORDS 1000
 
-/**
- * Max length for the name of data (e.g. "accelerometer X value"), including
- * the null character.
- */
-#define HOUND_DATA_NAME_MAX 32
-
-typedef uint_least8_t hound_data_count;
-
 struct schema_desc {
     hound_data_id data_id;
     const char *name;
@@ -68,7 +60,7 @@ struct driver_ops {
      * @return an error code
      */
     hound_err (*datadesc)(
-        hound_data_count *desc_count,
+        size_t *desc_count,
         struct hound_datadesc **descs,
         char *schema,
         drv_sched_mode *mode);

@@ -120,7 +120,7 @@ void test_alloc_ctx(struct hound_ctx **ctx)
     ctx_test(ctx, 5, NULL, ARRAYLEN(data_rq), data_rq, HOUND_MISSING_CALLBACK);
 
     memcpy(bad_data_rq, data_rq, sizeof(data_rq));
-    bad_data_rq[0].id = HOUND_DATA_CAN;
+    bad_data_rq[0].id = HOUND_DATA_GPS;
     ctx_test(
         ctx,
         5,

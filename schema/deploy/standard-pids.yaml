@@ -1,0 +1,189 @@
+---
+id: 0xff010004
+name: calculated engine load
+fmt:
+    - name: calculated engine load
+      unit: percent
+      type: float
+---
+id: 0xff010005
+name: engine coolant temperature
+fmt:
+    - name: engine coolant temperature
+      unit: percent
+      type: float
+---
+id: 0xff01000a
+name: fuel pressure (gauge pressure)
+fmt:
+    - name: fuel pressure (gauge pressure)
+      unit: Pa
+      type: float
+---
+id: 0xff01000c
+name: engine RPM
+fmt:
+    - name: engine RPM
+      unit: rad/s
+      type: float
+---
+id: 0xff01000d
+name: vehicle speed
+fmt:
+    - name: vehicle speed
+      unit: m/s
+      type: float
+---
+id: 0xff01000f
+name: intake air temperature
+fmt:
+    - name: intake air temperature
+      unit: K
+      type: float
+---
+id: 0xff010010
+name: MAF air flow rate
+fmt:
+    - name: MAF air flow rate
+      unit: kg/s
+      type: float
+---
+id: 0xff010011
+name: throttle position
+fmt:
+    - name: throttle position
+      unit: percent
+      type: float
+---
+id: 0xff01001f
+name: runtime since engine start
+fmt:
+    - name: runtime since engine start
+      unit: ns
+      type: float
+---
+id: 0xff010021
+name: distance traveled with MIL on
+fmt:
+    - name: distance traveled with MIL on
+      unit: m
+      type: float
+---
+id: 0xff010031
+name: distance traveled since codes cleared
+fmt:
+    - name: distance traveled since codes cleared
+      unit: m
+      type: float
+---
+id: 0xff010032
+name: evaporative system vapor pressure
+fmt:
+    - name: evaporative system vapor pressure
+      unit: Pa
+      type: float
+---
+id: 0xff010033
+name: absolute barometric pressure
+fmt:
+    - name: absolute barometric pressure
+      unit: Pa
+      type: float
+---
+id: 0xff010045
+name: relative throttle position
+fmt:
+    - name: relative throttle position
+      unit: percent
+      type: float
+---
+id: 0xff010046
+name: ambient air temperature
+fmt:
+    - name: ambient air temperature
+      unit: K
+      type: float
+---
+id: 0xff010047
+name: absolute throttle position B
+fmt:
+    - name: absolute throttle position B
+      unit: percent
+      type: float
+---
+id: 0xff010048
+name: absolute throttle position C
+fmt:
+    - name: absolute throttle position C
+      unit: percent
+      type: float
+---
+id: 0xff010049
+name: accelerator pedal position D
+fmt:
+    - name: accelerator pedal position D
+      unit: percent
+      type: float
+---
+id: 0xff01004a
+name: accelerator pedal position E
+fmt:
+    - name: accelerator pedal position E
+      unit: percent
+      type: float
+---
+id: 0xff01004b
+name: accelerator pedal position F
+fmt:
+    - name: accelerator pedal position F
+      unit: percent
+      type: float
+---
+id: 0xff010052
+name: ethanol fuel percent
+fmt:
+    - name: ethanol fuel percent
+      unit: percent
+      type: float
+---
+id: 0xff01005a
+name: relative accelerator pedal position
+fmt:
+    - name: relative accelerator pedal position
+      unit: percent
+      type: float
+---
+id: 0xff01005b
+name: hybrid battery pack remaining life
+fmt:
+    - name: hybrid battery pack remaining life
+      unit: percent
+      type: float
+---
+id: 0xff01005c
+name: engine oil temperature
+fmt:
+    - name: engine oil temperature
+      unit: K
+      type: float
+---
+id: 0xff010061
+name: driver's demand engine torque
+fmt:
+    - name: driver's demand engine torque
+      unit: percent
+      type: float
+---
+id: 0xff010062
+name: actual engine torque
+fmt:
+    - name: actual engine torque
+      unit: percent
+      type: float
+---
+id: 0xff010063
+name: engine reference torque
+fmt:
+    - name: engine reference torque
+      unit: m
+      type: float
