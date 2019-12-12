@@ -573,23 +573,16 @@ hound_err io_add_queue(
             ++queue_count;
         }
 
-        if (ctx->drv->sched_mode == DRV_SCHED_PULL) {
+        if (ctx->drv->sched_mode == DRV_SCHED_PULL && rq->period_ns > 0) {
             /*
              * Push-mode doesn't need timeout data, as the driver manages the
              * data timing.
+             *
+             * Further, A period of 0 has special meaning: data is "on-demand",
+             * meaning neither push nor pull (no data flows until requested with
+             * hound_next(). Therefore, if the period is 0, we should not add
+             * timing data for this request.
              */
-            if (rq->period_ns == 0) {
-                /*
-                 * A period of 0 in pull-mode is a busy-loop, which would starve
-                 * all other data producers and is almost certainly a mistake.
-                 */
-                err = HOUND_PERIOD_UNSUPPORTED;
-                for (j = 0; j < queue_count; ++j) {
-                    (void) xv_pop(ctx->queues);
-                    goto out;
-                }
-            }
-
             timing_entry = xv_pushp(struct pull_timing_entry, ctx->timings);
             if (timing_entry == NULL) {
                 err = HOUND_OOM;
