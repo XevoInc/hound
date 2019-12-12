@@ -215,7 +215,11 @@ unix_to_timespec (double timestamp, struct timespec *ts)
 static
 void populate_gps_data(struct gps_data *data, struct gps_fix_t *fix)
 {
-	data->time_uncertainty = fix->ept;
+    /*
+     * Time uncertainty needs conversion from seconds to nanoseconds, as
+     * advertised in the schema.
+     */
+	data->time_uncertainty = fix->ept * NSEC_PER_SEC;
 	data->latitude = fix->latitude;
 	data->latitude_uncertainty = fix->epy;
 	data->longitude = fix->longitude;
