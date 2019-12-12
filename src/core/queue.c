@@ -195,7 +195,7 @@ void queue_push(
     pthread_mutex_unlock(&queue->mutex);
 
     if (tmp != NULL) {
-        free_record_info(tmp);
+        record_ref_dec(tmp);
     }
 }
 
