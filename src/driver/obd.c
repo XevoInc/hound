@@ -25,6 +25,7 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <xlib/xhash.h>
 #include <yobd/yobd.h>
 
 #define OBD_PREFIX 0xff000000
@@ -34,6 +35,8 @@
 #define USEC_PER_SEC ((uint64_t) 1e6)
 #define FD_INVALID (-1)
 
+XHASH_MAP_INIT_INT(FRAME_MAP, struct can_frame)
+
 struct obd_ctx {
     char iface[IFNAMSIZ];
     canid_t tx_id;
@@ -41,6 +44,7 @@ struct obd_ctx {
     int rx_fd;
     const char *yobd_schema;
     struct yobd_ctx *yobd_ctx;
+    xhash_t(FRAME_MAP) *frame_cache;
 };
 
 static
@@ -114,6 +118,11 @@ hound_err obd_init(void *data)
         goto error_dup_schema;
     }
 
+    ctx->frame_cache = xh_init(FRAME_MAP);
+    if (ctx->frame_cache == NULL) {
+        goto error_xh_init;
+    }
+
     strcpy(ctx->iface, init->iface);
     ctx->tx_id = YOBD_OBD_II_QUERY_ADDRESS;
     ctx->tx_fd = FD_INVALID;
@@ -123,6 +132,8 @@ hound_err obd_init(void *data)
     drv_set_ctx(ctx);
     return HOUND_OK;
 
+error_xh_init:
+    free((char *) ctx->yobd_schema);
 error_dup_schema:
     free(ctx);
 error_alloc_ctx:
@@ -140,6 +151,7 @@ hound_err obd_destroy(void)
     struct obd_ctx *ctx;
 
     ctx = drv_ctx();
+    xh_destroy(FRAME_MAP, ctx->frame_cache);
     yobd_free_ctx(ctx->yobd_ctx);
     free((char *) ctx->yobd_schema);
     free(ctx);
@@ -286,7 +298,48 @@ out:
 static
 hound_err obd_setdata(const struct hound_data_rq_list *rq_list)
 {
+    const struct obd_ctx *ctx;
+    struct can_frame *frame;
+    size_t i;
+    hound_data_id id;
+    xhiter_t iter;
+    yobd_mode mode;
+    yobd_pid pid;
+    int ret;
+    yobd_err yerr;
+
     XASSERT_NOT_NULL(rq_list);
+
+    ctx = drv_ctx();
+    XASSERT_NOT_NULL(ctx);
+
+    /*
+     * Populate the frame map so we can make pre-"canned" (haha) requests in
+     * the next call.
+     */
+    for (i = 0; i < rq_list->len; ++i) {
+        id = rq_list->data[i].id;
+        hound_obd_get_mode_pid(id, &mode, &pid);
+        iter = xh_get(FRAME_MAP, ctx->frame_cache, id);
+        if (iter != xh_end(ctx->frame_cache)) {
+            continue;
+        }
+
+        /* Add a new cache entry. */
+        iter = xh_put(FRAME_MAP, ctx->frame_cache, id, &ret);
+        if (ret == -1) {
+            return HOUND_OOM;
+        }
+        frame = &xh_val(ctx->frame_cache, iter);
+
+        /*
+         * The kernel doesn't seem to care about the padding/reserved bytes in
+         * struct can_frame, but this makes valgrind happy.
+         */
+        memset(frame, 0, sizeof(*frame));
+        yerr = yobd_make_can_query(ctx->yobd_ctx, mode, pid, frame);
+        XASSERT_EQ(yerr, YOBD_OK);
+    }
 
     return HOUND_OK;
 }
@@ -373,30 +426,22 @@ static
 hound_err obd_next(hound_data_id id)
 {
     const struct obd_ctx *ctx;
-    struct can_frame frame;
+    struct can_frame *frame;
     hound_err err;
-    yobd_mode mode;
-    yobd_pid pid;
-    yobd_err yerr;
+    xhiter_t iter;
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
 
-    hound_obd_get_mode_pid(id, &mode, &pid);
-
     /*
-     * The kernel doesn't seem to care about the padding/reserved bytes in
-     * struct can_frame, but this makes valgrind happy.
+     * Fetch the CAN frame entry from our cache. We should never have a miss, as
+     * we pre-populated the cache in our setdata call.
      */
-    memset(&frame, 0, sizeof(frame));
+    iter = xh_get(FRAME_MAP, ctx->frame_cache, id);
+    XASSERT_NEQ(iter, xh_end(ctx->frame_cache));
+    frame = &xh_val(ctx->frame_cache, iter);
 
-    /*
-     * TODO: Cache these queries in a map from hound ID to CAN frame.
-     */
-    yerr = yobd_make_can_query(ctx->yobd_ctx, mode, pid, &frame);
-    XASSERT_EQ(yerr, YOBD_OK);
-
-    err = write_loop(ctx->tx_fd, &frame, sizeof(frame));
+    err = write_loop(ctx->tx_fd, frame, sizeof(*frame));
     if (err != HOUND_OK) {
         return err;
     }
