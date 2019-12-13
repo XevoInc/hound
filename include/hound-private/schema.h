@@ -16,7 +16,7 @@
 void schema_init(void);
 void schema_destroy(void);
 
-struct hound_schema_desc {
+struct schema_desc {
     hound_data_id data_id;
     char *name;
     size_t fmt_count;
@@ -24,12 +24,12 @@ struct hound_schema_desc {
 };
 
 void destroy_desc_fmts(size_t count, struct hound_data_fmt *fmts);
-void destroy_schema_desc(struct hound_schema_desc *desc);
+void destroy_schema_desc(struct schema_desc *desc);
 
 hound_err schema_parse(
     const char *schema_base,
     const char *schema,
     size_t *out_desc_count,
-    struct hound_schema_desc **out_descs);
+    struct schema_desc **out_descs);
 
 #endif /* HOUND_PRIVATE_SCHEMA_H_ */

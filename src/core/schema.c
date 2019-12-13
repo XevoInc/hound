@@ -32,7 +32,7 @@ void destroy_desc_fmts(size_t count, struct hound_data_fmt *fmts)
     drv_free(fmts);
 }
 
-void destroy_schema_desc(struct hound_schema_desc *desc)
+void destroy_schema_desc(struct schema_desc *desc)
 {
     drv_free((char *) desc->name);
     destroy_desc_fmts(desc->fmt_count, desc->fmts);
@@ -249,7 +249,7 @@ static
 hound_err parse_doc(
     yaml_document_t *doc,
     yaml_node_t *node,
-    struct hound_schema_desc *desc)
+    struct schema_desc *desc)
 {
     hound_err err;
     yaml_node_t *key;
@@ -298,10 +298,10 @@ hound_err parse_doc(
 hound_err parse(
     FILE *file,
     size_t *out_desc_count,
-    struct hound_schema_desc **out_descs)
+    struct schema_desc **out_descs)
 {
-    struct hound_schema_desc *desc;
-    xvec_t(struct hound_schema_desc) descs;
+    struct schema_desc *desc;
+    xvec_t(struct schema_desc) descs;
     size_t descs_size;
     yaml_document_t doc;
     hound_err err;
@@ -328,7 +328,7 @@ hound_err parse(
             break;
         }
 
-        desc = xv_pushp(struct hound_schema_desc, descs);
+        desc = xv_pushp(struct schema_desc, descs);
         if (desc == NULL) {
             err = HOUND_OOM;
             break;
@@ -375,12 +375,12 @@ hound_err schema_parse(
     const char *schema_base,
     const char *schema,
     size_t *out_desc_count,
-    struct hound_schema_desc **out_descs)
+    struct schema_desc **out_descs)
 {
     hound_err err;
     FILE *f;
     size_t desc_count;
-    struct hound_schema_desc *descs;
+    struct schema_desc *descs;
     char path[PATH_MAX];
 
     XASSERT_NOT_NULL(schema);

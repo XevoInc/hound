@@ -199,8 +199,8 @@ hound_err driver_register(
     int ret;
     char schema[PATH_MAX];
     size_t schema_desc_count;
-    struct hound_schema_desc *schema_desc;
-    struct hound_schema_desc *schema_descs;
+    struct schema_desc *schema_desc;
+    struct schema_desc *schema_descs;
 
     NULL_CHECK(path);
 

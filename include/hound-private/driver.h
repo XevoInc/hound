@@ -15,13 +15,6 @@
 /** Maximum number of records a driver can produce from a single parse call. */
 #define HOUND_DRIVER_MAX_RECORDS 1000
 
-struct schema_desc {
-    hound_data_id data_id;
-    const char *name;
-    size_t fmt_count;
-    struct hound_data_fmt *fmts;
-};
-
 typedef enum {
     DRV_SCHED_PULL,
     DRV_SCHED_PUSH
