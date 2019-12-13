@@ -22,6 +22,22 @@
 
 #define MAX_FMT_ENTRIES 100
 
+void destroy_desc_fmts(size_t count, struct hound_data_fmt *fmts)
+{
+    size_t i;
+
+    for (i = 0; i < count; ++i) {
+        drv_free((char *) fmts[i].name);
+    }
+    drv_free(fmts);
+}
+
+void destroy_schema_desc(struct hound_schema_desc *desc)
+{
+    drv_free((char *) desc->name);
+    destroy_desc_fmts(desc->fmt_count, desc->fmts);
+}
+
 static
 hound_data_id parse_id(yaml_node_t *node)
 {
@@ -290,7 +306,6 @@ hound_err parse(
     yaml_document_t doc;
     hound_err err;
     size_t i;
-    size_t j;
     yaml_node_t *node;
     yaml_parser_t parser;
     int ret;
@@ -348,11 +363,7 @@ hound_err parse(
     if (err != HOUND_OK) {
         for (i = 0; i < xv_size(descs); ++i) {
             desc = &xv_A(descs, i);
-            drv_free(desc->name);
-            for (j = 0; j < desc->fmt_count; ++j) {
-                drv_free((char *) desc->fmts[j].name);
-            }
-            drv_free(desc->fmts);
+            destroy_schema_desc(desc);
         }
     }
     xv_destroy(descs);

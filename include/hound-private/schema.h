@@ -23,6 +23,9 @@ struct hound_schema_desc {
     struct hound_data_fmt *fmts;
 };
 
+void destroy_desc_fmts(size_t count, struct hound_data_fmt *fmts);
+void destroy_schema_desc(struct hound_schema_desc *desc);
+
 hound_err schema_parse(
     const char *schema_base,
     const char *schema,

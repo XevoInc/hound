@@ -359,9 +359,10 @@ hound_err driver_register(
          * If you like C++, pretend this is std::move :).
          */
         desc->name = schema_desc->name;
-        schema_desc->name = NULL;
         desc->fmt_count = schema_desc->fmt_count;
         desc->fmts = schema_desc->fmts;
+        schema_desc->name = NULL;
+        schema_desc->fmt_count = 0;
         schema_desc->fmts = NULL;
 
         iter = xh_get(DATA_MAP, s_data_map, drv->data[i].data_id);
@@ -375,8 +376,7 @@ hound_err driver_register(
 
     for (i = 0; i < schema_desc_count; ++i) {
         schema_desc = &schema_descs[i];
-        drv_free(schema_desc->name);
-        drv_free(schema_desc->fmts);
+        destroy_schema_desc(schema_desc);
     }
     drv_free(schema_descs);
 

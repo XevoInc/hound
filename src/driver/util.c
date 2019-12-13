@@ -2,6 +2,7 @@
 #include <hound-private/driver-ops.h>
 #include <hound-private/driver/util.h>
 #include <hound-private/error.h>
+#include <hound-private/schema.h>
 #include <hound-private/util.h>
 #include <string.h>
 
@@ -89,15 +90,7 @@ hound_err drv_deepcopy_desc(
 PUBLIC_API
 void drv_destroy_desc(struct hound_datadesc *desc)
 {
-    size_t i;
-    struct hound_data_fmt *fmt;
-
     drv_free((void *) desc->name);
     drv_free((void *) desc->avail_periods);
-
-    for (i = 0; i < desc->fmt_count; ++i) {
-        fmt = &desc->fmts[i];
-        drv_free((void *) fmt->name);
-    }
-    drv_free(desc->fmts);
+    destroy_desc_fmts(desc->fmt_count, desc->fmts);
 }
