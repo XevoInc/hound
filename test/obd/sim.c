@@ -10,6 +10,7 @@
 
 #include <errno.h>
 #include <hound-test/obd/sim.h>
+#include <linux/can/raw.h>
 #include <net/if.h>
 #include <pthread.h>
 #include <sys/socket.h>
@@ -21,6 +22,7 @@ static
 int make_can_socket(const char *iface)
 {
     struct sockaddr_can addr;
+    struct can_filter filter;
     int fd;
     unsigned long index;
     int ret;
@@ -36,6 +38,16 @@ int make_can_socket(const char *iface)
     addr.can_ifindex = index;
     ret = bind(fd, (struct sockaddr *) &addr, sizeof(addr));
     XASSERT_NEQ(ret, -1);
+
+    filter.can_id = YOBD_OBD_II_QUERY_ADDRESS;
+    filter.can_mask = CAN_SFF_MASK;
+    ret = setsockopt(
+        fd,
+        SOL_CAN_RAW,
+        CAN_RAW_FILTER,
+        &filter,
+        sizeof(filter));
+    XASSERT_EQ(ret, 0);
 
     return fd;
 }
@@ -117,19 +129,6 @@ void event_loop(int fd, struct yobd_ctx *ctx)
                 perror("read");
             }
             break;
-        }
-
-        /*
-         * Although we could use the BCM to do this filtering, we are simulating
-         * a car over a (likely virtual) socket, so we can safely assume that
-         * most traffic we see is OBD II traffic. Thus adding BCM will increas
-         * our overhead from 8 bytes to 56 bytes because of the large
-         * bcm_msg_head structure in each read call. BCM provides significant
-         * advantages iff there's significant OBD II traffic that the kernel can
-         * filter out for us.
-         */
-        if (frame.can_id != YOBD_OBD_II_QUERY_ADDRESS) {
-            continue;
         }
 
         ret = can_response(fd, ctx, &frame);
