@@ -482,6 +482,7 @@ hound_err obd_start(int *out_fd)
         &filter,
         sizeof(filter));
     if (err != HOUND_OK) {
+        err = errno;
         goto error_sockopt;
     }
 
