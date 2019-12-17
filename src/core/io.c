@@ -93,9 +93,8 @@ struct fdctx *get_fdctx(int fd)
 }
 
 static
-hound_err io_read(int fd, struct fdctx *ctx)
+hound_err make_records(struct fdctx *ctx, uint8_t *buf, size_t size)
 {
-    ssize_t bytes_total;
     size_t bytes_left;
     const struct hound_record *end;
     struct queue_entry *entry;
@@ -106,30 +105,11 @@ hound_err io_read(int fd, struct fdctx *ctx)
     size_t record_count;
     struct record_info *rec_info;
 
-    bytes_total = read(fd, s_read_buf, ARRAYLEN(s_read_buf));
-    if (bytes_total == -1) {
-        /* Someone wanted to pause polling; we can finish reading later. */
-        if (errno == EINTR) {
-            return HOUND_INTR;
-        }
-
-        if (errno == EIO) {
-            hound_log_err(errno, "read returned EIO on fd %d", fd);
-            return HOUND_IO_ERROR;
-        }
-        else {
-            /* Other error codes are likely program bugs. */
-            XASSERT_ERROR;
-        }
-    }
-
     /* Ask the driver to make records from the buffer. */
-    pos = s_read_buf;
-    bytes_left = bytes_total;
+    pos = buf;
+    bytes_left = size;
     while (bytes_left > 0) {
-        bytes_total = bytes_left;
         record_count = 0;
-
         err = drv_op_parse(
             ctx->drv,
             pos,
@@ -140,18 +120,18 @@ hound_err io_read(int fd, struct fdctx *ctx)
             hound_log_err(
                 err,
                 "Driver failed to parse records (size = %zu, drv = 0x%p)",
-                bytes_total, ctx->drv);
+                bytes_left, ctx->drv);
             return err;
         }
-        XASSERT_LTE(bytes_left, (size_t) bytes_total);
+        XASSERT_LTE(bytes_left, size);
 
-        if (bytes_left == (size_t) bytes_total) {
+        if (bytes_left == size) {
             /* Driver can't make more records from this buffer. We're done. */
             break;
         }
 
         XASSERT_GT(record_count, 0);
-        pos += bytes_total - bytes_left;
+        pos += size - bytes_left;
 
         /* Add to all user queues. */
         end = s_records + record_count;
@@ -176,6 +156,44 @@ hound_err io_read(int fd, struct fdctx *ctx)
                     queue_push(entry->queue, rec_info);
                 }
             }
+        }
+    }
+
+    return HOUND_OK;
+}
+
+static
+hound_err io_read(int fd, struct fdctx *ctx)
+{
+    ssize_t bytes_read;
+    hound_err err;
+
+    while (true) {
+        bytes_read = read(fd, s_read_buf, ARRAYLEN(s_read_buf));
+        if (bytes_read == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                /* No more data to read, so we're done. */
+                break;
+            }
+
+            /* Someone wanted to pause polling; we can finish reading later. */
+            if (errno == EINTR) {
+                return HOUND_INTR;
+            }
+            else if (errno == EIO) {
+                hound_log_err(errno, "read returned EIO on fd %d", fd);
+                return HOUND_IO_ERROR;
+            }
+            else {
+                /* Other error codes are likely program bugs. */
+                XASSERT_ERROR;
+            }
+        }
+        XASSERT_GT(bytes_read, 0);
+
+        err = make_records(ctx, s_read_buf, bytes_read);
+        if (err != HOUND_OK) {
+            return err;
         }
     }
 
