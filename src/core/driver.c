@@ -47,6 +47,12 @@ void driver_init(void)
 
 void driver_destroy(void)
 {
+    const char *path;
+
+    xh_foreach_key(s_device_map, path,
+        driver_unregister(path);
+    );
+
     driver_ops_destroy();
     xh_destroy(DEVICE_MAP, s_device_map);
     xh_destroy(DATA_MAP, s_data_map);
