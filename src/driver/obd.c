@@ -481,7 +481,7 @@ hound_err obd_start(int *out_fd)
         CAN_RAW_FILTER,
         &filter,
         sizeof(filter));
-    if (err != HOUND_OK) {
+    if (err != 0) {
         err = errno;
         goto error_sockopt;
     }
