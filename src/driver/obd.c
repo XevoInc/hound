@@ -454,6 +454,7 @@ hound_err obd_start(int *out_fd)
 {
     canid_t can_id;
     struct obd_ctx *ctx;
+    int enabled;
     hound_err err;
     size_t i;
     int tx_fd;
@@ -492,6 +493,18 @@ hound_err obd_start(int *out_fd)
         &filters,
         sizeof(filters));
     if (err != 0) {
+        err = errno;
+        goto error_sockopt;
+    }
+
+    enabled = 0;
+    err = setsockopt(
+        rx_fd,
+        SOL_SOCKET,
+        SO_TIMESTAMP,
+        &enabled,
+        sizeof(enabled));
+    if (err != HOUND_OK) {
         err = errno;
         goto error_sockopt;
     }
