@@ -452,11 +452,15 @@ hound_err obd_next(hound_data_id id)
 static
 hound_err obd_start(int *out_fd)
 {
+    canid_t can_id;
     struct obd_ctx *ctx;
     hound_err err;
-    struct can_filter filter;
+    size_t i;
     int tx_fd;
     int rx_fd;
+
+    canid_t range = YOBD_OBD_II_RESPONSE_END - YOBD_OBD_II_RESPONSE_BASE;
+    struct can_filter filters[range];
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
@@ -470,17 +474,23 @@ hound_err obd_start(int *out_fd)
     }
 
     /*
-     * Filter out our own transmissions, as responses come on a different CAN
-     * ID.
+     * Filter out everything except responses to our queries. See
+     * https://en.wikipedia.org/wiki/OBD-II_PIDs#CAN_(11-bit)_bus_format or the
+     * OBD-II standards for details.
      */
-    filter.can_id = CAN_INV_FILTER | ctx->tx_id;
-    filter.can_mask = CAN_SFF_MASK;
+    can_id = YOBD_OBD_II_RESPONSE_BASE;
+    for (i = 0; i < ARRAYLEN(filters); ++i) {
+        filters[i].can_id = can_id;
+        filters[i].can_mask = CAN_SFF_MASK;
+        ++can_id;
+    }
+
     err = setsockopt(
         rx_fd,
         SOL_CAN_RAW,
         CAN_RAW_FILTER,
-        &filter,
-        sizeof(filter));
+        &filters,
+        sizeof(filters));
     if (err != 0) {
         err = errno;
         goto error_sockopt;
