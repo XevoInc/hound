@@ -10,12 +10,14 @@
 #include <hound-private/log.h>
 #include <hound-private/schema.h>
 
-__attribute__((constructor))
+#define CORE_PRIO (HOUND_DRIVER_REGISTER_PRIO-1)
+
+__attribute__((constructor(CORE_PRIO)))
 static void lib_init(void)
 {
     log_init();
     io_init();
-    driver_init();
+    driver_init_statics();
 }
 
 __attribute__((destructor))
@@ -23,5 +25,5 @@ static void lib_destroy(void)
 {
     log_destroy();
     io_destroy();
-    driver_destroy();
+    driver_destroy_statics();
 }

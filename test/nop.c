@@ -15,8 +15,6 @@
 #include <linux/limits.h>
 #include <string.h>
 
-extern hound_err register_nop_driver(const char *schema_base);
-
 void data_cb(const struct hound_record *rec, void *cb_ctx)
 {
     XASSERT_ERROR;
@@ -37,7 +35,7 @@ void test_register(const char *schema_base)
 {
     hound_err err;
 
-    err = register_nop_driver(schema_base);
+    err = hound_init_driver("nop", "/dev/nop", schema_base, NULL);
     XASSERT_OK(err);
 }
 
@@ -192,7 +190,7 @@ void test_unregister()
 {
     hound_err err;
 
-    err = hound_unregister_driver("/dev/nop");
+    err = hound_destroy_driver("/dev/nop");
     XASSERT_OK(err);
 }
 

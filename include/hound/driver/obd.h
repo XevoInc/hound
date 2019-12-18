@@ -22,10 +22,6 @@ struct hound_obd_driver_init {
     const char *yobd_schema;
 };
 
-hound_err hound_register_obd_driver(
-    const char *schema_base,
-    struct hound_obd_driver_init *init);
-
 void hound_obd_get_mode_pid(hound_data_id id, yobd_mode *mode, yobd_pid *pid);
 void hound_obd_get_data_id(yobd_mode mode, yobd_pid pid, hound_data_id *id);
 

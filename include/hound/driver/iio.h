@@ -19,10 +19,6 @@ struct hound_iio_driver_init {
     uint_fast64_t buf_ns;
 };
 
-hound_err hound_register_iio_driver(
-    const char *schema_base,
-    const struct hound_iio_driver_init *init);
-
 #ifdef __cplusplus
 }
 #endif

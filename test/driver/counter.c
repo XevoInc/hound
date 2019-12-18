@@ -255,7 +255,8 @@ static struct driver_ops counter_driver = {
     .stop = counter_stop
 };
 
-hound_err register_counter_driver(const char *schema_base, size_t *count)
+HOUND_DRIVER_REGISTER_FUNC
+static void register_counter_driver(void)
 {
-    return driver_register("/dev/counter", &counter_driver, schema_base, count);
+    driver_register("counter", &counter_driver);
 }

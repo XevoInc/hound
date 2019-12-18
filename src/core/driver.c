@@ -26,6 +26,10 @@
 
 #define FD_INVALID (-1)
 
+/* driver name --> driver ops */
+XHASH_MAP_INIT_STR(OPS_MAP, const struct driver_ops *)
+static xhash_t(OPS_MAP) *s_ops_map = NULL;
+
 /* device path --> driver */
 XHASH_MAP_INIT_STR(DEVICE_MAP, struct driver *)
 static xhash_t(DEVICE_MAP) *s_device_map = NULL;
@@ -36,26 +40,59 @@ static xhash_t(DATA_MAP) *s_data_map;
 
 static pthread_rwlock_t s_driver_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
-void driver_init(void)
+void driver_init_statics(void)
 {
     s_data_map = xh_init(DATA_MAP);
     XASSERT_NOT_NULL(s_data_map);
     s_device_map = xh_init(DEVICE_MAP);
     XASSERT_NOT_NULL(s_device_map);
+    s_ops_map = xh_init(OPS_MAP);
+    XASSERT_NOT_NULL(s_ops_map);
+
     driver_ops_init();
 }
 
-void driver_destroy(void)
+void driver_destroy_statics(void)
 {
     const char *path;
 
-    xh_foreach_key(s_device_map, path,
-        driver_unregister(path);
-    );
-
     driver_ops_destroy();
+    xh_destroy(OPS_MAP, s_ops_map);
+
+    xh_foreach_key(s_device_map, path,
+        driver_destroy(path);
+    );
     xh_destroy(DEVICE_MAP, s_device_map);
+
     xh_destroy(DATA_MAP, s_data_map);
+}
+
+PUBLIC_API
+void driver_register(const char *name, const struct driver_ops *ops)
+{
+    xhiter_t iter;
+    int ret;
+
+    XASSERT_NOT_NULL(ops);
+    XASSERT_NOT_NULL(ops->init);
+    XASSERT_NOT_NULL(ops->destroy);
+    XASSERT_NOT_NULL(ops->device_name);
+    XASSERT_NOT_NULL(ops->datadesc);
+    XASSERT_NOT_NULL(ops->setdata);
+    XASSERT_NOT_NULL(ops->parse);
+    XASSERT_NOT_NULL(ops->start);
+    XASSERT_NOT_NULL(ops->next);
+    XASSERT_NOT_NULL(ops->stop);
+
+    /*
+     * If we can't initialize a driver this early on (this is called from
+     * library constructors), then something is severely messed up and we might
+     * as well assert.
+     */
+    iter = xh_put(OPS_MAP, s_ops_map, name, &ret);
+    XASSERT_NEQ(ret, -1);
+    xh_val(s_ops_map, iter) = ops;
+    xh_trim(OPS_MAP, s_ops_map);
 }
 
 hound_err driver_get_dev_name(hound_dev_id id, const char **name)
@@ -185,9 +222,9 @@ size_t get_type_len(hound_type type)
 }
 
 PUBLIC_API
-hound_err driver_register(
+hound_err driver_init(
+    const char *name,
     const char *path,
-    struct driver_ops *ops,
     const char *schema_base,
     void *init_data)
 {
@@ -202,13 +239,21 @@ hound_err driver_register(
     xhiter_t iter;
     size_t len;
     size_t offset;
+    const struct driver_ops *ops;
     int ret;
     char schema[PATH_MAX];
     size_t schema_desc_count;
     struct schema_desc *schema_desc;
     struct schema_desc *schema_descs;
 
+    NULL_CHECK(name);
     NULL_CHECK(path);
+
+    iter = xh_get(OPS_MAP, s_ops_map, name);
+    if (iter == xh_end(s_ops_map)) {
+        return HOUND_DRIVER_NOT_REGISTERED;
+    }
+    ops = xh_val(s_ops_map, iter);
 
     if (strnlen(path, PATH_MAX) == PATH_MAX) {
         err = HOUND_INVALID_STRING;
@@ -227,20 +272,9 @@ hound_err driver_register(
 
     iter = xh_get(DEVICE_MAP, s_device_map, path);
     if (iter != xh_end(s_device_map)) {
-        err = HOUND_DRIVER_ALREADY_REGISTERED;
+        err = HOUND_DRIVER_ALREADY_PRESENT;
         goto out;
     }
-
-    NULL_CHECK(ops);
-    NULL_CHECK(ops->init);
-    NULL_CHECK(ops->destroy);
-    NULL_CHECK(ops->device_name);
-    NULL_CHECK(ops->datadesc);
-    NULL_CHECK(ops->setdata);
-    NULL_CHECK(ops->parse);
-    NULL_CHECK(ops->start);
-    NULL_CHECK(ops->next);
-    NULL_CHECK(ops->stop);
 
     /* Allocate. */
     drv = malloc(sizeof(*drv));
@@ -430,7 +464,7 @@ out:
     return err;
 }
 
-hound_err driver_unregister(const char *path)
+hound_err driver_destroy(const char *path)
 {
     struct driver *drv;
     const char *drv_path;

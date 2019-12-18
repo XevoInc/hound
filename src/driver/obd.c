@@ -578,6 +578,12 @@ static struct driver_ops obd_driver = {
     .stop = obd_stop
 };
 
+HOUND_DRIVER_REGISTER_FUNC
+static void register_gps_driver(void)
+{
+    driver_register("obd", &obd_driver);
+}
+
 PUBLIC_API
 void hound_obd_get_mode_pid(
     hound_data_id id,
@@ -592,16 +598,4 @@ PUBLIC_API
 void hound_obd_get_data_id(yobd_mode mode, yobd_pid pid, hound_data_id *id)
 {
     *id = OBD_PREFIX | (mode << 16) | pid;
-}
-
-PUBLIC_API
-hound_err hound_register_obd_driver(
-    const char *schema_base,
-    struct hound_obd_driver_init *init)
-{
-    if (init == NULL) {
-        return HOUND_NULL_VAL;
-    }
-
-    return driver_register(init->iface, &obd_driver, schema_base, init);
 }

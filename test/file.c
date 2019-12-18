@@ -18,10 +18,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-extern hound_err hound_register_file_driver(
-    const char *filepath,
-    const char *schema_base);
-
 struct text {
     char *data;
     size_t index;
@@ -107,7 +103,7 @@ int main(int argc, const char **argv)
     }
     filepath = argv[2];
 
-    err = hound_register_file_driver(filepath, schema_base);
+    err = hound_init_driver("file", filepath, schema_base, (void *) filepath);
     XASSERT_OK(err);
 
     err = hound_alloc_ctx(&ctx, &rq);
@@ -133,7 +129,7 @@ int main(int argc, const char **argv)
     err = hound_free_ctx(ctx);
     XASSERT_OK(err);
 
-    err = hound_unregister_driver(filepath);
+    err = hound_destroy_driver(filepath);
     XASSERT_OK(err);
 
     return 0;

@@ -255,7 +255,7 @@ int main(int argc, const char **argv)
 
     init.yobd_schema = "standard-pids.yaml";
 
-    err = hound_register_obd_driver(schema_base, &init);
+    err = hound_init_driver("obd", init.iface, schema_base, &init);
     XASSERT_OK(err);
 
     start_sim_thread(init.iface, init.yobd_schema, &thread, &ctx);
@@ -268,7 +268,7 @@ int main(int argc, const char **argv)
 
     stop_sim_thread(thread);
 
-    err = hound_unregister_driver(init.iface);
+    err = hound_destroy_driver(init.iface);
     XASSERT_OK(err);
 
     return EXIT_SUCCESS;

@@ -105,9 +105,19 @@ hound_err hound_max_queue_length(struct hound_ctx *ctx, size_t *count)
 }
 
 PUBLIC_API
-hound_err hound_unregister_driver(const char *path)
+hound_err hound_init_driver(
+    const char *name,
+    const char *path,
+    const char *schema_base,
+    void *init_data)
 {
-    return driver_unregister(path);
+    return driver_init(name, path, schema_base, init_data);
+}
+
+PUBLIC_API
+hound_err hound_destroy_driver(const char *path)
+{
+    return driver_destroy(path);
 }
 
 PUBLIC_API

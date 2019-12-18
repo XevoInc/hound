@@ -200,7 +200,8 @@ static struct driver_ops nop_driver = {
     .stop = nop_stop
 };
 
-hound_err register_nop_driver(const char *schema_base)
+HOUND_DRIVER_REGISTER_FUNC
+static void register_nop_driver(void)
 {
-    return driver_register("/dev/nop", &nop_driver, schema_base, NULL);
+    driver_register("nop", &nop_driver);
 }

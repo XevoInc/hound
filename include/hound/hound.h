@@ -46,7 +46,8 @@ typedef enum {
     HOUND_TOO_MUCH_DATA_REQUESTED = -23,
     HOUND_DUPLICATE_DATA_REQUESTED = -24,
     HOUND_ID_NOT_IN_SCHEMA = -25,
-    HOUND_DESC_DUPLICATE = -26
+    HOUND_DESC_DUPLICATE = -26,
+    HOUND_DRIVER_ALREADY_PRESENT = -27
 } hound_err;
 
 /** Returns a human-readable error string. The string must not be modified or
@@ -289,14 +290,30 @@ hound_err hound_queue_length(struct hound_ctx *ctx, size_t *count);
 hound_err hound_max_queue_length(struct hound_ctx *ctx, size_t *count);
 
 /**
- * Unregisters the driver at the given path, effectively unloading the backing
- * driver.
+ * Initializes a driver with a concrete device.
+ *
+ * @param name the name of the driver
+ * @param path the path to a device file
+ * @param schema_base the directory in which schema files reside
+ * @param init_data driver-specific initialization data
+ *
+ * @return an error code
+ */
+hound_err hound_init_driver(
+    const char *name,
+    const char *path,
+    const char *schema_base,
+    void *init_data);
+
+/**
+ * Destroys an initialized driver at the given path, effectively unloading the
+ * backing driver.
  *
  * @param path the path to a device file
  *
  * @return an error code
  */
-hound_err hound_unregister_driver(const char *path);
+hound_err hound_destroy_driver(const char *path);
 
 #ifdef __cplusplus
 }

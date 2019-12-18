@@ -273,10 +273,8 @@ static struct driver_ops file_driver = {
     .stop = file_stop
 };
 
-PUBLIC_API
-hound_err hound_register_file_driver(
-    const char *filepath,
-    const char *schema_base)
+HOUND_DRIVER_REGISTER_FUNC
+static void register_file_driver(void)
 {
-    return driver_register(filepath, &file_driver, schema_base, (void *) filepath);
+    driver_register("file", &file_driver);
 }

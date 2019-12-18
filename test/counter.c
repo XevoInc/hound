@@ -16,10 +16,6 @@
 #include <string.h>
 #include <valgrind.h>
 
-extern hound_err register_counter_driver(
-    const char *schema_base,
-    size_t *count);
-
 struct cb_ctx {
     struct hound_ctx *ctx;
     hound_dev_id dev_id;
@@ -106,7 +102,7 @@ int main(int argc, const char **argv)
     total_bytes = total_records * sizeof(size_t);
 
     count_records = 0;
-    err = register_counter_driver(schema_base, &count_records);
+    err = hound_init_driver("counter", "/dev/counter", schema_base, &count_records);
     XASSERT_OK(err);
 
     cb_ctx.count = 0;
@@ -207,7 +203,7 @@ int main(int argc, const char **argv)
     hound_free_ctx(cb_ctx.ctx);
     XASSERT_OK(err);
 
-    err = hound_unregister_driver("/dev/counter");
+    err = hound_destroy_driver("/dev/counter");
     XASSERT_OK(err);
 
     return EXIT_SUCCESS;

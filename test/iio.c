@@ -115,7 +115,7 @@ int main(int argc, const char **argv)
         exit(EXIT_FAILURE);
     }
 
-    err = hound_register_iio_driver(NULL, &init);
+    err = hound_init_driver("iio", init.dev, NULL, &init);
     XASSERT_OK(err);
 
     err = hound_get_datadesc(&desc, &len);
@@ -200,7 +200,7 @@ int main(int argc, const char **argv)
 error:
     hound_free_datadesc(desc);
 out:
-    err = hound_unregister_driver(init.dev);
+    err = hound_destroy_driver(init.dev);
     XASSERT_OK(err);
 
     return status;

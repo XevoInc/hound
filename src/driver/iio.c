@@ -1687,15 +1687,8 @@ static struct driver_ops iio_driver = {
     .stop = iio_stop
 };
 
-PUBLIC_API
-hound_err hound_register_iio_driver(
-    const char *schema_base,
-    const struct hound_iio_driver_init *init)
+HOUND_DRIVER_REGISTER_FUNC
+static void register_iio_driver(void)
 {
-    if (init == NULL) {
-        return HOUND_NULL_VAL;
-    }
-
-    /* The compiler can't verify it, but we won't change dev. */
-    return driver_register(init->dev, &iio_driver, schema_base, (void *) init);
+    driver_register("iio", &iio_driver);
 }

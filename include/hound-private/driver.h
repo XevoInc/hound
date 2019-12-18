@@ -12,6 +12,9 @@
 #include <hound-private/queue.h>
 #include <stdbool.h>
 
+#define HOUND_DRIVER_REGISTER_PRIO 102
+#define HOUND_DRIVER_REGISTER_FUNC __attribute__((constructor(HOUND_DRIVER_REGISTER_PRIO)))
+
 /** Maximum number of records a driver can produce from a single parse call. */
 #define HOUND_DRIVER_MAX_RECORDS 1000
 
@@ -149,8 +152,8 @@ void *drv_ctx(void);
  */
 void drv_set_ctx(void *ctx);
 
-void driver_init(void);
-void driver_destroy(void);
+void driver_init_statics(void);
+void driver_destroy_statics(void);
 
 /** Forward declaration for use as opaque pointer. */
 struct driver;
@@ -160,22 +163,15 @@ hound_err driver_get_dev_name(hound_dev_id id, const char **name);
 hound_err driver_get_datadesc(struct hound_datadesc **desc, size_t *len);
 void driver_free_datadesc(struct hound_datadesc *desc);
 
-/**
- * Registers a new driver at the given path. A copy of the driver description is
- * made, so the memory ownership is not transferred.
- *
- * @param path the path to a device file
- * @param driver a driver description
- * @param data driver-specific initialization data
- *
- * @return an error code
- */
-hound_err driver_register(
+void driver_register(const char *name, const struct driver_ops *ops);
+
+hound_err driver_init(
+    const char *name,
     const char *path,
-    struct driver_ops *ops,
     const char *schema_base,
-    void *data);
-hound_err driver_unregister(const char *path);
+    void *init_data);
+
+hound_err driver_destroy(const char *path);
 
 hound_err driver_next(struct driver *drv, hound_data_id id, size_t n);
 

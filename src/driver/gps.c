@@ -379,14 +379,8 @@ static struct driver_ops gps_driver = {
     .stop = gps_stop
 };
 
-PUBLIC_API
-hound_err hound_register_gps_driver(
-    const char *schema_base,
-    const char *location)
+HOUND_DRIVER_REGISTER_FUNC
+static void register_gps_driver(void)
 {
-    if (location == NULL) {
-        return HOUND_NULL_VAL;
-    }
-
-    return driver_register(location, &gps_driver, schema_base, (void *) location);
+    driver_register("gps", &gps_driver);
 }
