@@ -1,7 +1,7 @@
 # Summary.
 project('hound', 'c',
     version: '0.5',
-    license: 'proprietary',
+    license: 'apache-2.0',
     default_options: [
         'c_std=c11',
         'buildtype=debug',
