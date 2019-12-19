@@ -170,8 +170,8 @@ hound_err io_read(int fd, struct fdctx *ctx)
 
     while (true) {
         bytes_read = read(fd, s_read_buf, ARRAYLEN(s_read_buf));
-        if (bytes_read == -1) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        if (bytes_read <= 0) {
+            if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
                 /* No more data to read, so we're done. */
                 break;
             }
@@ -189,7 +189,6 @@ hound_err io_read(int fd, struct fdctx *ctx)
                 XASSERT_ERROR;
             }
         }
-        XASSERT_GT(bytes_read, 0);
 
         err = make_records(ctx, s_read_buf, bytes_read);
         if (err != HOUND_OK) {
