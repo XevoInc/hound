@@ -6,16 +6,21 @@ project('hound', 'c',
         'c_std=c11',
         'buildtype=debug',
         'warning_level=3',
-        'werror=true'])
+        'werror=true'],
+    meson_version: '0.53.0')
 
 cflags = ['-Wshadow', '-fvisibility=internal']
 add_project_arguments(cflags, language: 'c')
 
 pkg = import('pkgconfig')
 
-# Includes.
+# Includes. Exclude the driver directory from the install, as driver includes
+# will be installed only if the associated driver is enabled.
 include = include_directories('include')
-install_subdir('include/hound', install_dir: 'include')
+install_subdir(
+    'include/hound',
+    install_dir: 'include',
+    exclude_directories: 'driver')
 
 # Config header generation.
 conf = configuration_data()
@@ -23,33 +28,12 @@ hound_confdir = join_paths(
     get_option('prefix'),
     get_option('sysconfdir'),
     'hound')
-hound_schemadir = join_paths(hound_confdir, 'schema')
-conf.set_quoted('CONFIG_HOUND_SCHEMADIR', hound_schemadir)
+schemadir = join_paths(hound_confdir, 'schema')
+conf.set_quoted('CONFIG_HOUND_SCHEMADIR', schemadir)
 configure_file(
     input: 'include/hound-private/config.h.in',
     output: 'config.h',
     configuration : conf)
-
-# Library.
-gps_dep = dependency('libgps')
-thread_dep = dependency('threads')
-xlib_dep = dependency('xlib')
-yaml_dep = dependency('yaml-0.1')
-yobd_dep = dependency('yobd')
-lib_deps = [
-    gps_dep,
-    thread_dep,
-    xlib_dep,
-    yaml_dep,
-    yobd_dep
-]
-
-# Install schemas.
-install_subdir(
-    'schema/deploy',
-    install_dir: hound_schemadir,
-    strip_directory: true)
-
 
 src = [
     'src/core/ctx.c',
@@ -65,11 +49,51 @@ src = [
     'src/core/refcount.c',
     'src/core/schema.c',
     'src/core/util.c',
-    'src/driver/gps.c',
-    'src/driver/iio.c',
-    'src/driver/obd.c',
-    'src/driver/util.c',
+    'src/driver/util.c'
 ]
+
+# Dependencies.
+threads_dep = dependency('threads')
+xlib_dep = dependency('xlib')
+lib_deps = [
+    threads_dep,
+    xlib_dep,
+    dependency('yaml-0.1')
+]
+
+# Drivers.
+drivers = {
+    'gps': {
+        'deps': ['libgps'],
+        'schema': 'schema/deploy/gps.yaml',
+        'src': ['src/driver/gps.c']
+    },
+    'iio': {
+        'deps': [],
+        'schema': 'schema/deploy/iio.yaml',
+        'src': ['src/driver/iio.c']
+    },
+    'obd': {
+        'deps': ['yobd'],
+        'schema': 'schema/deploy/standard-pids.yaml',
+        'src': ['src/driver/obd.c']
+    }
+}
+driver_tests = []
+foreach name, props : drivers
+    if get_option(name).disabled()
+        message('skipping driver "' + name + '" by user request')
+        continue
+    endif
+    src += props.get('src')
+    foreach dep : props.get('deps')
+        lib_deps += dependency(dep)
+    endforeach
+    install_data(props.get('schema'), install_dir: schemadir)
+    install_headers(
+        'include/hound/driver/' + name + '.h',
+        subdir: 'hound/driver')
+endforeach
 
 lib = library(
     'hound',
@@ -85,14 +109,9 @@ pkg.generate(
     version: meson.project_version())
 hound_dep = declare_dependency(link_with: lib, include_directories: include)
 
-# Tests.
+# Automated unit tests.
 run_target('can-setup', command: ['meson/vcan', 'setup'])
 run_target('can-destroy', command: ['meson/vcan', 'destroy'])
-
-valgrind_dep = dependency('valgrind')
-manual_test_deps = [hound_dep] + [thread_dep] + [xlib_dep]
-unit_test_deps = manual_test_deps + [valgrind_dep]
-test_include = include_directories('test/include')
 
 add_test_setup(
     'valgrind',
@@ -113,54 +132,74 @@ test_schema_dir = join_paths(
 tests = {
     'nop': {
         'src': ['test/driver/nop.c', 'test/nop.c'],
-        'args': test_schema_dir,
-        'is-parallel': true,
-        'deps': unit_test_deps
+        'deps': [],
+        'unit-test': {
+            'args': test_schema_dir,
+            'is-parallel': true,
+        },
     },
     'counter': {
         'src': ['test/driver/counter.c', 'test/counter.c'],
-        'args': test_schema_dir,
-        'is-parallel': true,
-        'deps': unit_test_deps
+        'deps': ['valgrind'],
+        'unit-test': {
+            'args': test_schema_dir,
+            'is-parallel': true,
+        },
     },
     'file': {
         'src': ['test/driver/file.c', 'test/file.c'],
-        'args': [test_schema_dir, files('test/data/testfile')],
-        'is-parallel': true,
-        'deps': unit_test_deps
-    },
-    'obd': {
-        'src': ['test/obd/sim.c', 'test/obd/test.c'],
-        'args': ['hound-vcan0', prod_schema_dir],
-        'is-parallel': false,
-        'deps': unit_test_deps + [yobd_dep]
+        'deps': [],
+        'unit-test': {
+            'args': [test_schema_dir, files('test/data/testfile')],
+            'is-parallel': true,
+        }
     }
 }
-foreach name, t : tests
-    exe = executable(
-        name,
-        t.get('src'),
-        include_directories: test_include,
-        dependencies: t.get('deps'))
-    test(
-        name,
-        exe,
-        args: t.get('args'),
-        is_parallel: t.get('is-parallel'),
-        timeout: 50)
+driver_tests = {
+    'gps': {
+        'deps': ['libgps'],
+        'src': ['test/gps.c'],
+    },
+    'iio': {
+        'deps': [],
+        'src': ['test/iio.c'],
+    },
+    'obd': {
+        'deps': ['valgrind', 'yobd'],
+        'src': ['test/obd/sim.c', 'test/obd/test.c'],
+        'unit-test': {
+            'args': ['hound-vcan0', prod_schema_dir],
+            'is-parallel': false
+        }
+    }
+}
+# Add in any enabled driver tests.
+foreach name, t : driver_tests
+    if not get_option(name).disabled()
+        tests += {name: t}
+    endif
 endforeach
 
-# These tests are manual.
-executable(
-    'iio-test',
-    'test/iio.c',
-    include_directories: test_include,
-    dependencies: manual_test_deps)
-executable(
-    'gps-test',
-    'test/gps.c',
-    include_directories: test_include,
-    dependencies: manual_test_deps + [gps_dep])
+foreach name, t : tests
+    deps = [threads_dep, xlib_dep, hound_dep]
+    foreach dep : t.get('deps')
+        deps += dependency(dep)
+    endforeach
+    exe = executable(
+        name + '-test',
+        t.get('src'),
+        include_directories: include_directories('test/include'),
+        dependencies: deps)
+    if 'unit-test' in t
+        props = t.get('unit-test')
+        test(
+            name,
+            exe,
+            args: props.get('args'),
+            is_parallel: props.get('is-parallel'),
+            timeout: 50)
+    endif
+endforeach
 
 # Documentation.
 run_target('docs', command: 'meson/makedoc')

@@ -1,0 +1,4 @@
+# Selection of which drivers to build.
+option('gps', type: 'feature', value: 'auto')
+option('iio', type: 'feature', value: 'auto')
+option('obd', type: 'feature', value: 'auto')
