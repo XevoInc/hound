@@ -1,43 +1,45 @@
 ---
-id: 0x00000001
-name: GPS
-fmt:
-    - name: time uncertainty
-      unit: ns
-      type: double
-    - name: latitude
-      unit: degree
-      type: double
-    - name: latitude uncertainty
-      unit: m
-      type: double
-    - name: longitude
-      unit: degree
-      type: double
-    - name: longitude uncertainty
-      unit: m
-      type: double
-    - name: altitude
-      unit: m
-      type: double
-    - name: longitude uncertainty
-      unit: m
-      type: double
-    - name: course relative to true north
-      unit: degree
-      type: double
-    - name: longitude uncertainty
-      unit: m
-      type: double
-    - name: speed over ground
-      unit: m/s
-      type: double
-    - name: speed over ground
-      unit: m/s
-      type: double
-    - name: vertical speed
-      unit: m/s
-      type: double
-    - name: vertical speed
-      unit: m/s
-      type: double
+init: # no init arguments
+data:
+    - id: 0x00000001
+      name: GPS
+      fmt:
+          - name: time uncertainty
+            unit: ns
+            type: double
+          - name: latitude
+            unit: degree
+            type: double
+          - name: latitude uncertainty
+            unit: m
+            type: double
+          - name: longitude
+            unit: degree
+            type: double
+          - name: longitude uncertainty
+            unit: m
+            type: double
+          - name: altitude
+            unit: m
+            type: double
+          - name: longitude uncertainty
+            unit: m
+            type: double
+          - name: course relative to true north
+            unit: degree
+            type: double
+          - name: longitude uncertainty
+            unit: m
+            type: double
+          - name: speed over ground
+            unit: m/s
+            type: double
+          - name: speed over ground
+            unit: m/s
+            type: double
+          - name: vertical speed
+            unit: m/s
+            type: double
+          - name: vertical speed
+            unit: m/s
+            type: double

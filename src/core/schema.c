@@ -246,19 +246,36 @@ hound_err parse_fmts(
 }
 
 static
-hound_err parse_doc(
+hound_err parse_data(
     yaml_document_t *doc,
     yaml_node_t *node,
-    struct schema_desc *desc)
+    size_t *out_desc_count,
+    struct schema_desc **out_descs
+)
 {
+    size_t desc_count;
     hound_err err;
-    yaml_node_t *key;
-    const char *key_str;
-    yaml_node_pair_t *pair;
-    yaml_node_t *value;
-    const char *value_str;
+    struct schema_desc *descs;
+
+    /* TODO: allocate enough descriptors for each item in the sequence. we don't
+     * need an xvec_t anymore... we can just allocate directly, since we know
+     * the list of the sequence up-front.
+     */
+    desc_count =
+        node->data.sequence.items.top - node->data.sequence.items.start;
+    XASSERT_GTE(fmt_count, 1);
+    XASSERT_LTE(fmt_count, MAX_FMT_ENTRIES);
+
+    /* TODO: this should be parsing a SEQUENCE, not a MAP. this is a list of
+     * (id, name, fmt). */
+
+    /* TODO: in the error case, everything needs to be freed. do we do this at
+     * the top level, or from this function? either way is OK, but we need to be
+     * consistent. set out_desc_count and out_descs according to what we decide.
+     */
 
     XASSERT_EQ(node->type, YAML_MAPPING_NODE);
+    err = HOUND_OK;
     for (pair = node->data.mapping.pairs.start;
          pair < node->data.mapping.pairs.top;
          ++pair) {
@@ -278,17 +295,63 @@ hound_err parse_doc(
             value_str = (const char *) value->data.scalar.value;
             desc->name = drv_strdup(value_str);
             if (desc->name == NULL) {
-                return HOUND_OOM;
+                err = HOUND_OOM;
+                goto out;
             }
         }
         else if (strcmp(key_str, "fmt") == 0) {
             err = parse_fmts(doc, value, &desc->fmt_count, &desc->fmts);
             if (err != HOUND_OK) {
-                return err;
+                goto out;
             }
         }
         else {
             XASSERT_ERROR;
+        }
+    }
+
+out:
+    *out_desc_count = desc_count;
+    *out_descs = descs;
+
+    return err;
+}
+
+static
+hound_err parse_doc(
+    yaml_document_t *doc,
+    yaml_node_t *node,
+    struct schema_desc *desc)
+{
+    struct schema_desc *desc;
+    hound_err err;
+    yaml_node_t *key;
+    const char *key_str;
+    yaml_node_pair_t *pair;
+    yaml_node_t *value;
+    const char *value_str;
+
+    XASSERT_EQ(node->type, YAML_MAPPING_NODE);
+    err = HOUND_OK;
+    for (pair = node->data.mapping.pairs.start;
+         pair < node->data.mapping.pairs.top;
+         ++pair) {
+        key = yaml_document_get_node(doc, pair->key);
+        XASSERT_NOT_NULL(key);
+        XASSERT_EQ(key->type, YAML_SCALAR_NODE);
+        key_str = (const char *) key->data.scalar.value;
+
+        if (strcmp(key_str, "init") == 0) {
+            err = parse_init(TODO);
+            if (err != HOUND_OK) {
+                break;
+            }
+        }
+        else if (strcmp(key_str, "data") == 0) {
+            err = parse_data(TODO);
+            if (err != HOUND_OK) {
+                break;
+            }
         }
     }
 
@@ -297,11 +360,11 @@ hound_err parse_doc(
 
 hound_err parse(
     FILE *file,
+    size_t *out_type_count,
+    hound_type *out_init_types,
     size_t *out_desc_count,
     struct schema_desc **out_descs)
 {
-    struct schema_desc *desc;
-    xvec_t(struct schema_desc) descs;
     size_t descs_size;
     yaml_document_t doc;
     hound_err err;
@@ -316,57 +379,20 @@ hound_err parse(
     }
     yaml_parser_set_input_file(&parser, file);
 
-    err = HOUND_OK;
-    xv_init(descs);
-    while (true) {
-        ret = yaml_parser_load(&parser, &doc);
-        XASSERT_NEQ(ret, 0);
+    ret = yaml_parser_load(&parser, &doc);
+    XASSERT_NEQ(ret, 0);
 
-        node = yaml_document_get_root_node(&doc);
-        if (node == NULL) {
-            /* End of stream. */
-            break;
-        }
+    node = yaml_document_get_root_node(&doc);
+    XASSERT_NOT_NULL(node);
 
-        desc = xv_pushp(struct schema_desc, descs);
-        if (desc == NULL) {
-            err = HOUND_OOM;
-            break;
-        }
-        /* NULL this out so that if we fail, we can call drv_free on members. */
-        desc->name = NULL;
-        desc->fmt_count = 0;
-        desc->fmts = NULL;
-
-        err = parse_doc(&doc, node, desc);
-        if (err != HOUND_OK) {
-            break;
-        }
-
-        yaml_document_delete(&doc);
-    }
+    err = parse_doc(&doc, node, desc);
     yaml_document_delete(&doc);
+    /* We should have only one document. */
+    XASSERT_NULL(yaml_document_get_root_node(&doc));
     yaml_parser_delete(&parser);
-
-    if (err == HOUND_OK) {
-        descs_size = xv_size(descs) * sizeof(**out_descs);
-        *out_descs = drv_alloc(descs_size);
-        if (*out_descs == NULL) {
-            err = HOUND_OOM;
-        }
-        else {
-            memcpy(*out_descs, xv_data(descs), descs_size);
-            *out_desc_count = xv_size(descs);
-        }
-    }
-
     if (err != HOUND_OK) {
-        for (i = 0; i < xv_size(descs); ++i) {
-            desc = &xv_A(descs, i);
-            destroy_schema_desc(desc);
-        }
+        return err;
     }
-    xv_destroy(descs);
 
     return err;
 }
@@ -374,6 +400,8 @@ hound_err parse(
 hound_err schema_parse(
     const char *schema_base,
     const char *schema,
+    size_t *out_type_count,
+    hound_type *out_init_types,
     size_t *out_desc_count,
     struct schema_desc **out_descs)
 {
@@ -381,7 +409,9 @@ hound_err schema_parse(
     FILE *f;
     size_t desc_count;
     struct schema_desc *descs;
+    hound_type *init_types;
     char path[PATH_MAX];
+    size_t type_count;
 
     XASSERT_NOT_NULL(schema);
 
@@ -392,9 +422,11 @@ hound_err schema_parse(
         goto out;
     }
 
-    err = parse(f, &desc_count, &descs);
+    err = parse(f, &type_count, &init_types, &desc_count, &descs);
     fclose(f);
     if (err == HOUND_OK) {
+        *out_type_count = type_count;
+        *out_init_types = init_types;
         *out_desc_count = desc_count;
         *out_descs = descs;
     }

@@ -1,26 +1,28 @@
 ---
-id: 0x00000002
-name: accelerometer
-fmt:
-    - name: X axis acceleration
-      unit: m/s^2
-      type: double
-    - name: Y axis acceleration
-      unit: m/s^2
-      type: double
-    - name: Z axis acceleration
-      unit: m/s^2
-      type: double
----
-id: 0x00000003
-name: gyroscope
-fmt:
-    - name: angular velocity about X axis
-      unit: rad/s
-      type: double
-    - name: angular velocity about Y axis
-      unit: rad/s
-      type: double
-    - name: angular velocity about Z axis
-      unit: rad/s
-      type: double
+init:
+    - uint64 # how many nanoseconds of data to buffer
+data:
+    - id: 0x00000002
+      name: accelerometer
+      fmt:
+          - name: X axis acceleration
+            unit: m/s^2
+            type: double
+          - name: Y axis acceleration
+            unit: m/s^2
+            type: double
+          - name: Z axis acceleration
+            unit: m/s^2
+            type: double
+    - id: 0x00000003
+      name: gyroscope
+      fmt:
+          - name: angular velocity about X axis
+            unit: rad/s
+            type: double
+          - name: angular velocity about Y axis
+            unit: rad/s
+            type: double
+          - name: angular velocity about Z axis
+            unit: rad/s
+            type: double

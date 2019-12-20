@@ -31,18 +31,21 @@ def dump_hound_desc(desc):
     # Yes, we could define our own Representer class and use yaml.dump to do
     # this, but getting it to look *exactly* right would be a lot more effort
     # than it's worth.
-    print('---')
-    print('id: %s' % desc['id'])
-    print('name: %s' % desc['name'])
+    print('    - id: %s' % desc['id'])
+    print('      name: %s' % desc['name'])
     fmt = desc['fmt']
     print('''\
-fmt:
-    - name: %s
-      unit: %s
-      type: %s''' % (fmt['name'], fmt['unit'], fmt['type']))
+      fmt:
+          - name: %s
+            unit: %s
+            type: %s''' % (fmt['name'], fmt['unit'], fmt['type']))
 
 def dump_hound_schema(schema):
     '''Prints a hound schema to stdin.'''
+    print('---')
+    print('init:')
+    print('    - bytes # a yobd schema name')
+    print('data:')
     for desc in schema:
         dump_hound_desc(desc)
 
