@@ -65,6 +65,7 @@ lib_deps = [
 drivers = {
     'gps': {
         'deps': ['libgps'],
+        'header': 'gps.h',
         'schema': 'schema/deploy/gps.yaml',
         'src': ['src/driver/gps.c']
     },
@@ -75,6 +76,7 @@ drivers = {
     },
     'obd': {
         'deps': ['yobd'],
+        'header': 'obd.h',
         'schema': 'schema/deploy/standard-pids.yaml',
         'src': ['src/driver/obd.c']
     }
@@ -90,9 +92,12 @@ foreach name, props : drivers
         lib_deps += dependency(dep)
     endforeach
     install_data(props.get('schema'), install_dir: schemadir)
-    install_headers(
-        'include/hound/driver/' + name + '.h',
-        subdir: 'hound/driver')
+    driver_header = 'include/hound/driver/' + name + '.h'
+    if 'header' in props
+      install_headers(
+          'include/hound/driver/' + props.get('header'),
+          subdir: 'hound/driver')
+    endif
 endforeach
 
 lib = library(

@@ -10,7 +10,6 @@
 #include <endian.h>
 #include <errno.h>
 #include <hound/hound.h>
-#include <hound/driver/iio.h>
 #include <hound-private/driver.h>
 #include <hound-private/driver/util.h>
 #include <hound-private/error.h>

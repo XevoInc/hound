@@ -8,7 +8,6 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <float.h>
-#include <hound/driver/iio.h>
 #include <hound/hound.h>
 #include <hound-private/util.h>
 #include <hound-test/assert.h>
