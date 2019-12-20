@@ -14,11 +14,13 @@
 extern "C" {
 #endif
 
+/*
+ * Records from the GPS driver are castable to this struct.
+ *
+ * These properties are taken from gpsd's struct gps_fix_t in gps.h and have the
+ * same other than time_uncertainty, which is nanoseconds instead of seconds.
+ */
 struct gps_data {
-    /*
-     * These properties are taken from gpsd's struct gps_fix_t in gps.h and have
-     * the same units.
-     */
     double time_uncertainty;
     double latitude;
     double latitude_uncertainty;
