@@ -64,6 +64,7 @@ int main(int argc, const char **argv)
     hound_err err;
     size_t count_bytes;
     size_t count_records;
+    struct hound_init_val init;
     struct hound_data_rq rq_list[] =
         {
             {.id = HOUND_DATA_COUNTER, .period_ns = NSEC_PER_SEC/10000},
@@ -101,8 +102,9 @@ int main(int argc, const char **argv)
     }
     total_bytes = total_records * sizeof(size_t);
 
-    count_records = 0;
-    err = hound_init_driver("counter", "/dev/counter", schema_base, &count_records);
+    init.type = HOUND_TYPE_UINT64;
+    init.data.as_uint64 = 0;
+    err = hound_init_driver("counter", "/dev/counter", schema_base, 1, &init);
     XASSERT_OK(err);
 
     cb_ctx.count = 0;

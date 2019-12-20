@@ -71,7 +71,10 @@ hound_err write_loop(int fd, const void *data, size_t n)
 }
 
 static
-hound_err obd_init(const char *iface, void *data)
+hound_err obd_init(
+    const char *iface,
+    size_t arg_count,
+    const struct hound_init_val *args)
 {
     struct obd_ctx *ctx;
     hound_err err;
@@ -86,11 +89,18 @@ hound_err obd_init(const char *iface, void *data)
         goto error_validate;
     }
 
-    if (data == NULL) {
+    if (args == NULL) {
+        return HOUND_NULL_VAL;
+    }
+    if (args == NULL) {
         err = HOUND_NULL_VAL;
         goto error_validate;
     }
-    yobd_schema = data;
+    if (arg_count != 1 || args->type != HOUND_TYPE_BYTES) {
+        err = HOUND_INVALID_VAL;
+        goto error_validate;
+    }
+    yobd_schema = args->data.as_bytes;
 
     /* Verify the interface exists and is usable. */
     fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);

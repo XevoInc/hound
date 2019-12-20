@@ -70,12 +70,13 @@ int main(int argc, const char **argv)
     struct sigaction act;
     uint_fast64_t buf_ns;
     double buf_sec;
+    struct hound_ctx *ctx;
     const char *dev;
     char *end;
-    struct hound_ctx *ctx;
     struct hound_datadesc *desc;
     hound_err err;
     hound_data_period freq;
+    struct hound_init_val init;
     size_t i;
     size_t iio_count;
     size_t j;
@@ -115,7 +116,9 @@ int main(int argc, const char **argv)
         exit(EXIT_FAILURE);
     }
 
-    err = hound_init_driver("iio", dev, NULL, (void *) buf_ns);
+    init.type = HOUND_TYPE_UINT64;
+    init.data.as_uint64 = buf_ns;
+    err = hound_init_driver("iio", dev, NULL, 1, &init);
     XASSERT_OK(err);
 
     err = hound_get_datadesc(&desc, &len);

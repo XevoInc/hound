@@ -221,6 +221,7 @@ int main(int argc, const char **argv)
 {
     struct thread_ctx ctx;
     hound_err err;
+    struct hound_init_val init;
     const char *schema_base;
     pthread_t thread;
     const char *yobd_schema;
@@ -254,7 +255,9 @@ int main(int argc, const char **argv)
 
     yobd_schema = "standard-pids.yaml";
 
-    err = hound_init_driver("obd", s_ctx.iface, schema_base, (void *) yobd_schema);
+    init.type = HOUND_TYPE_BYTES;
+    init.data.as_bytes = yobd_schema;
+    err = hound_init_driver("obd", s_ctx.iface, schema_base, 1, &init);
     XASSERT_OK(err);
 
     start_sim_thread(s_ctx.iface, yobd_schema, &thread, &ctx);

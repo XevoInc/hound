@@ -172,7 +172,7 @@ struct iio_ctx {
     char *dev;
     char *dev_dir;
     char dev_name[HOUND_DEVICE_NAME_MAX];
-    uint_fast64_t buf_ns;
+    uint64_t buf_ns;
     size_t num_entries;
     struct device_parse_entry *entries;
     struct chan_parse_desc timestamp_channel;
@@ -595,20 +595,26 @@ hound_err iio_set_clock(const char *dev_dir, const char *clock_type, size_t len)
 }
 
 static
-hound_err iio_init(const char *dev, void *data)
+hound_err iio_init(
+    const char *dev,
+    size_t arg_count,
+    const struct hound_init_val *args)
 {
     char buf[2];
-    uint_fast64_t buf_ns;
+    uint64_t buf_ns;
     struct iio_ctx *ctx;
     char *dev_dir;
     hound_err err;
     char path[PATH_MAX];
     struct stat st;
 
-    if (data == NULL) {
+    if (args == NULL) {
         return HOUND_NULL_VAL;
     }
-    buf_ns = (__typeof__(buf_ns)) data;
+    if (arg_count != 1 || args->type != HOUND_TYPE_UINT64) {
+        return HOUND_INVALID_VAL;
+    }
+    buf_ns = (uint64_t) args->data.as_uint64;
 
     /* Verify the device exists and is usable. */
     err = access(dev, R_OK);

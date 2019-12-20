@@ -37,12 +37,18 @@ struct counter_ctx {
 };
 
 static
-hound_err counter_init(UNUSED const char *path, void *data)
+hound_err counter_init(
+    UNUSED const char *path,
+    size_t arg_count,
+    const struct hound_init_val *args)
 {
     struct counter_ctx *ctx;
 
-    if (data == NULL) {
+    if (args == NULL) {
         return HOUND_NULL_VAL;
+    }
+    if (arg_count != 1 || args->type != HOUND_TYPE_UINT64) {
+        return HOUND_INVALID_VAL;
     }
 
     ctx = malloc(sizeof(*ctx));
@@ -51,7 +57,7 @@ hound_err counter_init(UNUSED const char *path, void *data)
     }
     ctx->pipe[READ_END] = FD_INVALID;
     ctx->pipe[WRITE_END] = FD_INVALID;
-    ctx->count = *((__typeof__(ctx->count) *) data);
+    ctx->count = args->data.as_uint64;
 
     drv_set_ctx(ctx);
 

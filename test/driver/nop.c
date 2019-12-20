@@ -48,7 +48,10 @@ struct nop_ctx {
     int fd;
 };
 
-hound_err nop_init(UNUSED const char *path, UNUSED void *data)
+hound_err nop_init(
+    UNUSED const char *path,
+    UNUSED size_t arg_count,
+    UNUSED const struct hound_init_val *args)
 {
     struct nop_ctx *ctx;
 

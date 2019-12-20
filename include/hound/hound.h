@@ -159,6 +159,23 @@ struct hound_rq {
     struct hound_data_rq_list rq_list;
 };
 
+struct hound_init_val {
+    hound_type type;
+    union {
+        float as_float;
+        double as_double;
+        int8_t as_int8;
+        uint8_t as_uint8;
+        int16_t as_int16;
+        uint16_t as_uint16;
+        int32_t as_int32;
+        uint32_t as_uint32;
+        int64_t as_int64;
+        uint64_t as_uint64;
+        const char *as_bytes;
+    } data;
+};
+
 hound_err hound_get_datadesc(struct hound_datadesc **desc, size_t *len);
 void hound_free_datadesc(struct hound_datadesc *desc);
 
@@ -295,7 +312,8 @@ hound_err hound_max_queue_length(struct hound_ctx *ctx, size_t *count);
  * @param name the name of the driver
  * @param path the path to a device file
  * @param schema_base the directory in which schema files reside
- * @param init_data driver-specific initialization data
+ * @param arg_count the number of driver init argumnts
+ * @param args an array of strings representing driver init arguments
  *
  * @return an error code
  */
@@ -303,7 +321,8 @@ hound_err hound_init_driver(
     const char *name,
     const char *path,
     const char *schema_base,
-    void *init_data);
+    size_t arg_count,
+    const struct hound_init_val *args);
 
 /**
  * Destroys an initialized driver at the given path, effectively unloading the

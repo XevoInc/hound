@@ -24,7 +24,10 @@ typedef enum {
 } drv_sched_mode;
 
 struct driver_ops {
-    hound_err (*init)(const char *path, void *data);
+    hound_err (*init)(
+        const char *path,
+        size_t arg_count,
+        const struct hound_init_val *args);
 
     hound_err (*destroy)(void);
 
@@ -169,7 +172,8 @@ hound_err driver_init(
     const char *name,
     const char *path,
     const char *schema_base,
-    void *init_data);
+    size_t arg_count,
+    const struct hound_init_val *args);
 
 hound_err driver_destroy(const char *path);
 

@@ -35,7 +35,7 @@ void test_register(const char *schema_base)
 {
     hound_err err;
 
-    err = hound_init_driver("nop", "/dev/nop", schema_base, NULL);
+    err = hound_init_driver("nop", "/dev/nop", schema_base, 0, NULL);
     XASSERT_OK(err);
 }
 

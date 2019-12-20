@@ -226,7 +226,8 @@ hound_err driver_init(
     const char *name,
     const char *path,
     const char *schema_base,
-    void *init_data)
+    size_t arg_count,
+    const struct hound_init_val *args)
 {
     struct hound_datadesc *desc;
     struct driver *drv;
@@ -294,7 +295,7 @@ hound_err driver_init(
     drv->ctx = NULL;
 
     /* Init. */
-    err = drv_op_init(drv, path, init_data);
+    err = drv_op_init(drv, path, arg_count, args);
     if (err != HOUND_OK) {
         goto error_init;
     }

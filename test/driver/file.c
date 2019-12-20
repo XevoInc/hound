@@ -40,7 +40,10 @@ struct file_ctx {
 };
 
 static
-hound_err file_init(const char *filepath, UNUSED void *data)
+hound_err file_init(
+    const char *filepath,
+    UNUSED size_t arg_count,
+    UNUSED const struct hound_init_val *args)
 {
     struct file_ctx *ctx;
 
