@@ -38,4 +38,4 @@ struct gps_data {
 }
 #endif
 
-#endif /* HOUND_DRIVER_CAN_H_ */
+#endif /* HOUND_DRIVER_GPS_H_ */
