@@ -596,32 +596,23 @@ hound_err iio_set_clock(const char *dev_dir, const char *clock_type, size_t len)
 }
 
 static
-hound_err iio_init(void *data)
+hound_err iio_init(const char *dev, void *data)
 {
     char buf[2];
+    uint_fast64_t buf_ns;
     struct iio_ctx *ctx;
     char *dev_dir;
     hound_err err;
-    const struct hound_iio_driver_init *init;
     char path[PATH_MAX];
     struct stat st;
 
     if (data == NULL) {
         return HOUND_NULL_VAL;
     }
-    init = data;
-
-    /* Validate parameters. */
-    if (init->dev == NULL) {
-        return HOUND_NULL_VAL;
-    }
-
-    if (init->buf_ns == 0) {
-        return HOUND_INVALID_VAL;
-    }
+    buf_ns = (__typeof__(buf_ns)) data;
 
     /* Verify the device exists and is usable. */
-    err = access(init->dev, R_OK);
+    err = access(dev, R_OK);
     if (err != 0) {
         err = errno;
     }
@@ -632,7 +623,7 @@ hound_err iio_init(void *data)
         goto out;
     }
 
-    dev_dir = basename(init->dev);
+    dev_dir = basename(dev);
     /* We were able to access the device, so it should have a basename. */
     XASSERT_NOT_NULL(dev_dir);
     err = snprintf(path, ARRAYLEN(path), "%s/%s", IIO_TOPDIR, dev_dir);
@@ -649,7 +640,7 @@ hound_err iio_init(void *data)
     }
     XASSERT(S_ISDIR(st.st_mode));
 
-    ctx->dev = strndup(init->dev, PATH_MAX);
+    ctx->dev = strndup(dev, PATH_MAX);
     if (ctx->dev_dir == NULL) {
         err = HOUND_OOM;
         goto error_dev;
@@ -678,7 +669,7 @@ hound_err iio_init(void *data)
     else {
         XASSERT_ERROR;
     }
-    ctx->buf_ns = init->buf_ns;
+    ctx->buf_ns = buf_ns;
     ctx->num_entries = 0;
     ctx->scan_size = 0;
     ctx->entries = NULL;

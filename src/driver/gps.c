@@ -42,22 +42,16 @@ struct gps_ctx {
 };
 
 static
-hound_err gps_init(void *data)
+hound_err gps_init(const char *location, UNUSED void *data)
 {
     struct gps_ctx *ctx;
     hound_err err;
     struct gps_data_t gps;
     char *host;
-    const char *location;
     const char *p;
     char *port;
     const char *sep;
     int status;
-
-    if (data == NULL) {
-        return HOUND_NULL_VAL;
-    }
-    location = data;
 
     for (p = location; *p != '\0' && *p != ':'; ++p);
     if (*p == '\0') {

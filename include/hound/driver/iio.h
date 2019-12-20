@@ -14,11 +14,6 @@ extern "C" {
 
 #include <hound/hound.h>
 
-struct hound_iio_driver_init {
-    const char *dev;
-    uint_fast64_t buf_ns;
-};
-
 #ifdef __cplusplus
 }
 #endif

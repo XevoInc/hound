@@ -40,15 +40,9 @@ struct file_ctx {
 };
 
 static
-hound_err file_init(void *data)
+hound_err file_init(const char *filepath, UNUSED void *data)
 {
     struct file_ctx *ctx;
-    const char *filepath;
-
-    if (data == NULL) {
-        return HOUND_NULL_VAL;
-    }
-    filepath = data;
 
     ctx = malloc(sizeof(*ctx));
     if (ctx == NULL) {

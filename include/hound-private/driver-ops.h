@@ -80,7 +80,7 @@ struct driver {
 
 #define DEFINE_DRV_OP_VOID(name) _DEFINE_DRV_OP(name, struct driver *drv,)
 
-DEFINE_DRV_OP(init, void *data, data)
+DEFINE_DRV_OP(init, TOKENIZE(const char *path, void *data), TOKENIZE(path, data))
 DEFINE_DRV_OP_VOID(destroy)
 DEFINE_DRV_OP(device_name, char *device_name, device_name)
 DEFINE_DRV_OP(

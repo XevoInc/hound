@@ -71,21 +71,26 @@ hound_err write_loop(int fd, const void *data, size_t n)
 }
 
 static
-hound_err obd_init(void *data)
+hound_err obd_init(const char *iface, void *data)
 {
     struct obd_ctx *ctx;
     hound_err err;
     int fd;
-    struct hound_obd_driver_init *init;
     unsigned int if_index;
     yobd_err yerr;
     struct yobd_ctx *yobd_ctx;
+    const char *yobd_schema;
+
+    if (strnlen(iface, IFNAMSIZ) == IFNAMSIZ) {
+        err = HOUND_INVALID_VAL;
+        goto error_validate;
+    }
 
     if (data == NULL) {
         err = HOUND_NULL_VAL;
-        goto error_null;
+        goto error_validate;
     }
-    init = data;
+    yobd_schema = data;
 
     /* Verify the interface exists and is usable. */
     fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
@@ -93,7 +98,7 @@ hound_err obd_init(void *data)
         err = errno;
         goto error_socket;
     }
-    if_index = if_nametoindex(init->iface);
+    if_index = if_nametoindex(iface);
     if (if_index == 0) {
         err = errno;
         goto error_if_index;
@@ -101,7 +106,7 @@ hound_err obd_init(void *data)
     close(fd);
 
     /* Verify the yobd schema file is valid. */
-    yerr = yobd_parse_schema(init->yobd_schema, &yobd_ctx);
+    yerr = yobd_parse_schema(yobd_schema, &yobd_ctx);
     if (yerr != YOBD_OK) {
         err = HOUND_INVALID_VAL;
         goto err_parse_schema;
@@ -113,7 +118,7 @@ hound_err obd_init(void *data)
         goto error_alloc_ctx;
     }
 
-    ctx->yobd_schema = strdup(init->yobd_schema);
+    ctx->yobd_schema = strdup(yobd_schema);
     if (ctx->yobd_schema == NULL) {
         goto error_dup_schema;
     }
@@ -123,7 +128,7 @@ hound_err obd_init(void *data)
         goto error_xh_init;
     }
 
-    strcpy(ctx->iface, init->iface);
+    strcpy(ctx->iface, iface);
     ctx->tx_id = YOBD_OBD_II_QUERY_ADDRESS;
     ctx->tx_fd = FD_INVALID;
     ctx->rx_fd = FD_INVALID;
@@ -141,7 +146,7 @@ error_alloc_ctx:
 err_parse_schema:
 error_if_index:
 error_socket:
-error_null:
+error_validate:
     return err;
 }
 

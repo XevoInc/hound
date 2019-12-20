@@ -37,7 +37,7 @@ struct counter_ctx {
 };
 
 static
-hound_err counter_init(void *data)
+hound_err counter_init(UNUSED const char *path, void *data)
 {
     struct counter_ctx *ctx;
 

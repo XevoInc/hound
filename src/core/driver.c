@@ -294,7 +294,7 @@ hound_err driver_init(
     drv->ctx = NULL;
 
     /* Init. */
-    err = drv_op_init(drv, init_data);
+    err = drv_op_init(drv, path, init_data);
     if (err != HOUND_OK) {
         goto error_init;
     }

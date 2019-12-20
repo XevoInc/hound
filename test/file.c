@@ -103,7 +103,7 @@ int main(int argc, const char **argv)
     }
     filepath = argv[2];
 
-    err = hound_init_driver("file", filepath, schema_base, (void *) filepath);
+    err = hound_init_driver("file", filepath, schema_base, NULL);
     XASSERT_OK(err);
 
     err = hound_alloc_ctx(&ctx, &rq);

@@ -221,9 +221,9 @@ int main(int argc, const char **argv)
 {
     struct thread_ctx ctx;
     hound_err err;
-    struct hound_obd_driver_init init;
     const char *schema_base;
     pthread_t thread;
+    const char *yobd_schema;
 
     if (argc != 3) {
         fprintf(stderr, "Usage: %s CAN-IFACE SCHEMA-BASE-PATH\n", argv[0]);
@@ -235,7 +235,6 @@ int main(int argc, const char **argv)
         exit(EXIT_FAILURE);
     }
     strcpy(s_ctx.iface, argv[1]); /* NOLINT, string size already checked */
-    strcpy(init.iface, argv[1]); /* NOLINT, string size already checked */
 
     if (strnlen(argv[2], PATH_MAX) == PATH_MAX) {
         fprintf(stderr, "Schema base path is longer than PATH_MAX\n");
@@ -243,22 +242,22 @@ int main(int argc, const char **argv)
     }
     schema_base = argv[2];
 
-    if (!can_iface_exists(init.iface)) {
+    if (!can_iface_exists(s_ctx.iface)) {
         fprintf(
             stderr,
             "Failed to open CAN interface %s\n"
             "Run this command to create a CAN interface:\n"
             "sudo meson/vcan setup\n",
-            init.iface);
+            s_ctx.iface);
         exit(EXIT_FAILURE);
     }
 
-    init.yobd_schema = "standard-pids.yaml";
+    yobd_schema = "standard-pids.yaml";
 
-    err = hound_init_driver("obd", init.iface, schema_base, &init);
+    err = hound_init_driver("obd", s_ctx.iface, schema_base, (void *) yobd_schema);
     XASSERT_OK(err);
 
-    start_sim_thread(init.iface, init.yobd_schema, &thread, &ctx);
+    start_sim_thread(s_ctx.iface, yobd_schema, &thread, &ctx);
 
     /* On-demand data. */
     test_read(0);
@@ -268,7 +267,7 @@ int main(int argc, const char **argv)
 
     stop_sim_thread(thread);
 
-    err = hound_destroy_driver(init.iface);
+    err = hound_destroy_driver(s_ctx.iface);
     XASSERT_OK(err);
 
     return EXIT_SUCCESS;

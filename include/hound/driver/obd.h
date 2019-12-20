@@ -17,11 +17,6 @@ extern "C" {
 #include <sys/socket.h>
 #include <yobd/yobd.h>
 
-struct hound_obd_driver_init {
-    char iface[IFNAMSIZ];
-    const char *yobd_schema;
-};
-
 void hound_obd_get_mode_pid(hound_data_id id, yobd_mode *mode, yobd_pid *pid);
 void hound_obd_get_data_id(yobd_mode mode, yobd_pid pid, hound_data_id *id);
 

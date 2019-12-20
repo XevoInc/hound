@@ -69,11 +69,12 @@ void data_cb(const struct hound_record *record, UNUSED void *ctx)
 int main(int argc, const char **argv)
 {
     struct sigaction act;
+    uint_fast64_t buf_ns;
     double buf_sec;
+    const char *dev;
     char *end;
     struct hound_ctx *ctx;
     struct hound_datadesc *desc;
-    struct hound_iio_driver_init init;
     hound_err err;
     hound_data_period freq;
     size_t i;
@@ -97,25 +98,25 @@ int main(int argc, const char **argv)
         exit(EXIT_FAILURE);
     }
 
-    init.dev = argv[1];
+    dev = argv[1];
     buf_sec = strtod(argv[2], &end);
     if (end == argv[2] || fabs(buf_sec) < DBL_EPSILON) {
         usage(argv);
         exit(EXIT_FAILURE);
     }
-    init.buf_ns = (__typeof__(init.buf_ns)) (NSEC_PER_SEC * buf_sec);
+    buf_ns = (__typeof__(buf_ns)) (NSEC_PER_SEC * buf_sec);
 
-    if (access(init.dev, R_OK) != 0) {
+    if (access(dev, R_OK) != 0) {
         fprintf(
             stderr,
             "Device %s not accessible: %d (%s)\n",
-            init.dev,
+            dev,
             errno,
             strerror(errno));
         exit(EXIT_FAILURE);
     }
 
-    err = hound_init_driver("iio", init.dev, NULL, &init);
+    err = hound_init_driver("iio", dev, NULL, (void *) buf_ns);
     XASSERT_OK(err);
 
     err = hound_get_datadesc(&desc, &len);
@@ -200,7 +201,7 @@ int main(int argc, const char **argv)
 error:
     hound_free_datadesc(desc);
 out:
-    err = hound_destroy_driver(init.dev);
+    err = hound_destroy_driver(dev);
     XASSERT_OK(err);
 
     return status;
