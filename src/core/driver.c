@@ -13,7 +13,7 @@
 #include <hound-private/error.h>
 #include <hound-private/io.h>
 #include <hound-private/log.h>
-#include <hound-private/schema.h>
+#include <hound-private/parse/schema.h>
 #include <hound-private/util.h>
 #include <pthread.h>
 #include <stdbool.h>

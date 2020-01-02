@@ -8,7 +8,7 @@
 #include <hound-private/driver.h>
 #include <hound-private/io.h>
 #include <hound-private/log.h>
-#include <hound-private/schema.h>
+#include <hound-private/parse/schema.h>
 
 #define CORE_PRIO (HOUND_DRIVER_REGISTER_PRIO-1)
 

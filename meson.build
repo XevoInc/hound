@@ -46,8 +46,10 @@ src = [
     'src/core/io.c',
     'src/core/log.c',
     'src/core/queue.c',
+    'src/core/parse/common.c',
+    'src/core/parse/config.c',
+    'src/core/parse/schema.c',
     'src/core/refcount.c',
-    'src/core/schema.c',
     'src/core/util.c',
     'src/driver/util.c'
 ]
@@ -66,18 +68,18 @@ drivers = {
     'gps': {
         'deps': ['libgps'],
         'header': 'gps.h',
-        'schema': 'schema/deploy/gps.yaml',
+        'schema': 'schema/driver/deploy/gps.yaml',
         'src': ['src/driver/gps.c']
     },
     'iio': {
         'deps': [],
-        'schema': 'schema/deploy/iio.yaml',
+        'schema': 'schema/driver/deploy/iio.yaml',
         'src': ['src/driver/iio.c']
     },
     'obd': {
         'deps': ['yobd'],
         'header': 'obd.h',
-        'schema': 'schema/deploy/standard-pids.yaml',
+        'schema': 'schema/driver/deploy/standard-pids.yaml',
         'src': ['src/driver/obd.c']
     }
 }
@@ -128,6 +130,7 @@ prod_schema_dir = join_paths(
     meson.source_root(),
     meson.current_source_dir(),
     'schema',
+    'driver',
     'deploy')
 test_schema_dir = join_paths(
     meson.source_root(),
@@ -139,7 +142,7 @@ tests = {
         'src': ['test/driver/nop.c', 'test/nop.c'],
         'deps': [],
         'unit-test': {
-            'args': test_schema_dir,
+            'args': [test_schema_dir, files('test/config/nop.yaml')],
             'is-parallel': true,
         },
     },
@@ -147,7 +150,7 @@ tests = {
         'src': ['test/driver/counter.c', 'test/counter.c'],
         'deps': ['valgrind'],
         'unit-test': {
-            'args': test_schema_dir,
+            'args': [test_schema_dir, files('test/config/counter.yaml')],
             'is-parallel': true,
         },
     },

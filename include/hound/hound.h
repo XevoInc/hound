@@ -307,6 +307,15 @@ hound_err hound_queue_length(struct hound_ctx *ctx, size_t *count);
 hound_err hound_max_queue_length(struct hound_ctx *ctx, size_t *count);
 
 /**
+ * Initializes drivers specified in the given config file.
+ *
+ * @param config the path to a device file
+ *
+ * @return an error code
+ */
+hound_err hound_init_config(const char *config, const char *schema_base);
+
+/**
  * Initializes a driver with a concrete device.
  *
  * @param name the name of the driver

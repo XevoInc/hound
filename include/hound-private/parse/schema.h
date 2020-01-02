@@ -1,17 +1,15 @@
 /**
  * @file      schema.h
- * @brief     Schema subsystem header.
+ * @brief     Header for schema parsing routines.
  * @author    Martin Kelly <mkelly@xevo.com>
  * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  *
  */
 
-#ifndef HOUND_PRIVATE_SCHEMA_H_
-#define HOUND_PRIVATE_SCHEMA_H_
+#ifndef HOUND_PRIVATE_PARSE_SCHEMA_H_
+#define HOUND_PRIVATE_PARSE_SCHEMA_H_
 
 #include <hound/hound.h>
-#include <hound-private/driver.h>
-#include <hound-private/queue.h>
 
 void schema_init(void);
 void schema_destroy(void);
@@ -32,4 +30,4 @@ hound_err schema_parse(
     size_t *out_desc_count,
     struct schema_desc **out_descs);
 
-#endif /* HOUND_PRIVATE_SCHEMA_H_ */
+#endif /* HOUND_PRIVATE_PARSE_SCHEMA_H_ */

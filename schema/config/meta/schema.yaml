@@ -1,0 +1,47 @@
+---
+#
+# This is the "master" schema, which validates the format of the runtime
+# schemas. Its purpose is to turn a runtime schema syntax error into a
+# compile-time one.
+#
+$schema: http://json-schema.org/draft-07/schema#
+title: config file schema
+description: internal config file for hound drivers
+type: array
+items:
+  description: A driver description
+  type: object
+  required:
+    - name
+    - path
+    - args
+  additionalProperties: false
+  properties:
+    name:
+      description: a driver name
+      type: string
+      minLength: 1
+    path:
+      type: string
+      description: a driver device path
+      minLength: 1
+    args:
+      description: initialization arguments for a driver
+      oneOf:
+        - type: "null"
+        - type: array
+          minLength: 1
+          items:
+            type: object
+            required:
+              - type
+              - val
+            additionalProperties: false
+            properties:
+              type:
+                $ref: include://type.yaml
+              val:
+                oneOf:
+                  - type: string
+                    minLength: 1
+                  - type: number

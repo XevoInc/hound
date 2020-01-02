@@ -60,11 +60,11 @@ void data_cb(const struct hound_record *rec, void *cb_ctx)
 int main(int argc, const char **argv)
 {
     size_t bytes_read;
+    const char *config_path;
     struct hound_datadesc *desc;
     hound_err err;
     size_t count_bytes;
     size_t count_records;
-    struct hound_init_arg init;
     struct hound_data_rq rq_list[] =
         {
             {.id = HOUND_DATA_COUNTER, .period_ns = NSEC_PER_SEC/10000},
@@ -79,7 +79,7 @@ int main(int argc, const char **argv)
     size_t total_bytes;
     size_t total_records;
 
-    if (argc != 2) {
+    if (argc != 3) {
         fprintf(stderr, "Usage: %s SCHEMA-BASE-PATH\n", argv[0]);
         exit(EXIT_FAILURE);
     }
@@ -88,6 +88,7 @@ int main(int argc, const char **argv)
         exit(EXIT_FAILURE);
     }
     schema_base = argv[1];
+    config_path = argv[2];
 
     /*
      * Valgrind substantially slows down runtime performance, so reduce the
@@ -102,9 +103,7 @@ int main(int argc, const char **argv)
     }
     total_bytes = total_records * sizeof(size_t);
 
-    init.type = HOUND_TYPE_UINT64;
-    init.data.as_uint64 = 0;
-    err = hound_init_driver("counter", "/dev/counter", schema_base, 1, &init);
+    err = hound_init_config(config_path, schema_base);
     XASSERT_OK(err);
 
     cb_ctx.count = 0;

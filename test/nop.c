@@ -31,11 +31,17 @@ void test_strerror(void)
 }
 
 static
-void test_register(const char *schema_base)
+void test_driver_init(const char *config_path, const char *schema_base)
 {
     hound_err err;
 
     err = hound_init_driver("nop", "/dev/nop", schema_base, 0, NULL);
+    XASSERT_OK(err);
+
+    err = hound_destroy_driver("/dev/nop");
+    XASSERT_OK(err);
+
+    err = hound_init_config(config_path, schema_base);
     XASSERT_OK(err);
 }
 
@@ -185,38 +191,31 @@ void test_free_ctx(struct hound_ctx *ctx)
     XASSERT_OK(err);
 }
 
-static
-void test_unregister()
-{
-    hound_err err;
-
-    err = hound_destroy_driver("/dev/nop");
-    XASSERT_OK(err);
-}
-
 int main(int argc, const char **argv)
 {
+    const char *config_path;
     struct hound_ctx *ctx;
     const char *schema_base;
 
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s SCHEMA-BASE-PATH\n", argv[0]);
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s SCHEMA-BASE-PATH CONFIG-PATH\n", argv[0]);
         exit(EXIT_FAILURE);
     }
     if (strnlen(argv[1], PATH_MAX) == PATH_MAX) {
         fprintf(stderr, "Schema base path is longer than PATH_MAX\n");
         exit(EXIT_FAILURE);
     }
+
     schema_base = argv[1];
+    config_path = argv[2];
 
     test_strerror();
-    test_register(schema_base);
+    test_driver_init(config_path, schema_base);
     test_datadesc();
     test_alloc_ctx(&ctx);
     test_start_ctx(ctx);
     test_stop_ctx(ctx);
     test_free_ctx(ctx);
-    test_unregister();
 
     return EXIT_SUCCESS;
 }

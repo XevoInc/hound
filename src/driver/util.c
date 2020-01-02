@@ -2,7 +2,7 @@
 #include <hound-private/driver-ops.h>
 #include <hound-private/driver/util.h>
 #include <hound-private/error.h>
-#include <hound-private/schema.h>
+#include <hound-private/parse/schema.h>
 #include <hound-private/util.h>
 #include <string.h>
 

@@ -10,7 +10,8 @@
 #include <hound-private/error.h>
 #include <hound-private/driver.h>
 #include <hound-private/log.h>
-#include <hound-private/schema.h>
+#include <hound-private/parse/config.h>
+#include <hound-private/parse/schema.h>
 #include <hound-private/util.h>
 
 PUBLIC_API
@@ -102,6 +103,12 @@ PUBLIC_API
 hound_err hound_max_queue_length(struct hound_ctx *ctx, size_t *count)
 {
     return ctx_max_queue_length(ctx, count);
+}
+
+PUBLIC_API
+hound_err hound_init_config(const char *config, const char *schema_base)
+{
+    return parse_config(config, schema_base);
 }
 
 PUBLIC_API

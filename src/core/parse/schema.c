@@ -1,6 +1,6 @@
 /**
  * @file      schema.c
- * @brief     Schema parser implementation.
+ * @brief     Implementation for schema parsing.
  * @author    Martin Kelly <mkelly@xevo.com>
  * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
@@ -12,7 +12,8 @@
 #include <hound-private/error.h>
 #include <hound-private/driver.h>
 #include <hound-private/driver/util.h>
-#include <hound-private/schema.h>
+#include <hound-private/parse/common.h>
+#include <hound-private/parse/schema.h>
 #include <hound-private/util.h>
 #include <linux/limits.h>
 #include <pthread.h>
@@ -102,51 +103,6 @@ hound_unit find_unit(const char *val)
 }
 
 static
-hound_type find_type(const char *val)
-{
-    if (strcmp(val, "int8") == 0) {
-        return HOUND_TYPE_INT8;
-    }
-    else if (strcmp(val, "uint8") == 0) {
-        return HOUND_TYPE_UINT8;
-    }
-    else if (strcmp(val, "int16") == 0) {
-        return HOUND_TYPE_INT16;
-    }
-    else if (strcmp(val, "uint16") == 0) {
-        return HOUND_TYPE_UINT16;
-    }
-    else if (strcmp(val, "int32") == 0) {
-        return HOUND_TYPE_INT32;
-    }
-    else if (strcmp(val, "uint32") == 0) {
-        return HOUND_TYPE_UINT32;
-    }
-    else if (strcmp(val, "int64") == 0) {
-        return HOUND_TYPE_INT64;
-    }
-    else if (strcmp(val, "uint64") == 0) {
-        return HOUND_TYPE_UINT64;
-    }
-    else if (strcmp(val, "float") == 0) {
-        return HOUND_TYPE_FLOAT;
-    }
-    else if (strcmp(val, "double") == 0) {
-        return HOUND_TYPE_DOUBLE;
-    }
-    else if (strcmp(val, "bytes") == 0) {
-        return HOUND_TYPE_BYTES;
-    }
-    else {
-        /*
-         * An unknown type was encountered. Either the schema validator failed, or
-         * we need to add a new enum to hound_type and to the cases list here.
-         */
-        XASSERT_ERROR;
-    }
-}
-
-static
 const char *parse_str(yaml_node_t *node)
 {
     XASSERT_EQ(node->type, YAML_SCALAR_NODE);
@@ -193,7 +149,7 @@ hound_err parse_fmt(
         else if (strcmp(key_str, "type") == 0) {
             XASSERT_EQ(value->type, YAML_SCALAR_NODE);
             XASSERT_GT(value->data.scalar.length, 0);
-            fmt->type = find_type((const char *) value->data.scalar.value);
+            fmt->type = parse_type((const char *) value->data.scalar.value);
 
         }
         else {

@@ -1,0 +1,6 @@
+---
+- name: counter
+  path: /dev/counter
+  args:
+    - type: uint64
+      val: 0
