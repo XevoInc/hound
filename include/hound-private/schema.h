@@ -29,6 +29,8 @@ void destroy_schema_desc(struct schema_desc *desc);
 hound_err schema_parse(
     const char *schema_base,
     const char *schema,
+    size_t *out_type_count,
+    hound_type **out_init_types,
     size_t *out_desc_count,
     struct schema_desc **out_descs);
 

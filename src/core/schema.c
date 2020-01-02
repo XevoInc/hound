@@ -252,10 +252,12 @@ hound_err parse_desc(
     yaml_node_t *node,
     struct schema_desc *desc)
 {
+    hound_err err;
     yaml_node_t *key;
     const char *key_str;
     yaml_node_pair_t *pair;
     yaml_node_t *value;
+    const char *value_str;
 
     XASSERT_EQ(node->type, YAML_MAPPING_NODE);
     for (pair = node->data.mapping.pairs.start;
@@ -328,7 +330,7 @@ hound_err parse_data(
         desc->fmts = NULL;
         err = parse_desc(doc, yaml_document_get_node(doc, *item), desc);
         if (err != HOUND_OK) {
-            *out_count = i+1;
+            *out_desc_count = i+1;
             return err;
         }
     }
@@ -344,10 +346,12 @@ hound_err parse_init(
     yaml_document_t *doc,
     yaml_node_t *node,
     size_t *out_type_count,
-    hound_type *out_init_types)
+    hound_type **out_types)
 {
+    size_t i;
     yaml_node_item_t *item;
     size_t type_count;
+    hound_type *types;
     yaml_node_t *val;
 
     XASSERT_EQ(node->type, YAML_SEQUENCE_NODE);
@@ -357,7 +361,7 @@ hound_err parse_init(
 
     types = drv_alloc(type_count * sizeof(*types));
     if (types == NULL) {
-        return err;
+        return HOUND_OOM;
     }
 
     for (item = node->data.sequence.items.start, i = 0;
@@ -380,17 +384,15 @@ hound_err parse_doc(
     yaml_document_t *doc,
     yaml_node_t *node,
     size_t *out_type_count,
-    hound_type *out_init_types,
+    hound_type **out_init_types,
     size_t *out_desc_count,
     struct schema_desc **out_descs)
 {
-    struct schema_desc *desc;
     hound_err err;
     yaml_node_t *key;
     const char *key_str;
     yaml_node_pair_t *pair;
     yaml_node_t *value;
-    const char *value_str;
 
     XASSERT_EQ(node->type, YAML_MAPPING_NODE);
     err = HOUND_OK;
@@ -402,6 +404,7 @@ hound_err parse_doc(
         XASSERT_EQ(key->type, YAML_SCALAR_NODE);
         key_str = (const char *) key->data.scalar.value;
 
+        value = yaml_document_get_node(doc, pair->value);
         if (strcmp(key_str, "init") == 0) {
             err = parse_init(doc, value, out_type_count, out_init_types);
             if (err != HOUND_OK) {
@@ -422,14 +425,12 @@ hound_err parse_doc(
 hound_err parse(
     FILE *file,
     size_t *out_type_count,
-    hound_type *out_init_types,
+    hound_type **out_init_types,
     size_t *out_desc_count,
     struct schema_desc **out_descs)
 {
-    size_t descs_size;
     yaml_document_t doc;
     hound_err err;
-    size_t i;
     yaml_node_t *node;
     yaml_parser_t parser;
     int ret;
@@ -468,14 +469,15 @@ hound_err schema_parse(
     const char *schema_base,
     const char *schema,
     size_t *out_type_count,
-    hound_type *out_init_types,
+    hound_type **out_init_types,
     size_t *out_desc_count,
     struct schema_desc **out_descs)
 {
     hound_err err;
-    FILE *f;
     size_t desc_count;
     struct schema_desc *descs;
+    FILE *f;
+    size_t i;
     hound_type *init_types;
     char path[PATH_MAX];
     size_t type_count;
