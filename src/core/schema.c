@@ -17,7 +17,6 @@
 #include <linux/limits.h>
 #include <pthread.h>
 #include <string.h>
-#include <xlib/xvec.h>
 #include <yaml.h>
 
 #define MAX_FMT_ENTRIES 100
@@ -213,69 +212,52 @@ hound_err parse_fmts(
 {
     size_t fmt_count;
     hound_err err;
+    struct hound_data_fmt *fmt;
     struct hound_data_fmt *fmts;
     size_t i;
     yaml_node_item_t *item;
 
     XASSERT_EQ(node->type, YAML_SEQUENCE_NODE);
 
-    fmt_count =
-        node->data.sequence.items.top - node->data.sequence.items.start;
-    XASSERT_GTE(fmt_count, 1);
+    XASSERT_GTE(node->data.sequence.items.top, node->data.sequence.items.start);
+    fmt_count = node->data.sequence.items.top - node->data.sequence.items.start;
     XASSERT_LTE(fmt_count, MAX_FMT_ENTRIES);
 
     fmts = drv_alloc(fmt_count * sizeof(*fmts));
     if (fmts == NULL) {
         return HOUND_OOM;
     }
+    *out_fmts = fmts;
 
     for (item = node->data.sequence.items.start, i = 0;
          item < node->data.sequence.items.top;
          ++item, ++i) {
-        err = parse_fmt(doc, yaml_document_get_node(doc, *item), &fmts[i]);
+        fmt = &fmts[i];
+        fmt->name = NULL;
+        err = parse_fmt(doc, yaml_document_get_node(doc, *item), fmt);
         if (err != HOUND_OK) {
-            *out_count = i;
+            *out_count = i+1;
             return err;
         }
     }
 
     *out_count = fmt_count;
-    *out_fmts = fmts;
 
     return HOUND_OK;
 }
 
 static
-hound_err parse_data(
+hound_err parse_desc(
     yaml_document_t *doc,
     yaml_node_t *node,
-    size_t *out_desc_count,
-    struct schema_desc **out_descs
-)
+    struct schema_desc *desc)
 {
-    size_t desc_count;
-    hound_err err;
-    struct schema_desc *descs;
-
-    /* TODO: allocate enough descriptors for each item in the sequence. we don't
-     * need an xvec_t anymore... we can just allocate directly, since we know
-     * the list of the sequence up-front.
-     */
-    desc_count =
-        node->data.sequence.items.top - node->data.sequence.items.start;
-    XASSERT_GTE(fmt_count, 1);
-    XASSERT_LTE(fmt_count, MAX_FMT_ENTRIES);
-
-    /* TODO: this should be parsing a SEQUENCE, not a MAP. this is a list of
-     * (id, name, fmt). */
-
-    /* TODO: in the error case, everything needs to be freed. do we do this at
-     * the top level, or from this function? either way is OK, but we need to be
-     * consistent. set out_desc_count and out_descs according to what we decide.
-     */
+    yaml_node_t *key;
+    const char *key_str;
+    yaml_node_pair_t *pair;
+    yaml_node_t *value;
 
     XASSERT_EQ(node->type, YAML_MAPPING_NODE);
-    err = HOUND_OK;
     for (pair = node->data.mapping.pairs.start;
          pair < node->data.mapping.pairs.top;
          ++pair) {
@@ -295,14 +277,13 @@ hound_err parse_data(
             value_str = (const char *) value->data.scalar.value;
             desc->name = drv_strdup(value_str);
             if (desc->name == NULL) {
-                err = HOUND_OOM;
-                goto out;
+                return HOUND_OOM;
             }
         }
         else if (strcmp(key_str, "fmt") == 0) {
             err = parse_fmts(doc, value, &desc->fmt_count, &desc->fmts);
             if (err != HOUND_OK) {
-                goto out;
+                return err;
             }
         }
         else {
@@ -310,7 +291,48 @@ hound_err parse_data(
         }
     }
 
-out:
+    return HOUND_OK;
+}
+
+static
+hound_err parse_data(
+    yaml_document_t *doc,
+    yaml_node_t *node,
+    size_t *out_desc_count,
+    struct schema_desc **out_descs)
+{
+    size_t desc_count;
+    hound_err err;
+    struct schema_desc *desc;
+    struct schema_desc *descs;
+    size_t i;
+    yaml_node_item_t *item;
+
+    XASSERT_EQ(node->type, YAML_SEQUENCE_NODE);
+    XASSERT_GTE(node->data.sequence.items.top, node->data.sequence.items.start);
+    desc_count =
+        node->data.sequence.items.top - node->data.sequence.items.start;
+    descs = drv_alloc(desc_count * sizeof(*descs));
+    if (descs == NULL) {
+        return HOUND_OOM;
+    }
+
+    err = HOUND_OK;
+    for (item = node->data.sequence.items.start, i = 0;
+         item < node->data.sequence.items.top;
+         ++item, ++i) {
+        /* nullify these values so they are safe to cleanup if we have to bail. */
+        desc = &descs[i];
+        desc->name = NULL;
+        desc->fmt_count = 0;
+        desc->fmts = NULL;
+        err = parse_desc(doc, yaml_document_get_node(doc, *item), desc);
+        if (err != HOUND_OK) {
+            *out_count = i+1;
+            return err;
+        }
+    }
+
     *out_desc_count = desc_count;
     *out_descs = descs;
 
@@ -318,10 +340,49 @@ out:
 }
 
 static
+hound_err parse_init(
+    yaml_document_t *doc,
+    yaml_node_t *node,
+    size_t *out_type_count,
+    hound_type *out_init_types)
+{
+    yaml_node_item_t *item;
+    size_t type_count;
+    yaml_node_t *val;
+
+    XASSERT_EQ(node->type, YAML_SEQUENCE_NODE);
+    type_count =
+        node->data.sequence.items.top - node->data.sequence.items.start;
+    XASSERT_GTE(type_count, 1);
+
+    types = drv_alloc(type_count * sizeof(*types));
+    if (types == NULL) {
+        return err;
+    }
+
+    for (item = node->data.sequence.items.start, i = 0;
+         item < node->data.sequence.items.top;
+         ++item, ++i) {
+        val = yaml_document_get_node(doc, *item);
+        XASSERT_NOT_NULL(val);
+        XASSERT_EQ(val->type, YAML_SCALAR_NODE);
+        types[i] = find_type((const char *) val->data.scalar.value);
+    }
+
+    *out_type_count = type_count;
+    *out_types = types;
+
+    return HOUND_OK;
+}
+
+static
 hound_err parse_doc(
     yaml_document_t *doc,
     yaml_node_t *node,
-    struct schema_desc *desc)
+    size_t *out_type_count,
+    hound_type *out_init_types,
+    size_t *out_desc_count,
+    struct schema_desc **out_descs)
 {
     struct schema_desc *desc;
     hound_err err;
@@ -342,15 +403,15 @@ hound_err parse_doc(
         key_str = (const char *) key->data.scalar.value;
 
         if (strcmp(key_str, "init") == 0) {
-            err = parse_init(TODO);
+            err = parse_init(doc, value, out_type_count, out_init_types);
             if (err != HOUND_OK) {
-                break;
+                return err;
             }
         }
         else if (strcmp(key_str, "data") == 0) {
-            err = parse_data(TODO);
+            err = parse_data(doc, value, out_desc_count, out_descs);
             if (err != HOUND_OK) {
-                break;
+                return err;
             }
         }
     }
@@ -385,7 +446,13 @@ hound_err parse(
     node = yaml_document_get_root_node(&doc);
     XASSERT_NOT_NULL(node);
 
-    err = parse_doc(&doc, node, desc);
+    err = parse_doc(
+        &doc,
+        node,
+        out_type_count,
+        out_init_types,
+        out_desc_count,
+        out_descs);
     yaml_document_delete(&doc);
     /* We should have only one document. */
     XASSERT_NULL(yaml_document_get_root_node(&doc));
@@ -422,6 +489,10 @@ hound_err schema_parse(
         goto out;
     }
 
+    type_count = 0;
+    init_types = NULL;
+    desc_count = 0;
+    descs = NULL;
     err = parse(f, &type_count, &init_types, &desc_count, &descs);
     fclose(f);
     if (err == HOUND_OK) {
@@ -429,6 +500,13 @@ hound_err schema_parse(
         *out_init_types = init_types;
         *out_desc_count = desc_count;
         *out_descs = descs;
+    }
+    else {
+        drv_free(init_types);
+        for (i = 0; i < desc_count; ++i) {
+            destroy_schema_desc(&descs[i]);
+        }
+        drv_free(descs);
     }
 
 out:
