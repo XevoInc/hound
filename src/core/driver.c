@@ -42,29 +42,27 @@ static pthread_rwlock_t s_driver_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
 void driver_init_statics(void)
 {
+    driver_ops_init();
+
     s_data_map = xh_init(DATA_MAP);
     XASSERT_NOT_NULL(s_data_map);
     s_device_map = xh_init(DEVICE_MAP);
     XASSERT_NOT_NULL(s_device_map);
     s_ops_map = xh_init(OPS_MAP);
     XASSERT_NOT_NULL(s_ops_map);
-
-    driver_ops_init();
 }
 
 void driver_destroy_statics(void)
 {
     const char *path;
 
-    driver_ops_destroy();
     xh_destroy(OPS_MAP, s_ops_map);
-
     xh_foreach_key(s_device_map, path,
         driver_destroy(path);
     );
     xh_destroy(DEVICE_MAP, s_device_map);
-
     xh_destroy(DATA_MAP, s_data_map);
+    driver_ops_destroy();
 }
 
 PUBLIC_API
