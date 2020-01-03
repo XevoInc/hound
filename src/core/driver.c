@@ -26,9 +26,14 @@
 
 #define FD_INVALID (-1)
 
-/* driver name --> driver ops */
-XHASH_MAP_INIT_STR(OPS_MAP, const struct driver_ops *)
-static xhash_t(OPS_MAP) *s_ops_map = NULL;
+struct register_data {
+    struct schema_info schema_info;
+    const struct driver_ops *ops;
+};
+
+/* driver name --> driver registration data */
+XHASH_MAP_INIT_STR(REGISTER_MAP, struct register_data)
+static xhash_t(REGISTER_MAP) *s_register_map = NULL;
 
 /* device path --> driver */
 XHASH_MAP_INIT_STR(DEVICE_MAP, struct driver *)
@@ -68,11 +73,19 @@ void driver_destroy_statics(void)
 }
 
 PUBLIC_API
-void driver_register(const char *name, const struct driver_ops *ops)
+void driver_register(
+    const char *name,
+    const char *schema,
+    const struct driver_ops *ops)
 {
+    size_t i;
+    size_t j;
+    struct schema_info *info;
     xhiter_t iter;
+    size_t offset;
     int ret;
 
+    /* Verify the driver ops are sane. */
     XASSERT_NOT_NULL(ops);
     XASSERT_NOT_NULL(ops->init);
     XASSERT_NOT_NULL(ops->destroy);
@@ -83,6 +96,36 @@ void driver_register(const char *name, const struct driver_ops *ops)
     XASSERT_NOT_NULL(ops->start);
     XASSERT_NOT_NULL(ops->next);
     XASSERT_NOT_NULL(ops->stop);
+
+    /*
+     * Parse and verify the schema, and calculate offsets from the provided
+     * lengths.
+     */
+    err = schema_parse(schema_base, schema, &info);
+    XASSERT_OK(err);
+
+    /* Make sure the schema is sane. */
+    for (i = 0; i < info.schema_desc_count; ++i) {
+        schema_desc = &info.schema_descs[i];
+        XASSERT_NOT_NULL(info.schema_desc->name);
+        XASSERT_GTE(info.schema_desc->fmt_count, 1);
+        XASSERT_NOT_NULL(info.schema_desc->fmts);
+
+        offset = 0;
+        for (j = 0; j < info.schema_desc->fmt_count; ++j) {
+            fmt = &info.schema_desc->fmts[j];
+            /*
+             * A variable-length type (bytes) must be the last specified format,
+             * or else the caller won't be able to parse its records.
+             */
+            XASSERT_FALSE(fmt->type == HOUND_TYPE_BYTES &&
+                          j != info.schema_desc->fmt_count-1);
+            len = get_type_len(fmt->type);
+            fmt->len = len;
+            fmt->offset = offset;
+            offset += len;
+        }
+    }
 
     /*
      * If we can't initialize a driver this early on (this is called from
@@ -236,6 +279,8 @@ hound_err driver_init(
     struct hound_data_fmt *fmt;
     bool found;
     size_t i;
+    size_t init_type_count;
+    hound_type *init_types;
     size_t j;
     xhiter_t iter;
     size_t len;
@@ -317,48 +362,12 @@ hound_err driver_init(
         drv,
         &drv->datacount,
         &drv->data,
-        schema,
         &drv->sched_mode);
     if (err != HOUND_OK) {
         goto error_datadesc;
     }
 
-    /*
-     * Parse and verify the schema, and calculate offsets from the provided
-     * lengths.
-     */
-    if (strnlen(schema, PATH_MAX) == PATH_MAX) {
-        err = HOUND_INVALID_STRING;
-        goto error_datadesc;
-    }
-
-    err = schema_parse(schema_base, schema, &schema_desc_count, &schema_descs);
-    if (err != HOUND_OK) {
-        goto error_datadesc;
-    }
-
-    /* Make sure the descriptors and formats are sane. */
-    for (i = 0; i < schema_desc_count; ++i) {
-        schema_desc = &schema_descs[i];
-        XASSERT_NOT_NULL(schema_desc->name);
-        XASSERT_GTE(schema_desc->fmt_count, 1);
-        XASSERT_NOT_NULL(schema_desc->fmts);
-
-        offset = 0;
-        for (j = 0; j < schema_desc->fmt_count; ++j) {
-            fmt = &schema_desc->fmts[j];
-            /*
-             * A variable-length type (bytes) must be the last specified format,
-             * or else the caller won't be able to parse its records.
-             */
-            XASSERT_FALSE(fmt->type == HOUND_TYPE_BYTES &&
-                          j != schema_desc->fmt_count-1);
-            len = get_type_len(fmt->type);
-            fmt->len = len;
-            fmt->offset = offset;
-            offset += len;
-        }
-    }
+    /* TODO: fetch the schema from the driver registration info. */
 
     /* Verify that all driver descriptors are sane. */
     for (i = 0; i < drv->datacount; ++i) {

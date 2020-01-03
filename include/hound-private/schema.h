@@ -23,15 +23,19 @@ struct schema_desc {
     struct hound_data_fmt *fmts;
 };
 
+struct schema_info {
+    size_t init_type_count;
+    hound_type *init_types;
+    size_t desc_count;
+    struct schema_desc *descs;
+};
+
 void destroy_desc_fmts(size_t count, struct hound_data_fmt *fmts);
 void destroy_schema_desc(struct schema_desc *desc);
 
 hound_err schema_parse(
     const char *schema_base,
     const char *schema,
-    size_t *out_type_count,
-    hound_type **out_init_types,
-    size_t *out_desc_count,
-    struct schema_desc **out_descs);
+    struct schema_info *info)
 
 #endif /* HOUND_PRIVATE_SCHEMA_H_ */

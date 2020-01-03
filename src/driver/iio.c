@@ -754,7 +754,6 @@ static
 hound_err iio_datadesc(
     size_t *out_desc_count,
     struct hound_datadesc **out_descs,
-    char *schema,
     drv_sched_mode *mode)
 {
     hound_data_period *avail_periods;
@@ -855,7 +854,6 @@ hound_err iio_datadesc(
     }
 
     *mode = DRV_SCHED_PUSH;
-    strcpy(schema, "iio.yaml");
     *out_descs = descs;
     *out_desc_count = desc_count;
     err = HOUND_OK;
@@ -1686,5 +1684,5 @@ static struct driver_ops iio_driver = {
 HOUND_DRIVER_REGISTER_FUNC
 static void register_iio_driver(void)
 {
-    driver_register("iio", &iio_driver);
+    driver_register("iio", "iio.yaml", &iio_driver);
 }

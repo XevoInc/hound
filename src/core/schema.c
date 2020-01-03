@@ -383,10 +383,7 @@ static
 hound_err parse_doc(
     yaml_document_t *doc,
     yaml_node_t *node,
-    size_t *out_type_count,
-    hound_type **out_init_types,
-    size_t *out_desc_count,
-    struct schema_desc **out_descs)
+    struct schema_info *info)
 {
     hound_err err;
     yaml_node_t *key;
@@ -406,13 +403,13 @@ hound_err parse_doc(
 
         value = yaml_document_get_node(doc, pair->value);
         if (strcmp(key_str, "init") == 0) {
-            err = parse_init(doc, value, out_type_count, out_init_types);
+            err = parse_init(doc, value, &info->type_count, &info->init_types);
             if (err != HOUND_OK) {
                 return err;
             }
         }
         else if (strcmp(key_str, "data") == 0) {
-            err = parse_data(doc, value, out_desc_count, out_descs);
+            err = parse_data(doc, value, &info->desc_count, &info->descs);
             if (err != HOUND_OK) {
                 return err;
             }
@@ -422,12 +419,7 @@ hound_err parse_doc(
     return HOUND_OK;
 }
 
-hound_err parse(
-    FILE *file,
-    size_t *out_type_count,
-    hound_type **out_init_types,
-    size_t *out_desc_count,
-    struct schema_desc **out_descs)
+hound_err parse(FILE *file, struct schema_info *info)
 {
     yaml_document_t doc;
     hound_err err;
@@ -468,10 +460,7 @@ hound_err parse(
 hound_err schema_parse(
     const char *schema_base,
     const char *schema,
-    size_t *out_type_count,
-    hound_type **out_init_types,
-    size_t *out_desc_count,
-    struct schema_desc **out_descs)
+    struct schema_info *info)
 {
     hound_err err;
     size_t desc_count;
@@ -491,25 +480,16 @@ hound_err schema_parse(
         goto out;
     }
 
-    type_count = 0;
-    init_types = NULL;
-    desc_count = 0;
-    descs = NULL;
-    err = parse(f, &type_count, &init_types, &desc_count, &descs);
-    fclose(f);
-    if (err == HOUND_OK) {
-        *out_type_count = type_count;
-        *out_init_types = init_types;
-        *out_desc_count = desc_count;
-        *out_descs = descs;
-    }
-    else {
+    memset(info, 0, sizeof(*info));
+    err = parse(f, info);
+    if (err != HOUND_OK) {
         drv_free(init_types);
         for (i = 0; i < desc_count; ++i) {
             destroy_schema_desc(&descs[i]);
         }
         drv_free(descs);
     }
+    fclose(f);
 
 out:
     return err;

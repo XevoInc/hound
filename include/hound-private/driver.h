@@ -51,9 +51,6 @@ struct driver_ops {
      * @param descs a pointer to an array of data descriptors. The memory for
      *             for this array is owned by the driver core when this driver
      *             op finishes, so it must be allocated via drv_alloc().
-     * @param schema a schema string, guaranteed to hold storage up to PATH_MAX
-     *               characters. The driver should copy the schema name into
-     *               this string.
      * @param mode the driver's scheduling mode
      *
      * @return an error code
@@ -61,7 +58,6 @@ struct driver_ops {
     hound_err (*datadesc)(
         size_t *desc_count,
         struct hound_datadesc **descs,
-        char *schema,
         drv_sched_mode *mode);
 
     hound_err (*setdata)(const struct hound_data_rq_list *data);
@@ -166,7 +162,10 @@ hound_err driver_get_dev_name(hound_dev_id id, const char **name);
 hound_err driver_get_datadesc(struct hound_datadesc **desc, size_t *len);
 void driver_free_datadesc(struct hound_datadesc *desc);
 
-void driver_register(const char *name, const struct driver_ops *ops);
+void driver_register(
+    const char *name,
+    const char *schema,
+    const struct driver_ops *ops);
 
 hound_err driver_init(
     const char *name,

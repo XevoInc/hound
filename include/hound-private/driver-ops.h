@@ -94,9 +94,8 @@ DEFINE_DRV_OP(
     TOKENIZE(
         size_t *desc_count,
         struct hound_datadesc **descs,
-        char *schema,
         drv_sched_mode *mode),
-    TOKENIZE(desc_count, descs, schema, mode))
+    TOKENIZE(desc_count, descs, mode))
 DEFINE_DRV_OP(setdata, const struct hound_data_rq_list *data, data)
 DEFINE_DRV_OP(
     parse,

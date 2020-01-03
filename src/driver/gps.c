@@ -169,8 +169,6 @@ hound_err gps_datadesc(
         goto out;
     }
 
-    strcpy(schema, "gps.yaml");
-
     err = drv_deepcopy_desc(desc, &s_datadesc);
     if (err != HOUND_OK) {
         goto error_deepcopy;
@@ -379,5 +377,5 @@ static struct driver_ops gps_driver = {
 HOUND_DRIVER_REGISTER_FUNC
 static void register_gps_driver(void)
 {
-    driver_register("gps", &gps_driver);
+    driver_register("gps", "gps.yaml", &gps_driver);
 }
