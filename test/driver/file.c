@@ -43,7 +43,7 @@ static
 hound_err file_init(
     const char *filepath,
     UNUSED size_t arg_count,
-    UNUSED const struct hound_init_val *args)
+    UNUSED const struct hound_init_arg *args)
 {
     struct file_ctx *ctx;
 

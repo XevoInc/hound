@@ -76,7 +76,7 @@ int main(int argc, const char **argv)
     struct hound_datadesc *desc;
     hound_err err;
     hound_data_period freq;
-    struct hound_init_val init;
+    struct hound_init_arg init;
     size_t i;
     size_t iio_count;
     size_t j;

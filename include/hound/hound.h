@@ -159,7 +159,7 @@ struct hound_rq {
     struct hound_data_rq_list rq_list;
 };
 
-struct hound_init_val {
+struct hound_init_arg {
     hound_type type;
     union {
         float as_float;
@@ -322,7 +322,7 @@ hound_err hound_init_driver(
     const char *path,
     const char *schema_base,
     size_t arg_count,
-    const struct hound_init_val *args);
+    const struct hound_init_arg *args);
 
 /**
  * Destroys an initialized driver at the given path, effectively unloading the

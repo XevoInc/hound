@@ -64,7 +64,7 @@ int main(int argc, const char **argv)
     hound_err err;
     size_t count_bytes;
     size_t count_records;
-    struct hound_init_val init;
+    struct hound_init_arg init;
     struct hound_data_rq rq_list[] =
         {
             {.id = HOUND_DATA_COUNTER, .period_ns = NSEC_PER_SEC/10000},

@@ -598,7 +598,7 @@ static
 hound_err iio_init(
     const char *dev,
     size_t arg_count,
-    const struct hound_init_val *args)
+    const struct hound_init_arg *args)
 {
     char buf[2];
     uint64_t buf_ns;

@@ -45,7 +45,7 @@ static
 hound_err gps_init(
     const char *location,
     UNUSED size_t arg_count,
-    UNUSED const struct hound_init_val *args)
+    UNUSED const struct hound_init_arg *args)
 {
     struct gps_ctx *ctx;
     hound_err err;

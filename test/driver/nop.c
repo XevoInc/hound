@@ -51,7 +51,7 @@ struct nop_ctx {
 hound_err nop_init(
     UNUSED const char *path,
     UNUSED size_t arg_count,
-    UNUSED const struct hound_init_val *args)
+    UNUSED const struct hound_init_arg *args)
 {
     struct nop_ctx *ctx;
 

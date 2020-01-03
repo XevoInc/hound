@@ -74,7 +74,7 @@ static
 hound_err obd_init(
     const char *iface,
     size_t arg_count,
-    const struct hound_init_val *args)
+    const struct hound_init_arg *args)
 {
     struct obd_ctx *ctx;
     hound_err err;

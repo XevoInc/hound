@@ -85,7 +85,7 @@ DEFINE_DRV_OP(
     TOKENIZE(
         const char *path,
         size_t arg_count,
-        const struct hound_init_val *args),
+        const struct hound_init_arg *args),
     TOKENIZE(path, arg_count, args))
 DEFINE_DRV_OP_VOID(destroy)
 DEFINE_DRV_OP(device_name, char *device_name, device_name)

@@ -221,7 +221,7 @@ int main(int argc, const char **argv)
 {
     struct thread_ctx ctx;
     hound_err err;
-    struct hound_init_val init;
+    struct hound_init_arg init;
     const char *schema_base;
     pthread_t thread;
     const char *yobd_schema;

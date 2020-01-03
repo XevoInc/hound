@@ -40,7 +40,7 @@ static
 hound_err counter_init(
     UNUSED const char *path,
     size_t arg_count,
-    const struct hound_init_val *args)
+    const struct hound_init_arg *args)
 {
     struct counter_ctx *ctx;
 

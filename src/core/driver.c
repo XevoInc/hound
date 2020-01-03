@@ -227,7 +227,7 @@ hound_err driver_init(
     const char *path,
     const char *schema_base,
     size_t arg_count,
-    const struct hound_init_val *args)
+    const struct hound_init_arg *args)
 {
     struct hound_datadesc *desc;
     struct driver *drv;

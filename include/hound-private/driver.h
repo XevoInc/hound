@@ -27,7 +27,7 @@ struct driver_ops {
     hound_err (*init)(
         const char *path,
         size_t arg_count,
-        const struct hound_init_val *args);
+        const struct hound_init_arg *args);
 
     hound_err (*destroy)(void);
 
@@ -173,7 +173,7 @@ hound_err driver_init(
     const char *path,
     const char *schema_base,
     size_t arg_count,
-    const struct hound_init_val *args);
+    const struct hound_init_arg *args);
 
 hound_err driver_destroy(const char *path);
 
