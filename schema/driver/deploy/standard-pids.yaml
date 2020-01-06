@@ -10,7 +10,7 @@ id: 0xff010005
 name: engine coolant temperature
 fmt:
     - name: engine coolant temperature
-      unit: percent
+      unit: K
       type: float
 ---
 id: 0xff01000a
