@@ -186,7 +186,7 @@ struct hound_ctx;
 
 hound_err hound_get_dev_name(hound_dev_id id, const char **name);
 
-hound_err hound_alloc_ctx(struct hound_ctx **ctx, const struct hound_rq *rq);
+hound_err hound_alloc_ctx(const struct hound_rq *rq, struct hound_ctx **ctx);
 hound_err hound_free_ctx(struct hound_ctx *ctx);
 
 /**

@@ -106,7 +106,7 @@ int main(int argc, const char **argv)
     err = hound_init_driver("file", filepath, schema_base, 0, NULL);
     XASSERT_OK(err);
 
-    err = hound_alloc_ctx(&ctx, &rq);
+    err = hound_alloc_ctx(&rq, &ctx);
     XASSERT_OK(err);
 
     err = hound_start(ctx);

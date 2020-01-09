@@ -16,7 +16,7 @@
 void ctx_init(void);
 void ctx_destroy(void);
 
-hound_err ctx_alloc(struct hound_ctx **ctx, const struct hound_rq *rq);
+hound_err ctx_alloc(const struct hound_rq *rq, struct hound_ctx **ctx);
 hound_err ctx_free(struct hound_ctx *ctx);
 
 hound_err ctx_start(struct hound_ctx *ctx);

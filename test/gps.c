@@ -122,7 +122,7 @@ int main(int argc, const char **argv)
     XASSERT_EQ(*desc->avail_periods, NSEC_PER_SEC);
     hound_free_datadesc(desc);
 
-    err = hound_alloc_ctx(&ctx, &rq);
+    err = hound_alloc_ctx(&rq, &ctx);
     XASSERT_OK(err);
     XASSERT_NOT_NULL(ctx);
 

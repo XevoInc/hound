@@ -33,9 +33,9 @@ void hound_free_datadesc(struct hound_datadesc *desc)
 }
 
 PUBLIC_API
-hound_err hound_alloc_ctx(struct hound_ctx **ctx, const struct hound_rq *rq)
+hound_err hound_alloc_ctx(const struct hound_rq *rq, struct hound_ctx **ctx)
 {
-    return ctx_alloc(ctx, rq);
+    return ctx_alloc(rq, ctx);
 }
 
 PUBLIC_API

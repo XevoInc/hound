@@ -145,7 +145,7 @@ void test_read(hound_data_period period_ns)
     }
 
     s_ctx.seqno = 0;
-    err = hound_alloc_ctx(&ctx, &rq);
+    err = hound_alloc_ctx(&rq, &ctx);
     XASSERT_OK(err);
 
     err = hound_start(ctx);

@@ -48,7 +48,7 @@ void free_driver_data_map(xhash_t(DRIVER_DATA_MAP) *map)
     xh_destroy(DRIVER_DATA_MAP, map);
 }
 
-hound_err ctx_alloc(struct hound_ctx **ctx_out, const struct hound_rq *rq)
+hound_err ctx_alloc(const struct hound_rq *rq, struct hound_ctx **ctx_out)
 {
     struct hound_ctx *ctx;
     struct hound_data_rq *data_rq;

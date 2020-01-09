@@ -100,7 +100,7 @@ void ctx_test(
     rq.cb_ctx = NULL;
     rq.rq_list.len = rq_len;
     rq.rq_list.data = data_rq;
-    err = hound_alloc_ctx(ctx, &rq);
+    err = hound_alloc_ctx(&rq, ctx);
     XASSERT_ERRCODE(err, expected);
 }
 
@@ -114,7 +114,7 @@ void test_alloc_ctx(struct hound_ctx **ctx)
     };
     struct hound_data_rq bad_data_rq[ARRAYLEN(data_rq)];
 
-    err = hound_alloc_ctx(ctx, NULL);
+    err = hound_alloc_ctx(NULL, ctx);
     XASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
     ctx_test(ctx, 0, data_cb, ARRAYLEN(data_rq), data_rq, HOUND_EMPTY_QUEUE);
