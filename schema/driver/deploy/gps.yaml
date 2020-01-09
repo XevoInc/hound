@@ -1,5 +1,5 @@
 ---
-id: 0x00000001
+id: 0x00000003
 name: GPS
 fmt:
     - name: time uncertainty

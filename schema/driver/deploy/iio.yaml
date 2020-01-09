@@ -1,5 +1,5 @@
 ---
-id: 0x00000002
+id: 0x00000000
 name: accelerometer
 fmt:
     - name: X axis acceleration
@@ -12,7 +12,7 @@ fmt:
       unit: m/s^2
       type: double
 ---
-id: 0x00000003
+id: 0x00000001
 name: gyroscope
 fmt:
     - name: angular velocity about X axis
