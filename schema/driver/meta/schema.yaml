@@ -39,9 +39,9 @@ properties:
           description: A description of the datapoint
           type: string
         unit:
-          $ref: include://si-unit.yaml
+          $ref: sschema://si-unit.yaml
         type:
-          $ref: include://type.yaml
+          $ref: sschema://type.yaml
         size:
           type: integer
           minimum: 0

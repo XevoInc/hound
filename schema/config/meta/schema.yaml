@@ -39,7 +39,7 @@ items:
             additionalProperties: false
             properties:
               type:
-                $ref: include://type.yaml
+                $ref: sschema://type.yaml
               val:
                 oneOf:
                   - type: string
