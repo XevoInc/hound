@@ -21,7 +21,7 @@ from sschema import (
     make_format_checker,
     make_resolver
 )
-from sschema.handler.include import make_default_handler
+from sschema.handler.sschema import make_default_handler
 
 
 def get_arg_parser():
