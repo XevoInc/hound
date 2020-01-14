@@ -40,15 +40,12 @@ void destroy_schema_desc(struct schema_desc *desc)
 }
 
 static
-hound_data_id parse_id(yaml_node_t *node)
+hound_data_id parse_num(const char *s)
 {
     hound_data_id id;
 
-    XASSERT_EQ(node->type, YAML_SCALAR_NODE);
-    XASSERT_GT(node->data.scalar.length, 0);
-
     errno = 0;
-    id = strtol((const char *) node->data.scalar.value, NULL, 0);
+    id = strtol(s, NULL, 0);
     XASSERT_OK(errno);
 
     return id;
@@ -121,6 +118,7 @@ hound_err parse_fmt(
     const char *key_str;
     yaml_node_pair_t *pair;
     yaml_node_t *value;
+    const char *value_str;
 
     XASSERT_EQ(node->type, YAML_MAPPING_NODE);
     for (pair = node->data.mapping.pairs.start;
@@ -133,6 +131,9 @@ hound_err parse_fmt(
 
         value = yaml_document_get_node(doc, pair->value);
         XASSERT_NOT_NULL(value);
+        XASSERT_EQ(value->type, YAML_SCALAR_NODE);
+        XASSERT_GT(value->data.scalar.length, 0);
+        value_str = (const char *) value->data.scalar.value;
 
         if (strcmp(key_str, "name") == 0) {
             fmt->name = parse_str(value);
@@ -142,15 +143,16 @@ hound_err parse_fmt(
 
         }
         else if (strcmp(key_str, "unit") == 0) {
-            XASSERT_EQ(value->type, YAML_SCALAR_NODE);
-            XASSERT_GT(value->data.scalar.length, 0);
-            fmt->unit = find_unit((const char *) value->data.scalar.value);
+            fmt->unit = find_unit(value_str);
         }
         else if (strcmp(key_str, "type") == 0) {
             XASSERT_EQ(value->type, YAML_SCALAR_NODE);
             XASSERT_GT(value->data.scalar.length, 0);
-            fmt->type = parse_type((const char *) value->data.scalar.value);
+            fmt->type = parse_type(value_str);
 
+        }
+        else if (strcmp(key_str, "size") == 0) {
+            fmt->size = parse_num(value_str);
         }
         else {
             XASSERT_ERROR;
@@ -227,7 +229,9 @@ hound_err parse_doc(
         XASSERT_NOT_NULL(value);
 
         if (strcmp(key_str, "id") == 0) {
-            desc->data_id = parse_id(value);
+            XASSERT_EQ(value->type, YAML_SCALAR_NODE);
+            XASSERT_GT(value->data.scalar.length, 0);
+            desc->data_id = parse_num((const char *) value->data.scalar.value);
         }
         else if (strcmp(key_str, "name") == 0) {
             XASSERT_EQ(value->type, YAML_SCALAR_NODE);

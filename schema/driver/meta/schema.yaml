@@ -28,12 +28,12 @@ properties:
     # see.
     minItems: 1
     maxItems: 100
+    # Make sure variable-length types (size 0) are specified last in the format
+    # list so that they're parseable.
+    format: varlen-fmt
     items:
       type: object
-      required:
-        - name
-        - unit
-        - type
+      additionalProperties: false
       properties:
         name:
           description: A description of the datapoint
@@ -42,3 +42,27 @@ properties:
           $ref: include://si-unit.yaml
         type:
           $ref: include://type.yaml
+        size:
+          type: integer
+          minimum: 0
+
+      required:
+        - name
+        - unit
+        - type
+
+      if:
+        properties:
+          type:
+            const: bytes
+      then:
+        required:
+          - size
+      else:
+        not:
+          # size property must not be present, except if the type is bytes. This
+          # is the strange jsonschema way to express that condition. We are
+          # saying here that we must fail a schema that requires size to be
+          # present. In other words, size must not be present.
+          required:
+            - size

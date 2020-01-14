@@ -5,3 +5,4 @@ fmt:
     - name: file
       unit: none
       type: bytes
+      size: 0

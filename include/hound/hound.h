@@ -166,11 +166,11 @@ struct hound_data_fmt {
     size_t offset;
 
     /**
-     * The length of this data, in bytes. A length of 0 means "all the rest of
-     * the data", and such a value must be the last specified data format in a
-     * given record so that all fields can be parsed.
+     * The length of this data, in bytes. A size of 0 means "all the rest of the
+     * data", and such a value must be the last specified data format in a given
+     * record so that all fields can be parsed.
      */
-    size_t len;
+    size_t size;
 
     /** The type of the given data format. */
     hound_type type;

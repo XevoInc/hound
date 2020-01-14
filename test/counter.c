@@ -71,10 +71,10 @@ int main(int argc, const char **argv)
             {.id = HOUND_DATA_COUNTER, .period_ns = NSEC_PER_SEC/1000}
         };
     const struct hound_data_fmt *fmt;
-    size_t len;
     size_t records_read;
     struct hound_rq rq;
     const char *schema_base;
+    size_t size;
     struct cb_ctx cb_ctx;
     size_t total_bytes;
     size_t total_records;
@@ -121,16 +121,16 @@ int main(int argc, const char **argv)
     err = hound_start(cb_ctx.ctx);
     XASSERT_OK(err);
 
-    err = hound_get_datadesc(&desc, &len);
+    err = hound_get_datadesc(&desc, &size);
     XASSERT_OK(err);
     XASSERT_STREQ(desc->name, "counter");
-    XASSERT_EQ(len, 1);
+    XASSERT_EQ(size, 1);
     XASSERT_EQ(desc->fmt_count, 1);
 
     fmt = desc->fmts;
     XASSERT_STREQ(fmt->name, "counter");
     XASSERT_EQ(fmt->offset, 0);
-    XASSERT_EQ(fmt->len, sizeof(cb_ctx.count));
+    XASSERT_EQ(fmt->size, sizeof(cb_ctx.count));
     XASSERT_EQ(fmt->unit, HOUND_UNIT_NONE);
     XASSERT_EQ(fmt->type, HOUND_TYPE_UINT64);
 

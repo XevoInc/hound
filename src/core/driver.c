@@ -189,7 +189,7 @@ hound_dev_id next_dev_id(void)
 }
 
 static
-size_t get_type_len(hound_type type)
+size_t get_type_size(hound_type type)
 {
     switch (type) {
         case HOUND_TYPE_FLOAT:
@@ -236,7 +236,6 @@ hound_err driver_init(
     size_t i;
     size_t j;
     xhiter_t iter;
-    size_t len;
     size_t offset;
     const struct driver_ops *ops;
     int ret;
@@ -244,6 +243,7 @@ hound_err driver_init(
     size_t schema_desc_count;
     struct schema_desc *schema_desc;
     struct schema_desc *schema_descs;
+    size_t size;
 
     NULL_CHECK(name);
     NULL_CHECK(path);
@@ -345,16 +345,23 @@ hound_err driver_init(
         offset = 0;
         for (j = 0; j < schema_desc->fmt_count; ++j) {
             fmt = &schema_desc->fmts[j];
-            /*
-             * A variable-length type (bytes) must be the last specified format,
-             * or else the caller won't be able to parse its records.
-             */
-            XASSERT_FALSE(fmt->type == HOUND_TYPE_BYTES &&
-                          j != schema_desc->fmt_count-1);
-            len = get_type_len(fmt->type);
-            fmt->len = len;
             fmt->offset = offset;
-            offset += len;
+            if (fmt->type == HOUND_TYPE_BYTES) {
+                /*
+                 * A variable-length type (bytes) must be the last specified format,
+                 * or else the caller won't be able to parse its records.
+                 */
+                XASSERT_FALSE(fmt->size == 0 && j != schema_desc->fmt_count-1);
+            }
+            else {
+                /*
+                 * Fill in the size for non-byte types, where the size is
+                 * implicit and not given in the schema.
+                 */
+                size = get_type_size(fmt->type);
+                fmt->size = size;
+                offset += size;
+            }
         }
     }
 

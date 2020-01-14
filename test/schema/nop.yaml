@@ -8,6 +8,7 @@ fmt:
     - name: b
       unit: none
       type: bytes
+      size: 0
 ---
 id: 0xffffff03
 name: nop2
@@ -15,3 +16,4 @@ fmt:
     - name: x
       unit: none
       type: bytes
+      size: 3

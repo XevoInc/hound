@@ -14,6 +14,7 @@ import argparse
 import sys
 import yaml
 
+import formatchecker.varlen_fmt
 import jsonschema
 
 from sschema import (
@@ -54,6 +55,7 @@ def main():
 
     handler = make_default_handler()
     resolver = make_resolver(schema, [handler])
+    format_checker = make_format_checker([formatchecker.varlen_fmt])
 
     with open(args.datafile, 'r') as f:
         doc_count = 0
@@ -61,7 +63,8 @@ def main():
             doc_count += 1
             errors = list(jsonschema.Draft7Validator(
                               schema,
-                              resolver=resolver).iter_errors(doc))
+                              resolver=resolver,
+                              format_checker=format_checker).iter_errors(doc))
             err_count = len(errors)
             if err_count > 0:
                 ret = 1
