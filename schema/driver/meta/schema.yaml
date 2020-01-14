@@ -42,12 +42,3 @@ properties:
           $ref: include://si-unit.yaml
         type:
           $ref: include://type.yaml
-        len:
-          description: The length of this entry
-          oneOf:
-            -
-              type: integer
-              minimum: 1
-            -
-              type: string
-              const: all
