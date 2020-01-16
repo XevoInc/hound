@@ -48,6 +48,68 @@ void free_driver_data_map(xhash_t(DRIVER_DATA_MAP) *map)
     xh_destroy(DRIVER_DATA_MAP, map);
 }
 
+static
+hound_err validate_rq(const struct hound_rq *rq)
+{
+    struct hound_data_rq *data_rq;
+    struct driver *drv;
+    hound_err err;
+    size_t i;
+    size_t j;
+    const struct hound_data_rq_list *list;
+
+    /* Is the request sane? */
+    if (rq->queue_len == 0) {
+        return HOUND_EMPTY_QUEUE;
+    }
+
+    list = &rq->rq_list;
+    if (list->len == 0) {
+        return HOUND_NO_DATA_REQUESTED;
+    }
+
+    if (list->len > HOUND_MAX_DATA_REQ) {
+        return HOUND_TOO_MUCH_DATA_REQUESTED;
+    }
+
+    NULL_CHECK(list->data);
+
+    if (rq->cb == NULL) {
+        return HOUND_MISSING_CALLBACK;
+    }
+
+    /* Are the data IDs all valid? */
+    for (i = 0; i < list->len; ++i) {
+        data_rq = &list->data[i];
+
+        err = driver_get(data_rq->id, &drv);
+        if (err != HOUND_OK) {
+            return err;
+        }
+
+        for (j = 0; j < i; ++j) {
+            if (data_rq->id == list->data[j].id) {
+                if (data_rq->period_ns == list->data[j].period_ns ||
+                    driver_get_sched_mode(drv) == DRV_SCHED_PUSH) {
+                    /*
+                     * Push-mode drivers can push data at only one rate, so this is
+                     * an error. Pull-mode drivers can handle the same data at
+                     * multiple frequencies without issue, but the exact same ID
+                     * and frequency should still not be requested.
+                     */
+                    return HOUND_DUPLICATE_DATA_REQUESTED;
+                }
+            }
+        }
+
+        if (!driver_period_supported(drv, data_rq->id, data_rq->period_ns)) {
+            return HOUND_PERIOD_UNSUPPORTED;
+        }
+    }
+
+    return HOUND_OK;
+}
+
 hound_err ctx_alloc(const struct hound_rq *rq, struct hound_ctx **ctx_out)
 {
     struct hound_ctx *ctx;
@@ -68,59 +130,9 @@ hound_err ctx_alloc(const struct hound_rq *rq, struct hound_ctx **ctx_out)
     NULL_CHECK(ctx_out);
     NULL_CHECK(rq);
 
-    /* Is the request sane? */
-    if (rq->queue_len == 0) {
-        err = HOUND_EMPTY_QUEUE;
+    err = validate_rq(rq);
+    if (err != HOUND_OK) {
         goto out;
-    }
-
-    list = &rq->rq_list;
-    if (list->len == 0) {
-        err = HOUND_NO_DATA_REQUESTED;
-        goto out;
-    }
-
-    if (list->len > HOUND_MAX_DATA_REQ) {
-        err = HOUND_TOO_MUCH_DATA_REQUESTED;
-        goto out;
-    }
-
-    NULL_CHECK(list->data);
-
-    if (rq->cb == NULL) {
-        err = HOUND_MISSING_CALLBACK;
-        goto out;
-    }
-
-    /* Are the data IDs all valid? */
-    for (i = 0; i < list->len; ++i) {
-        data_rq = &list->data[i];
-
-        err = driver_get(data_rq->id, &drv);
-        if (err != HOUND_OK) {
-            goto out;
-        }
-
-        for (j = 0; j < i; ++j) {
-            if (data_rq->id == list->data[j].id) {
-                if (data_rq->period_ns == list->data[j].period_ns ||
-                    driver_get_sched_mode(drv) == DRV_SCHED_PUSH) {
-                    /*
-                     * Push-mode drivers can push data at only one rate, so this is
-                     * an error. Pull-mode drivers can handle the same data at
-                     * multiple frequencies without issue, but the exact same ID
-                     * and frequency should still not be requested.
-                     */
-                    err = HOUND_DUPLICATE_DATA_REQUESTED;
-                    goto out;
-                }
-            }
-        }
-
-        if (!driver_period_supported(drv, data_rq->id, data_rq->period_ns)) {
-            err = HOUND_PERIOD_UNSUPPORTED;
-            goto out;
-        }
     }
 
     /* Request is fine. Let's make a new context. */
@@ -155,6 +167,7 @@ hound_err ctx_alloc(const struct hound_rq *rq, struct hound_ctx **ctx_out)
         goto error_on_demand_data_map;
     }
 
+    list = &rq->rq_list;
     for (i = 0; i < list->len; ++i) {
         data_rq = &list->data[i];
 
