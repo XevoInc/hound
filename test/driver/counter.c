@@ -7,7 +7,6 @@
  * @copyright Copyright (C) 2019 Xevo Inc. All Rights Reserved.
  */
 
-#define _GNU_SOURCE
 #include <hound/hound.h>
 #include <hound-private/driver.h>
 #include <hound-private/driver/util.h>
