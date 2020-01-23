@@ -56,6 +56,8 @@ size_t queue_pop_nolock(
     struct record_info **buf,
     size_t n);
 
+void queue_drain(struct queue *queue);
+
 size_t queue_len(struct queue *queue);
 size_t queue_max_len(struct queue *queue);
 

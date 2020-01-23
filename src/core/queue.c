@@ -16,6 +16,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define DEQUEUE_BUF_SIZE (4096 / sizeof(struct hound_record_info *))
+
 /*
  * Push to back, pop from front. Back is calculated implicitly as front + len
  * with wraparound.
@@ -78,6 +80,7 @@ void queue_destroy(struct queue *queue)
 {
     XASSERT_NOT_NULL(queue);
 
+    queue_drain(queue);
     pthread_mutex_destroy(&queue->mutex);
     pthread_cond_destroy(&queue->data_cond);
     free(queue);
@@ -263,6 +266,20 @@ size_t queue_pop_records_nowait(
     pthread_mutex_unlock(&queue->mutex);
 
     return count;
+}
+
+void queue_drain(struct queue *queue)
+{
+    struct record_info *buf[DEQUEUE_BUF_SIZE];
+    size_t i;
+    size_t read;
+
+    XASSERT_NOT_NULL(queue);
+
+    read = queue_pop_records_nowait(queue, buf, SIZE_MAX);
+    for (i = 0; i < read; ++i) {
+        record_ref_dec(buf[i]);
+    }
 }
 
 size_t queue_len(struct queue *queue)

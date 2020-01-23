@@ -255,23 +255,6 @@ out:
     return err;
 }
 
-static
-void destroy_cb_queue(struct queue *queue)
-{
-    size_t i;
-    struct record_info *buf[DEQUEUE_BUF_SIZE];
-    size_t read;
-
-    /* First drain the queue. */
-    read = queue_pop_records_nowait(queue, buf, SIZE_MAX);
-    for (i = 0; i < read; ++i) {
-        record_ref_dec(buf[i]);
-    }
-
-    /* Then destroy the queue. */
-    queue_destroy(queue);
-}
-
 hound_err ctx_free(struct hound_ctx *ctx)
 {
     hound_err err;
@@ -287,7 +270,7 @@ hound_err ctx_free(struct hound_ctx *ctx)
 
     free_driver_data_map(ctx->periodic_data_map);
     free_driver_data_map(ctx->on_demand_data_map);
-    destroy_cb_queue(ctx->queue);
+    queue_destroy(ctx->queue);
     free(ctx);
 
     return HOUND_OK;
