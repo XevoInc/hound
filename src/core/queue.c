@@ -272,19 +272,28 @@ size_t queue_pop_records_nowait(
 
 void queue_drain(struct queue *queue)
 {
-    struct record_info *buf[DEQUEUE_BUF_SIZE];
+    size_t back;
     size_t i;
-    size_t pop_count;
-
-    XASSERT_NOT_NULL(queue);
 
     pthread_mutex_lock(&queue->mutex);
-    while (queue->len > 0) {
-        pop_count = queue_pop_records_nowait(queue, buf, DEQUEUE_BUF_SIZE);
-        for (i = 0; i < pop_count; ++i) {
-            record_ref_dec(buf[i]);
+    back = (queue->front + queue->len) % queue->max_len;
+    if (back >= queue->front) {
+        /* Queue data is contiguous. */
+        for (i = queue->front; i < back; ++i) {
+            record_ref_dec(queue->data[i]);
         }
     }
+    else {
+        /* Queue data wraps around. */
+        for (i = queue->front; i < queue->max_len; ++i) {
+            record_ref_dec(queue->data[i]);
+        }
+        for (i = 0; i < back; ++i) {
+            record_ref_dec(queue->data[i]);
+        }
+    }
+
+    queue->len = 0;
     pthread_mutex_unlock(&queue->mutex);
 }
 
