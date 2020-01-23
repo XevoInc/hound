@@ -16,7 +16,7 @@
 #include <xlib/xhash.h>
 #include <xlib/xvec.h>
 
-#define DEQUEUE_BUF_SIZE (4096 / sizeof(struct hound_record *))
+#define DEQUEUE_BUF_SIZE (4096 / sizeof(struct hound_record_info *))
 
 /* driver --> list of data needed from that driver */
 XHASH_MAP_INIT_PTR(DRIVER_DATA_MAP, struct driver *, struct hound_data_rq_list) /* NOLINT */
