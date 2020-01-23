@@ -94,6 +94,8 @@ void pop_helper(
 {
     size_t right_records;
 
+    XASSERT_LTE(records, queue->max_len);
+
     right_records = queue->max_len - queue->front;
     if (records <= right_records) {
         /* All records we need are between [front, back]. */
