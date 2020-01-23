@@ -95,7 +95,7 @@ void pop_helper(
     size_t right_records;
 
     right_records = queue->max_len - queue->front;
-    if (records < right_records) {
+    if (records <= right_records) {
         /* All records we need are between [front, back]. */
         memcpy(buf, queue->data + queue->front, records * sizeof(*buf));
         queue->front += records;
