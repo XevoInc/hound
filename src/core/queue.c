@@ -272,14 +272,18 @@ void queue_drain(struct queue *queue)
 {
     struct record_info *buf[DEQUEUE_BUF_SIZE];
     size_t i;
-    size_t read;
+    size_t pop_count;
 
     XASSERT_NOT_NULL(queue);
 
-    read = queue_pop_records_nowait(queue, buf, SIZE_MAX);
-    for (i = 0; i < read; ++i) {
-        record_ref_dec(buf[i]);
+    pthread_mutex_lock(&queue->mutex);
+    while (queue->len > 0) {
+        pop_count = queue_pop_records_nowait(queue, buf, DEQUEUE_BUF_SIZE);
+        for (i = 0; i < pop_count; ++i) {
+            record_ref_dec(buf[i]);
+        }
     }
+    pthread_mutex_unlock(&queue->mutex);
 }
 
 size_t queue_len(struct queue *queue)
