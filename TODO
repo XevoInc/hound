@@ -1,5 +1,6 @@
 Things to do:
 - Document Hound design, including core, drivers, and schemas
+- Add queue stress tests.
 - IIO automated unit tests, using the kernel dummy IIO driver
 - GPS automated unit tests, automatically starting up gpsfake from the gpsd
   distribution.
