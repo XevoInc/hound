@@ -211,7 +211,7 @@ struct hound_data_rq_list {
     /** the length of the data request list */
     size_t len;
 
-    /** an array, of te given length, containing data requests */
+    /** an array, of the given length, containing data requests */
     struct hound_data_rq *data;
 };
 
