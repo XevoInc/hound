@@ -144,7 +144,7 @@ hound_err ctx_alloc(const struct hound_rq *rq, struct hound_ctx **ctx_out)
 
     err = pthread_rwlock_init(&ctx->rwlock, NULL);
     if (err != 0) {
-        goto out;
+        goto error_pthread_init;
     }
 
     ctx->active = false;
@@ -250,6 +250,8 @@ error_on_demand_data_map:
     free_driver_data_map(ctx->periodic_data_map);
 error_periodic_data_map:
 error_queue_alloc:
+    pthread_rwlock_destroy(&ctx->rwlock);
+error_pthread_init:
     free(ctx);
 out:
     return err;
