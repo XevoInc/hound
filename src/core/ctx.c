@@ -36,6 +36,7 @@ struct hound_ctx {
     xhash_t(DRIVER_DATA_MAP) *on_demand_data_map;
 };
 
+static
 void destroy_driver_data_map(xhash_t(DRIVER_DATA_MAP) *map)
 {
     struct hound_data_rq_list *rq_list;
