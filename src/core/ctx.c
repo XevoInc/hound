@@ -36,7 +36,7 @@ struct hound_ctx {
     xhash_t(DRIVER_DATA_MAP) *on_demand_data_map;
 };
 
-void free_driver_data_map(xhash_t(DRIVER_DATA_MAP) *map)
+void destroy_driver_data_map(xhash_t(DRIVER_DATA_MAP) *map)
 {
     struct hound_data_rq_list *rq_list;
     xhiter_t iter;
@@ -245,9 +245,9 @@ hound_err ctx_alloc(const struct hound_rq *rq, struct hound_ctx **ctx_out)
 
 error_ctx_loop:
     queue_destroy(ctx->queue);
-    free_driver_data_map(ctx->on_demand_data_map);
+    destroy_driver_data_map(ctx->on_demand_data_map);
 error_on_demand_data_map:
-    free_driver_data_map(ctx->periodic_data_map);
+    destroy_driver_data_map(ctx->periodic_data_map);
 error_periodic_data_map:
 error_queue_alloc:
     pthread_rwlock_destroy(&ctx->rwlock);
@@ -270,8 +270,8 @@ hound_err ctx_free(struct hound_ctx *ctx)
     err = pthread_rwlock_destroy(&ctx->rwlock);
     XASSERT_EQ(err, 0);
 
-    free_driver_data_map(ctx->periodic_data_map);
-    free_driver_data_map(ctx->on_demand_data_map);
+    destroy_driver_data_map(ctx->periodic_data_map);
+    destroy_driver_data_map(ctx->on_demand_data_map);
     queue_destroy(ctx->queue);
     free(ctx);
 
