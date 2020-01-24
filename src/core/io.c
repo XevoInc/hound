@@ -17,14 +17,18 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <pthread.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
 #include <xlib/xvec.h>
 
-#define PAUSE_SIGNAL SIGUSR1
+#define PAUSE_FD_INDEX 0
+#define DATA_FD_START 1
+
+#define READ_END 0
+#define WRITE_END 1
+
 #define POLL_BUF_SIZE (100*1024)
 #define POLL_HAS_DATA (POLLIN|POLLPRI)
 
@@ -60,7 +64,7 @@ static struct {
 } s_ios;
 
 static pthread_t s_poll_thread;
-static sigset_t s_origset;
+static int s_self_pipe[2];
 static pthread_mutex_t s_poll_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_poll_cond = PTHREAD_COND_INITIALIZER;
 static volatile bool s_poll_active_target = false;
@@ -75,7 +79,7 @@ size_t get_fd_index(int fd)
     size_t index;
     const struct pollfd *pfd;
 
-    for (index = 0; index < xv_size(s_ios.fds); ++index) {
+    for (index = DATA_FD_START; index < xv_size(s_ios.fds); ++index) {
         pfd = &xv_A(s_ios.fds, index);
         if (pfd->fd == fd) {
             break;
@@ -87,9 +91,35 @@ size_t get_fd_index(int fd)
 }
 
 static
+size_t get_fdctx_index(size_t fd_index)
+{
+    /*
+     * We have to subtract one to get the ctx corresponding to an fd index
+     * because the first index is taken up by the special self-pipe that we use
+     * to stop the poll loop.
+     */
+    XASSERT_GT(fd_index, 0);
+    return fd_index - 1;
+}
+
+static
 struct fdctx *get_fdctx(int fd)
 {
-    return &xv_A(s_ios.ctx, get_fd_index(fd));
+    size_t fdctx_index;
+
+    fdctx_index = get_fdctx_index(get_fd_index(fd));
+
+    return &xv_A(s_ios.ctx, fdctx_index);
+}
+
+static
+struct fdctx *get_fdctx_from_fd_index(size_t fd_index)
+{
+    size_t fdctx_index;
+
+    fdctx_index = get_fdctx_index(fd_index);
+
+    return &xv_A(s_ios.ctx, fdctx_index);
 }
 
 static
@@ -200,8 +230,7 @@ hound_err io_read(int fd, struct fdctx *ctx)
 }
 
 /**
- * Wait for the ready signal for the event loop to continue. Return when it is
- * safe to proceed.
+ * Wait until it's safe for the event loop to continue.
  */
 static
 void io_wait_for_ready(void) {
@@ -237,15 +266,29 @@ void populate_timespec(hound_data_period ts, struct timespec *spec)
 }
 
 static
-void io_sighandler(UNUSED int signum)
+bool need_to_pause(void)
 {
-    /* Nothing to do. */
+    char buf;
+    ssize_t bytes;
+    struct pollfd *pfd;
+
+    pfd = &xv_A(s_ios.fds, PAUSE_FD_INDEX);
+    if (!(pfd->revents & POLL_HAS_DATA)) {
+        return false;
+    }
+
+    /* Read the self-pipe so it can be used again. */
+    do {
+        bytes = read(pfd->fd, &buf, sizeof(buf));
+        XASSERT_NEQ(bytes, -1);
+    } while (bytes != sizeof(buf));
+
+    return true;
 }
 
 static
 void *io_poll(UNUSED void *data)
 {
-    struct sigaction action;
     struct fdctx *ctx;
     hound_err err;
     size_t i;
@@ -260,17 +303,6 @@ void *io_poll(UNUSED void *data)
     hound_data_period time_since_last_poll;
     struct pull_timing_entry *timing_entry;
 
-    /*
-     * Set a dummy action for PAUSE_SIGNAL just so that we can interrupt system
-     * calls by raising it. Note that we do *not* set SA_RESTART, as we actually
-     * want to be interrupted so that we can pause the thread when needed.
-     */
-    action.sa_handler = io_sighandler;
-    action.sa_flags = 0;
-    sigemptyset(&action.sa_mask);
-    err = sigaction(PAUSE_SIGNAL, &action, NULL);
-    XASSERT_EQ(err, 0);
-
     s_ios.last_poll_ns = get_time_ns();
 
     while (true) {
@@ -283,8 +315,7 @@ void *io_poll(UNUSED void *data)
         if (xv_size(s_ios.pull_mode_indices) > 0) {
             min_timeout = UINT64_MAX;
             for (i = 0; i < xv_size(s_ios.pull_mode_indices); ++i) {
-                ctx = &xv_A(s_ios.ctx, i);
-
+                ctx = &xv_A(s_ios.ctx, xv_A(s_ios.pull_mode_indices, i));
                 for (j = 0; j < xv_size(ctx->timings); ++j) {
                     timing_entry = &xv_A(ctx->timings, j);
                     min_timeout = min(
@@ -301,11 +332,14 @@ void *io_poll(UNUSED void *data)
         }
 
         /* Wait for I/O. */
-        fds = ppoll(xv_data(s_ios.fds), xv_size(s_ios.fds), timeout, &s_origset);
-        if (fds == -1) {
+        fds = ppoll(xv_data(s_ios.fds), xv_size(s_ios.fds), timeout, NULL);
+        if (fds > 0 && need_to_pause()) {
+            continue;
+        }
+        else if (fds == -1) {
             /* Error. */
             if (errno == EINTR) {
-                /* We got a signal; probably need to pause the loop. */
+                /* We got a signal. Restart the syscall. */
                 continue;
             }
             else if (errno == ENOMEM) {
@@ -356,14 +390,14 @@ void *io_poll(UNUSED void *data)
         }
 
         /* Read all fds that have data. */
-        for (i = 0; fds > 0 && i < xv_size(s_ios.fds); ++i) {
+        for (i = DATA_FD_START; fds > 0 && i < xv_size(s_ios.fds); ++i) {
             pfd = &xv_A(s_ios.fds, i);
             if (pfd->revents == 0) {
                 continue;
             }
             XASSERT(pfd->revents & POLL_HAS_DATA);
 
-            ctx = &xv_A(s_ios.ctx, i);
+            ctx = get_fdctx_from_fd_index(i);
             err = io_read(pfd->fd, ctx);
             if (err == HOUND_INTR) {
                 /* Someone wants to pause polling; finish reading later. */
@@ -383,17 +417,20 @@ void *io_poll(UNUSED void *data)
 static
 void io_pause_poll(void)
 {
-    hound_err err;
+    ssize_t bytes;
+    static const char payload = 1;
 
     /*
      * Wait until the poll has actually canceled. io_wait_for_ready will signal
      * on the condition variable when it is run.
      */
     pthread_mutex_lock(&s_poll_mutex);
-    err = pthread_kill(s_poll_thread, PAUSE_SIGNAL);
-    XASSERT_EQ(err, 0);
     while (s_poll_active_current) {
         s_poll_active_target = false;
+        do {
+            bytes = write(s_self_pipe[WRITE_END], &payload, sizeof(payload));
+            XASSERT_NEQ(bytes, -1);
+        } while (bytes != sizeof(payload));
         pthread_cond_signal(&s_poll_cond);
         pthread_cond_wait(&s_poll_cond, &s_poll_mutex);
     }
@@ -433,13 +470,6 @@ void io_stop_poll(void)
 
     /* Now shoot it in the head. */
     err = pthread_cancel(s_poll_thread);
-    XASSERT_EQ(err, 0);
-
-    /*
-     * Remove our signal handler. Note that this *must* be done after pausing,
-     * since we rely on the signal to trigger the pause.
-     */
-    err = sigaction(PAUSE_SIGNAL, NULL, NULL);
     XASSERT_EQ(err, 0);
 
     /* Wait until the thread is finally dead. */
@@ -510,11 +540,14 @@ out:
 void io_remove_fd(int fd)
 {
     struct fdctx *ctx;
+    size_t ctx_index;
     size_t fd_index;
     size_t i;
 
     fd_index = get_fd_index(fd);
-    ctx = &xv_A(s_ios.ctx, fd_index);
+    ctx_index = get_fdctx_index(fd_index);
+    ctx = get_fdctx_from_fd_index(fd_index);
+    XASSERT_NOT_NULL(ctx);
 
     io_pause_poll();
 
@@ -524,7 +557,7 @@ void io_remove_fd(int fd)
      */
     if (ctx->drv->sched_mode == DRV_SCHED_PULL) {
         for (i = 0; i < xv_size(s_ios.pull_mode_indices); ++i) {
-            if (xv_A(s_ios.pull_mode_indices, i) == fd_index) {
+            if (xv_A(s_ios.pull_mode_indices, i) == ctx_index) {
                 RM_VEC_INDEX(s_ios.pull_mode_indices, i);
                 break;
             }
@@ -533,7 +566,7 @@ void io_remove_fd(int fd)
 
     /* Remove fd and ctx. */
     RM_VEC_INDEX(s_ios.fds, fd_index);
-    RM_VEC_INDEX(s_ios.ctx, fd_index);
+    RM_VEC_INDEX(s_ios.ctx, ctx_index);
 
     io_resume_poll();
 
@@ -655,8 +688,9 @@ void io_remove_queue(
 
 void io_init(void)
 {
-    sigset_t blockset;
     hound_err err;
+    struct pollfd *pfd;
+    int ret;
 
     xv_init(s_ios.ctx);
     xv_init(s_ios.fds);
@@ -664,22 +698,28 @@ void io_init(void)
     s_ios.last_poll_ns = 0;
 
     /*
-     * Block our pause signal so it will get queued up if someone sends it.
-     * If the signal is sent after io_wait_for_ready() but before ppoll(),
-     * ppoll() will still see the signal because it gets queued up while
-     * blocked. If we didn't block the signal here, such a signal would be
-     * dropped and ppoll() would never act on the signal, leading to deadlock.
-     *
-     * See pselect(2) for more information.
+     * Create our self-pipe, which we use to interrupt the poll loop when
+     * needed. Mark it non-blocking so it can't block a read() during the poll
+     * loop. It really never should block, but this is a defensive precaution.
      */
-    sigemptyset(&blockset);
-    sigaddset(&blockset, PAUSE_SIGNAL);
-    err = pthread_sigmask(SIG_BLOCK, &blockset, &s_origset);
-    XASSERT_EQ(err, 0);
+    ret = pipe2(s_self_pipe, O_NONBLOCK);
+    if (ret != 0) {
+        log_msg(LOG_ERR, "Failed to create self pipe");
+        return;
+    }
+
+    pfd = xv_pushp(struct pollfd, s_ios.fds);
+    if (pfd == NULL) {
+        log_msg(LOG_ERR, "Failed to setup pfd for self pipe");
+        return;
+    }
+    pfd->fd = s_self_pipe[READ_END];
+    pfd->events = POLL_HAS_DATA;
 
     err = io_start_poll();
     if (err != HOUND_OK) {
         hound_log_err_nofmt(err, "Failed io_start_poll");
+        return;
     }
 }
 
@@ -689,4 +729,6 @@ void io_destroy(void)
     xv_destroy(s_ios.pull_mode_indices);
     xv_destroy(s_ios.ctx);
     xv_destroy(s_ios.fds);
+    close(s_self_pipe[READ_END]);
+    close(s_self_pipe[WRITE_END]);
 }
