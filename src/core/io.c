@@ -325,7 +325,7 @@ void *io_poll(UNUSED void *data)
             now = get_time_ns();
             time_since_last_poll = now - s_ios.last_poll_ns;
             for (i = 0; i < xv_size(s_ios.pull_mode_indices); ++i) {
-                ctx = &xv_A(s_ios.ctx, i);
+                ctx = &xv_A(s_ios.ctx, xv_A(s_ios.pull_mode_indices, i));
                 for (j = 0; j < xv_size(ctx->timings); ++j) {
                     timing_entry = &xv_A(ctx->timings, j);
                     if (time_since_last_poll >= timing_entry->current_timeout) {
