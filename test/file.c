@@ -77,7 +77,7 @@ int main(int argc, const char **argv)
     const char *schema_base;
     struct text text;
     size_t total_count;
-    struct hound_data_rq data_rq = { .id = HOUND_DATA_FILE };
+    struct hound_data_rq data_rq = { .id = HOUND_DATA_FILE, .period_ns = 0 };
     struct hound_rq rq = {
         .queue_len = 100,
         .cb = data_cb,
