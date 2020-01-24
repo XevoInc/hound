@@ -39,7 +39,7 @@ void driver_ops_destroy(void);
 
 struct data {
     refcount_val refcount;
-    struct hound_data_rq *data;
+    struct hound_data_rq *rq;
 };
 
 struct driver {

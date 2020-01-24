@@ -552,8 +552,8 @@ size_t get_active_data_index(
 
     for (i = 0; i < xv_size(drv->active_data); ++i) {
         data = &xv_A(drv->active_data, i);
-        if (data->data->id == drv_data->id &&
-            data->data->period_ns == drv_data->period_ns) {
+        if (data->rq->id == drv_data->id &&
+            data->rq->period_ns == drv_data->period_ns) {
             *found = true;
             return i;
         }
@@ -564,7 +564,7 @@ size_t get_active_data_index(
 }
 
 static
-hound_err push_drv_data(struct driver *drv, struct hound_data_rq *drv_data)
+hound_err push_drv_data(struct driver *drv, struct hound_data_rq *rq)
 {
     struct data *data;
 
@@ -573,11 +573,11 @@ hound_err push_drv_data(struct driver *drv, struct hound_data_rq *drv_data)
         hound_log_err(
             HOUND_OOM,
             "Failed to push drv data onto active data list",
-            drv_data->id);
+            rq->id);
         return HOUND_OOM;
     }
     data->refcount = 1;
-    data->data = drv_data;
+    data->rq = rq;
 
     return HOUND_OK;
 }
