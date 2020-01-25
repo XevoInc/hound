@@ -84,12 +84,6 @@ typedef uint_least32_t hound_record_size;
 #define HOUND_MAX_DATA_REQ 1000
 
 struct hound_record {
-    /**
-     * An sequence number used to check if the I/O queue has overflow. It
-     * increments by one for each record generated for in a given context.
-     */
-    hound_seqno seqno;
-
     /** an ID uniquely describing a datatype. */
     hound_data_id data_id;
 
@@ -110,9 +104,15 @@ struct hound_record {
  * A callback used to fetch records from a context's queue.
  *
  * @param[in] rec a record
+ * @param[in] seqno The sequence number of this record, used to check if the
+ *                  queue has overflow. This increments once per record created
+ *                  in the queue.
  * @param[in] cb_ctx callback context, as passed into a hound data request
  */
-typedef void (*hound_cb)(const struct hound_record *rec, void *cb_ctx);
+typedef void (*hound_cb)(
+    const struct hound_record *rec,
+    hound_seqno seqno,
+    void *cb_ctx);
 
 typedef uint_fast8_t hound_period_count;
 typedef uint_fast64_t hound_data_period;

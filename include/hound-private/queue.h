@@ -21,6 +21,7 @@ struct queue;
 
 struct record_info {
     atomic_refcount_val refcount;
+    hound_seqno seqno;
     struct hound_record record;
 };
 
@@ -38,22 +39,26 @@ void queue_push(
 void queue_pop_records_sync(
     struct queue *queue,
     struct record_info **buf,
+    hound_seqno *first_seqno,
     size_t n);
 
 size_t queue_pop_bytes_nowait(
     struct queue *queue,
     struct record_info **buf,
     size_t bytes,
+    hound_seqno *first_seqno,
     size_t *records);
 
 size_t queue_pop_records_nowait(
     struct queue *queue,
     struct record_info **buf,
+    hound_seqno *first_seqno,
     size_t records);
 
 size_t queue_pop_nolock(
     struct queue *queue,
     struct record_info **buf,
+    hound_seqno *first_seqno,
     size_t n);
 
 void queue_drain(struct queue *queue);

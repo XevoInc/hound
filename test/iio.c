@@ -31,7 +31,10 @@ void sig_handler(int sig)
 }
 
 static
-void data_cb(const struct hound_record *record, UNUSED void *ctx)
+void data_cb(
+    const struct hound_record *record,
+    UNUSED hound_seqno seqno,
+    UNUSED void *ctx)
 {
     float *p;
     const char *type;

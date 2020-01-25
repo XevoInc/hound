@@ -51,7 +51,6 @@ struct queue_entry {
  */
 struct fdctx {
     struct driver *drv;
-    hound_seqno next_seqno;
     xvec_t(struct pull_timing_entry) timings;
     xvec_t(struct queue_entry) queues;
 };
@@ -173,8 +172,6 @@ hound_err make_records(struct fdctx *ctx, uint8_t *buf, size_t size)
                     "Failed to allocate a rec_info; can't add record to user queue");
                 continue;
             }
-            record->seqno = ctx->next_seqno;
-            ++ctx->next_seqno;
             record->dev_id = ctx->drv->id;
             memcpy(&rec_info->record, record, sizeof(*record));
             atomic_ref_init(&rec_info->refcount, 0);
@@ -511,7 +508,6 @@ hound_err io_add_fd(int fd, struct driver *drv)
         goto error_ctx_push;
     }
     ctx->drv = drv;
-    ctx->next_seqno = 0;
     xv_init(ctx->timings);
     xv_init(ctx->queues);
 

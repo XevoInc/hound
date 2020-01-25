@@ -23,7 +23,7 @@ struct cb_ctx {
     size_t seqno;
 };
 
-void data_cb(const struct hound_record *rec, void *cb_ctx)
+void data_cb(const struct hound_record *rec, hound_seqno seqno, void *cb_ctx)
 {
     struct cb_ctx *ctx;
     const char *dev_name;
@@ -35,7 +35,7 @@ void data_cb(const struct hound_record *rec, void *cb_ctx)
     ctx = cb_ctx;
 
     XASSERT_EQ(rec->size, sizeof(size_t));
-    XASSERT_EQ(ctx->seqno, rec->seqno);
+    XASSERT_EQ(ctx->seqno, seqno);
     XASSERT_EQ(ctx->count, *((size_t *) rec->data));
 
     XASSERT_EQ(rec->dev_id, ctx->dev_id);

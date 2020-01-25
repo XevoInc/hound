@@ -15,7 +15,10 @@
 #include <linux/limits.h>
 #include <string.h>
 
-void data_cb(const struct hound_record *rec, void *cb_ctx)
+void data_cb(
+    const struct hound_record *rec,
+    UNUSED hound_seqno seqno,
+    void *cb_ctx)
 {
     XASSERT_ERROR;
     XASSERT_NOT_NULL(rec);

@@ -60,7 +60,7 @@ static struct test_ctx s_ctx = {
     .obd_rqs = s_obd_rqs
 };
 
-void data_cb(const struct hound_record *record, void *data)
+void data_cb(const struct hound_record *record, hound_seqno seqno, void *data)
 {
     struct test_ctx *ctx;
     const char *dev_name;
@@ -78,7 +78,7 @@ void data_cb(const struct hound_record *record, void *data)
 
     ctx = data;
 
-    XASSERT_EQ(ctx->seqno, record->seqno);
+    XASSERT_EQ(ctx->seqno, seqno);
 
     hound_obd_get_mode_pid(record->data_id, &mode, &pid);
 

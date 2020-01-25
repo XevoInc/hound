@@ -28,6 +28,8 @@ struct queue {
     size_t max_len;
     size_t len;
     size_t front;
+    hound_seqno front_seqno;
+    hound_seqno back_seqno;
     struct record_info *data[];
 };
 
@@ -70,6 +72,8 @@ hound_err queue_alloc(
     queue->max_len = max_len;
     queue->len = 0;
     queue->front = 0;
+    queue->front_seqno = 0;
+    queue->back_seqno = 0;
 
     *out_queue = queue;
 
@@ -90,6 +94,7 @@ static
 void pop_helper(
     struct queue *queue,
     struct record_info **buf,
+    hound_seqno *first_seqno,
     size_t records)
 {
     size_t right_records;
@@ -112,6 +117,8 @@ void pop_helper(
         queue->front = records - right_records;
     }
     queue->len -= records;
+    *first_seqno = queue->front_seqno;
+    queue->front_seqno += records;
 }
 
 static
@@ -119,6 +126,7 @@ size_t pop_bytes(
     struct queue *queue,
     struct record_info **buf,
     size_t bytes,
+    hound_seqno *first_seqno,
     size_t *out_records)
 {
     size_t i;
@@ -147,7 +155,7 @@ size_t pop_bytes(
         }
     }
 
-    pop_helper(queue, buf, records);
+    pop_helper(queue, buf, first_seqno, records);
     *out_records = records;
 
     return bytes - remainder;
@@ -157,21 +165,20 @@ static
 size_t pop_records(
     struct queue *queue,
     struct record_info **buf,
+    hound_seqno *first_seqno,
     size_t records)
 {
     size_t target;
 
     /* Clamp the number of items to pop at the queue length. */
     target = min(records, queue->len);
-    pop_helper(queue, buf, target);
+    pop_helper(queue, buf, first_seqno, target);
 
     return target;
 }
 
 
-void queue_push(
-    struct queue *queue,
-    struct record_info *rec)
+void queue_push(struct queue *queue, struct record_info *rec)
 {
     size_t back;
     hound_err err;
@@ -193,8 +200,12 @@ void queue_push(
          */
         queue->front = (queue->front + 1) % queue->max_len;
         tmp = queue->data[back];
+        ++queue->front_seqno;
     }
+
+    ++queue->back_seqno;
     queue->data[back] = rec;
+
     err = pthread_cond_signal(&queue->data_cond);
     XASSERT_EQ(err, 0);
     pthread_mutex_unlock(&queue->mutex);
@@ -205,9 +216,10 @@ void queue_push(
 }
 
 void queue_pop_records_sync(
-   struct queue *queue,
-   struct record_info **buf,
-   size_t records)
+    struct queue *queue,
+    struct record_info **buf,
+    hound_seqno *first_seqno,
+    size_t records)
 {
     size_t count;
     hound_err err;
@@ -227,7 +239,7 @@ void queue_pop_records_sync(
             XASSERT_EQ(err, 0);
         }
 
-        count += pop_records(queue, buf + count, records - count);
+        count += pop_records(queue, buf + count, first_seqno, records - count);
     } while (count < records);
 
     pthread_mutex_unlock(&queue->mutex);
@@ -238,6 +250,7 @@ size_t queue_pop_bytes_nowait(
     struct queue *queue,
     struct record_info **buf,
     size_t bytes,
+    hound_seqno *first_seqno,
     size_t *records)
 {
     size_t count;
@@ -247,7 +260,7 @@ size_t queue_pop_bytes_nowait(
     XASSERT_NOT_NULL(records);
 
     pthread_mutex_lock(&queue->mutex);
-    count = pop_bytes(queue, buf, bytes, records);
+    count = pop_bytes(queue, buf, bytes, first_seqno, records);
     pthread_mutex_unlock(&queue->mutex);
 
     return count;
@@ -256,6 +269,7 @@ size_t queue_pop_bytes_nowait(
 size_t queue_pop_records_nowait(
     struct queue *queue,
     struct record_info **buf,
+    hound_seqno *first_seqno,
     size_t records)
 {
     size_t count;
@@ -264,7 +278,7 @@ size_t queue_pop_records_nowait(
     XASSERT_NOT_NULL(buf);
 
     pthread_mutex_lock(&queue->mutex);
-    count = pop_records(queue, buf, records);
+    count = pop_records(queue, buf, first_seqno, records);
     pthread_mutex_unlock(&queue->mutex);
 
     return count;
@@ -293,6 +307,7 @@ void queue_drain(struct queue *queue)
         }
     }
 
+    queue->front_seqno = queue->back_seqno;
     queue->len = 0;
     pthread_mutex_unlock(&queue->mutex);
 }

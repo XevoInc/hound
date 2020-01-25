@@ -70,7 +70,10 @@ void usage(const char **argv)
 }
 
 static
-void data_cb(const struct hound_record *record, UNUSED void *ctx)
+void data_cb(
+    const struct hound_record *record,
+    UNUSED hound_seqno senqno,
+    UNUSED void *ctx)
 {
     struct gps_fix_t *fix;
 

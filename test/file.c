@@ -8,6 +8,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <fcntl.h>
 #include <hound/hound.h>
+#include <hound-private/util.h>
 #include <hound-test/assert.h>
 #include <hound-test/id.h>
 #include <linux/limits.h>
@@ -23,7 +24,10 @@ struct text {
     size_t index;
 };
 
-void data_cb(const struct hound_record *record, void *data)
+void data_cb(
+    const struct hound_record *record,
+    UNUSED hound_seqno seqno,
+    void *data)
 {
     struct text *text;
     int ret;

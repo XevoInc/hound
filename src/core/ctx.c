@@ -431,6 +431,7 @@ static
 void process_callbacks(
     struct hound_ctx *ctx,
     struct record_info **buf,
+    hound_seqno seqno,
     size_t n)
 {
     size_t i;
@@ -438,8 +439,9 @@ void process_callbacks(
 
     for (i = 0; i < n; ++i) {
         rec_info = buf[i];
-        ctx->cb(&rec_info->record, ctx->cb_ctx);
+        ctx->cb(&rec_info->record, seqno, ctx->cb_ctx);
         record_ref_dec(rec_info);
+        ++seqno;
     }
 }
 
@@ -480,6 +482,7 @@ hound_err ctx_read(struct hound_ctx *ctx, size_t records)
 {
     struct record_info *buf[DEQUEUE_BUF_SIZE];
     hound_err err;
+    hound_seqno first_seqno;
     size_t target;
     size_t total;
 
@@ -496,8 +499,8 @@ hound_err ctx_read(struct hound_ctx *ctx, size_t records)
     total = 0;
     do {
         target = min(records - total, ARRAYLEN(buf));
-        queue_pop_records_sync(ctx->queue, buf, target);
-        process_callbacks(ctx, buf, target);
+        queue_pop_records_sync(ctx->queue, buf, &first_seqno, target);
+        process_callbacks(ctx, buf, first_seqno, target);
         total += target;
     } while (total < records);
 
@@ -542,6 +545,7 @@ hound_err ctx_read_nowait(struct hound_ctx *ctx, size_t records, size_t *read)
 {
     struct record_info *buf[DEQUEUE_BUF_SIZE];
     size_t count;
+    hound_seqno first_seqno;
     size_t total;
     size_t target;
 
@@ -553,8 +557,8 @@ hound_err ctx_read_nowait(struct hound_ctx *ctx, size_t records, size_t *read)
     do {
         target = min(records - total, ARRAYLEN(buf));
 
-        count = queue_pop_records_nowait(ctx->queue, buf, target);
-        process_callbacks(ctx, buf, count);
+        count = queue_pop_records_nowait(ctx->queue, buf, &first_seqno, target);
+        process_callbacks(ctx, buf, first_seqno, count);
 
         total += count;
     } while (count == target && total < records);
@@ -573,6 +577,7 @@ hound_err ctx_read_bytes_nowait(
 {
     struct record_info *buf[DEQUEUE_BUF_SIZE];
     size_t count;
+    hound_seqno first_seqno;
     size_t records;
     size_t total_bytes;
     size_t total_records;
@@ -587,8 +592,13 @@ hound_err ctx_read_bytes_nowait(
     do {
         target = min(bytes - total_bytes, sizeof(buf));
 
-        count = queue_pop_bytes_nowait(ctx->queue, buf, target, &records);
-        process_callbacks(ctx, buf, records);
+        count = queue_pop_bytes_nowait(
+            ctx->queue,
+            buf,
+            target,
+            &first_seqno,
+            &records);
+        process_callbacks(ctx, buf, first_seqno, records);
 
         total_records += records;
         total_bytes += count;
