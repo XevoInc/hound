@@ -21,6 +21,7 @@ struct cb_ctx {
     hound_dev_id dev_id;
     uint64_t count;
     size_t seqno;
+    bool allow_drops;
 };
 
 void data_cb(const struct hound_record *rec, hound_seqno seqno, void *cb_ctx)
@@ -35,8 +36,10 @@ void data_cb(const struct hound_record *rec, hound_seqno seqno, void *cb_ctx)
     ctx = cb_ctx;
 
     XASSERT_EQ(rec->size, sizeof(size_t));
-    XASSERT_EQ(ctx->seqno, seqno);
-    XASSERT_EQ(ctx->count, *((size_t *) rec->data));
+    if (!ctx->allow_drops) {
+        XASSERT_EQ(ctx->seqno, seqno);
+        XASSERT_EQ(ctx->count, *((size_t *) rec->data));
+    }
 
     XASSERT_EQ(rec->dev_id, ctx->dev_id);
 
@@ -71,6 +74,7 @@ int main(int argc, const char **argv)
             {.id = HOUND_DATA_COUNTER, .period_ns = NSEC_PER_SEC/1000}
         };
     const struct hound_data_fmt *fmt;
+    size_t len;
     size_t records_read;
     struct hound_rq rq;
     const char *schema_base;
@@ -109,6 +113,7 @@ int main(int argc, const char **argv)
     cb_ctx.count = 0;
     cb_ctx.seqno = 0;
     cb_ctx.ctx = NULL;
+    cb_ctx.allow_drops = false;
     rq.queue_len = 100 * total_records;
     rq.cb = data_cb;
     rq.cb_ctx = &cb_ctx;
@@ -198,8 +203,55 @@ int main(int argc, const char **argv)
     XASSERT_EQ(count_bytes, total_bytes)
     XASSERT_GTE(count_records, total_records);
 
+    /* Expand the queue length and verify we don't lose data. */
+    rq.queue_len *= 5;
+    cb_ctx.allow_drops = false;
+    err = hound_modify_ctx(cb_ctx.ctx, &rq, false);
+    XASSERT_OK(err);
+
+    count_records = 0;
+    while (count_records < total_records) {
+        err = hound_read_nowait(
+            cb_ctx.ctx,
+            total_records - count_records,
+            &records_read);
+        XASSERT_OK(err);
+        count_records += records_read;
+    }
+    XASSERT_EQ(count_records, total_records);
+
+    /* Shrink the queue size. We will lose data, and that's OK. */
+    rq.queue_len = 10;
+    cb_ctx.allow_drops = true;
+    err = hound_modify_ctx(cb_ctx.ctx, &rq, false);
+    XASSERT_OK(err);
+
+    count_records = 0;
+    while (count_records < total_records) {
+        err = hound_read_nowait(
+            cb_ctx.ctx,
+            total_records - count_records,
+            &records_read);
+        XASSERT_OK(err);
+        count_records += records_read;
+    }
+    XASSERT_EQ(count_records, total_records);
+
+    /* Change the data frequency. */
+    rq_list[0].period_ns /= 2;
+    rq_list[1].period_ns *= 2;
+    err = hound_modify_ctx(cb_ctx.ctx, &rq, false);
+    XASSERT_OK(err);
+
     err = hound_stop(cb_ctx.ctx);
     XASSERT_OK(err);
+
+    /* Change nothing, but flush the queue. It should be empty afterwards. */
+    err = hound_modify_ctx(cb_ctx.ctx, &rq, true);
+    XASSERT_OK(err);
+    err = hound_queue_length(cb_ctx.ctx, &len);
+    XASSERT_OK(err);
+    XASSERT_EQ(len, 0);
 
     hound_free_ctx(cb_ctx.ctx);
     XASSERT_OK(err);

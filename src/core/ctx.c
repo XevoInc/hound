@@ -111,22 +111,127 @@ hound_err validate_rq(const struct hound_rq *rq)
     return HOUND_OK;
 }
 
-hound_err ctx_alloc(const struct hound_rq *rq, struct hound_ctx **ctx_out)
+static
+hound_err make_driver_data_maps(
+    const struct hound_data_rq_list *list,
+    xhash_t(DRIVER_DATA_MAP) **out_periodic_map,
+    xhash_t(DRIVER_DATA_MAP) **out_on_demand_map)
 {
-    struct hound_ctx *ctx;
     struct hound_data_rq *data_rq;
     struct driver *drv;
     struct driver *drv_iter;
-    struct hound_data_rq_list *rq_list;
     hound_err err;
     size_t i;
-    size_t j;
     size_t index;
     xhiter_t iter;
+    size_t j;
     xhash_t(DRIVER_DATA_MAP) *map;
     size_t matches;
-    const struct hound_data_rq_list *list;
+    xhash_t(DRIVER_DATA_MAP) *periodic_map;
+    xhash_t(DRIVER_DATA_MAP) *on_demand_map;
     int ret;
+    struct hound_data_rq_list *rq_list;
+
+    periodic_map = xh_init(DRIVER_DATA_MAP);
+    if (periodic_map == NULL) {
+        err = HOUND_OOM;
+        goto error_periodic_map;
+    }
+
+    on_demand_map = xh_init(DRIVER_DATA_MAP);
+    if (on_demand_map == NULL) {
+        err = HOUND_OOM;
+        goto error_on_demand_map;
+    }
+
+    for (i = 0; i < list->len; ++i) {
+        data_rq = &list->data[i];
+
+        err = driver_get(data_rq->id, &drv);
+        if (err != HOUND_OK) {
+            goto error_loop;
+        }
+
+        /*
+         * We want to process all the entries for a given driver all at once, so
+         * if we've already seen this driver, just continue on.
+         */
+        if (xh_found(DRIVER_DATA_MAP, periodic_map, drv) ||
+            xh_found(DRIVER_DATA_MAP, on_demand_map, drv)) {
+            continue;
+        }
+
+        /*
+         * This is the first time we've seen this driver. Add an entry to the
+         * map and populate it with all the data corresponding to this driver.
+         */
+        if (data_rq->period_ns != 0) {
+            map = periodic_map;
+        }
+        else {
+            map = on_demand_map;
+        }
+        iter = xh_put(DRIVER_DATA_MAP, map, drv, &ret);
+        if (ret == -1) {
+            err = HOUND_OOM;
+            goto error_loop;
+        }
+        rq_list = &xh_val(map, iter);
+
+        /* Look ahead to count how many requests match this driver. */
+        matches = 1;
+        for (j = i+1; j < list->len; ++j) {
+            err = driver_get(list->data[j].id, &drv_iter);
+            if (err != HOUND_OK) {
+                goto error_loop;
+            }
+            if (drv_iter == drv) {
+                ++matches;
+            }
+        }
+        rq_list->len = matches;
+        rq_list->data = malloc(
+            rq_list->len * sizeof(*rq_list->data));
+        if (rq_list->data == NULL) {
+            err = HOUND_OOM;
+            goto error_loop;
+        }
+
+        /* Now populate the request list. */
+        index = 0;
+        for (j = i; j < list->len; ++j) {
+            err = driver_get(list->data[j].id, &drv_iter);
+            if (err != HOUND_OK) {
+                goto error_loop;
+            }
+            if (drv_iter != drv) {
+                continue;
+            }
+            rq_list->data[index].id = list->data[j].id;
+            rq_list->data[index].period_ns = list->data[j].period_ns;
+            ++index;
+        }
+    }
+    xh_trim(DRIVER_DATA_MAP, periodic_map);
+    xh_trim(DRIVER_DATA_MAP, on_demand_map);
+
+    *out_periodic_map = periodic_map;
+    *out_on_demand_map = on_demand_map;
+
+    return HOUND_OK;
+
+error_loop:
+    destroy_driver_data_map(on_demand_map);
+error_on_demand_map:
+    destroy_driver_data_map(periodic_map);
+error_periodic_map:
+    return err;
+}
+
+hound_err ctx_alloc(const struct hound_rq *rq, struct hound_ctx **ctx_out)
+{
+    struct hound_ctx *ctx;
+    hound_err err;
 
     NULL_CHECK(ctx_out);
     NULL_CHECK(rq);
@@ -158,98 +263,20 @@ hound_err ctx_alloc(const struct hound_rq *rq, struct hound_ctx **ctx_out)
     }
 
     /* Populate our context. */
-    ctx->periodic_data_map = xh_init(DRIVER_DATA_MAP);
-    if (ctx->periodic_data_map == NULL) {
-        goto error_periodic_data_map;
+    err = make_driver_data_maps(
+        &rq->rq_list,
+        &ctx->periodic_data_map,
+        &ctx->on_demand_data_map);
+    if (err != HOUND_OK) {
+        goto error_make_data_maps;
     }
-
-    ctx->on_demand_data_map = xh_init(DRIVER_DATA_MAP);
-    if (ctx->on_demand_data_map == NULL) {
-        goto error_on_demand_data_map;
-    }
-
-    list = &rq->rq_list;
-    for (i = 0; i < list->len; ++i) {
-        data_rq = &list->data[i];
-
-        err = driver_get(data_rq->id, &drv);
-        if (err != HOUND_OK) {
-            goto error_ctx_loop;
-        }
-
-        /*
-         * We want to process all the entries for a given driver all at once, so
-         * if we've already seen this driver, just continue on.
-         */
-        if (xh_found(DRIVER_DATA_MAP, ctx->periodic_data_map, drv) ||
-            xh_found(DRIVER_DATA_MAP, ctx->on_demand_data_map, drv)) {
-            continue;
-        }
-
-        /*
-         * This is the first time we've seen this driver. Add an entry to the
-         * map and populate it with all the data corresponding to this driver.
-         */
-        if (data_rq->period_ns != 0) {
-            map = ctx->periodic_data_map;
-        }
-        else {
-            map = ctx->on_demand_data_map;
-        }
-        iter = xh_put(DRIVER_DATA_MAP, map, drv, &ret);
-        if (ret == -1) {
-            err = HOUND_OOM;
-            goto error_ctx_loop;
-        }
-        rq_list = &xh_val(map, iter);
-
-        /* Look ahead to count how many requests match this driver. */
-        matches = 1;
-        for (j = i+1; j < list->len; ++j) {
-            err = driver_get(list->data[j].id, &drv_iter);
-            if (err != HOUND_OK) {
-                goto error_ctx_loop;
-            }
-            if (drv_iter == drv) {
-                ++matches;
-            }
-        }
-        rq_list->len = matches;
-        rq_list->data = malloc(
-            rq_list->len * sizeof(*rq_list->data));
-        if (rq_list->data == NULL) {
-            err = HOUND_OOM;
-            goto error_ctx_loop;
-        }
-
-        /* Now populate the request list. */
-        index = 0;
-        for (j = i; j < list->len; ++j) {
-            err = driver_get(list->data[j].id, &drv_iter);
-            if (err != HOUND_OK) {
-                goto error_ctx_loop;
-            }
-            if (drv_iter != drv) {
-                continue;
-            }
-            rq_list->data[index].id = list->data[j].id;
-            rq_list->data[index].period_ns = list->data[j].period_ns;
-            ++index;
-        }
-    }
-    xh_trim(DRIVER_DATA_MAP, ctx->periodic_data_map);
-    xh_trim(DRIVER_DATA_MAP, ctx->on_demand_data_map);
 
     *ctx_out = ctx;
     err = HOUND_OK;
     goto out;
 
-error_ctx_loop:
+error_make_data_maps:
     queue_destroy(ctx->queue);
-    destroy_driver_data_map(ctx->on_demand_data_map);
-error_on_demand_data_map:
-    destroy_driver_data_map(ctx->periodic_data_map);
-error_periodic_data_map:
 error_queue_alloc:
     pthread_rwlock_destroy(&ctx->rwlock);
 error_pthread_init:
@@ -258,31 +285,9 @@ out:
     return err;
 }
 
-hound_err ctx_free(struct hound_ctx *ctx)
-{
-    hound_err err;
-
-    NULL_CHECK(ctx);
-
-    if (ctx->active) {
-        return HOUND_CTX_ACTIVE;
-    }
-
-    err = pthread_rwlock_destroy(&ctx->rwlock);
-    XASSERT_EQ(err, 0);
-
-    destroy_driver_data_map(ctx->periodic_data_map);
-    destroy_driver_data_map(ctx->on_demand_data_map);
-    queue_destroy(ctx->queue);
-    free(ctx);
-
-    return HOUND_OK;
-}
-
 static
 hound_err ref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
 {
-
     struct driver *drv;
     const struct hound_data_rq_list *rq_list;
     hound_err ref_err;
@@ -373,6 +378,26 @@ void unref_drivers(struct hound_ctx *ctx)
     unref_driver_map(ctx, ctx->on_demand_data_map);
 }
 
+static
+hound_err ctx_start_nolock(struct hound_ctx *ctx)
+{
+    hound_err err;
+
+    /* We must not double-ref the drivers. */
+    if (ctx->active) {
+        return HOUND_CTX_ACTIVE;
+    }
+
+    err = ref_drivers(ctx);
+    if (err != HOUND_OK) {
+        return err;
+    }
+
+    ctx->active = true;
+
+    return HOUND_OK;
+}
+
 hound_err ctx_start(struct hound_ctx *ctx)
 {
     hound_err err;
@@ -380,26 +405,24 @@ hound_err ctx_start(struct hound_ctx *ctx)
     NULL_CHECK(ctx);
 
     pthread_rwlock_wrlock(&ctx->rwlock);
-
-    /* We must not double-ref the drivers. */
-    if (ctx->active) {
-        err = HOUND_CTX_ACTIVE;
-        goto out;
-    }
-
-    err = ref_drivers(ctx);
-    if (err != HOUND_OK) {
-        goto out;
-    }
-
-    ctx->active = true;
-
-    err = HOUND_OK;
-    goto out;
-
-out:
+    err = ctx_start_nolock(ctx);
     pthread_rwlock_unlock(&ctx->rwlock);
+
     return err;
+}
+
+static
+hound_err ctx_stop_nolock(struct hound_ctx *ctx)
+{
+    /* We must not double-ref the drivers. */
+    if (!ctx->active) {
+        return HOUND_CTX_NOT_ACTIVE;
+    }
+
+    unref_drivers(ctx);
+    ctx->active = false;
+
+    return HOUND_OK;
 }
 
 hound_err ctx_stop(struct hound_ctx *ctx)
@@ -409,22 +432,123 @@ hound_err ctx_stop(struct hound_ctx *ctx)
     NULL_CHECK(ctx);
 
     pthread_rwlock_wrlock(&ctx->rwlock);
+    err = ctx_stop_nolock(ctx);
+    pthread_rwlock_unlock(&ctx->rwlock);
 
-    /* We must not double-ref the drivers. */
-    if (!ctx->active) {
-        err = HOUND_CTX_NOT_ACTIVE;
-        goto out;
+    return err;
+}
+
+static
+hound_err replace_maps(
+    struct hound_ctx *ctx,
+    const struct hound_data_rq_list *rq_list)
+{
+    hound_err err;
+    xhash_t(DRIVER_DATA_MAP) *periodic_map;
+    xhash_t(DRIVER_DATA_MAP) *on_demand_map;
+
+    err = make_driver_data_maps(rq_list, &periodic_map, &on_demand_map);
+    if (err != HOUND_OK) {
+        return err;
     }
 
-    unref_drivers(ctx);
-    ctx->active = false;
+    destroy_driver_data_map(ctx->periodic_data_map);
+    destroy_driver_data_map(ctx->on_demand_data_map);
+
+    ctx->periodic_data_map = periodic_map;
+    ctx->on_demand_data_map = on_demand_map;
+
+    return HOUND_OK;
+}
+
+hound_err ctx_modify(
+    struct hound_ctx *ctx,
+    const struct hound_rq *rq,
+    bool flush)
+{
+    hound_err err;
+    bool stopped;
+
+    NULL_CHECK(ctx);
+    NULL_CHECK(rq);
+
+    err = validate_rq(rq);
+    if (err != HOUND_OK) {
+        return err;
+    }
+
+    /* The request is OK, so let's proceed. */
+    pthread_rwlock_wrlock(&ctx->rwlock);
+
+    if (ctx->active) {
+        err = ctx_stop_nolock(ctx);
+        if (err != HOUND_OK) {
+            goto error_stop;
+        }
+        stopped = true;
+    }
+    else {
+        stopped = false;
+    }
+
+    err = queue_resize(&ctx->queue, rq->queue_len, flush);
+    if (err != HOUND_OK) {
+        goto error_queue_resize;
+    }
+
+    err = replace_maps(ctx, &rq->rq_list);
+    if (err != HOUND_OK) {
+        goto error_replace_maps;
+    }
+
+    ctx->cb = rq->cb;
+    ctx->cb_ctx = rq->cb_ctx;
+
+    if (stopped) {
+        err = ctx_start_nolock(ctx);
+        if (err != HOUND_OK) {
+            goto out;
+        }
+    }
 
     err = HOUND_OK;
     goto out;
 
+error_start:
+error_replace_maps:
+error_queue_resize:
+    if (stopped) {
+        err = ctx_start_nolock(ctx);
+        if (err != HOUND_OK) {
+            hound_log_err_nofmt(err, "Failed to restart ctx");
+            goto error_start;
+        }
+    }
+error_stop:
 out:
     pthread_rwlock_unlock(&ctx->rwlock);
     return err;
+}
+
+hound_err ctx_free(struct hound_ctx *ctx)
+{
+    hound_err err;
+
+    NULL_CHECK(ctx);
+
+    if (ctx->active) {
+        return HOUND_CTX_ACTIVE;
+    }
+
+    err = pthread_rwlock_destroy(&ctx->rwlock);
+    XASSERT_EQ(err, 0);
+
+    destroy_driver_data_map(ctx->periodic_data_map);
+    destroy_driver_data_map(ctx->on_demand_data_map);
+    queue_destroy(ctx->queue);
+    free(ctx);
+
+    return HOUND_OK;
 }
 
 static

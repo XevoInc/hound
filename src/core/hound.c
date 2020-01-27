@@ -39,6 +39,15 @@ hound_err hound_alloc_ctx(const struct hound_rq *rq, struct hound_ctx **ctx)
 }
 
 PUBLIC_API
+hound_err hound_modify_ctx(
+    struct hound_ctx *ctx,
+    const struct hound_rq *rq,
+    bool flush)
+{
+    return ctx_modify(ctx, rq, flush);
+}
+
+PUBLIC_API
 hound_err hound_free_ctx(struct hound_ctx *ctx)
 {
     return ctx_free(ctx);

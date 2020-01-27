@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <time.h>
@@ -301,6 +302,23 @@ hound_err hound_get_dev_name(hound_dev_id id, const char **name);
  * @return an error code
  */
 hound_err hound_alloc_ctx(const struct hound_rq *rq, struct hound_ctx **ctx);
+
+/**
+ * Modifies an existing context to produce a different set of data.
+ *
+ * @param[in] ctx an already-allocated context
+ * @param[in] rq a request containing the data the context should now generate
+ * @param[in] flush if true, empty the queue of any pending records. if false,
+ *                  the callback specified in the new request must be able to
+ *                  handle data that was part of the previous request in the
+ *                  context.
+ *
+ * @return an error code. If HOUND_OK is returned, the request was successful.
+ */
+hound_err hound_modify_ctx(
+    struct hound_ctx *ctx,
+    const struct hound_rq *rq,
+    bool flush);
 
 /**
  * Frees a context.

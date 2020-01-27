@@ -206,6 +206,8 @@ hound_err counter_start(int *fd)
     return HOUND_OK;
 }
 
+#include <sys/ioctl.h>
+
 static
 hound_err counter_stop(void)
 {
@@ -229,17 +231,20 @@ hound_err counter_stop(void)
     return HOUND_OK;
 }
 
+#include <errno.h>
+
 static
 hound_err counter_next(hound_data_id id)
 {
     struct counter_ctx *ctx;
-    size_t written;
+    ssize_t written;
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
 
     XASSERT_EQ(id, HOUND_DATA_COUNTER);
 
+    errno = 0;
     written = write(ctx->pipe[WRITE_END], &ctx->count, sizeof(ctx->count));
     XASSERT_EQ(written, sizeof(ctx->count));
 

@@ -78,6 +78,324 @@ hound_err queue_alloc(
     return HOUND_OK;
 }
 
+static
+void drain_until(struct queue *queue, size_t new_len)
+{
+    size_t back;
+    size_t drain_count;
+    size_t end;
+    size_t end_records;
+    size_t i;
+
+    if (new_len >= queue->len) {
+        return;
+    }
+
+    drain_count = queue->len - new_len;
+
+    back = (queue->front + queue->len) % queue->max_len;
+    if (back > queue->front) {
+        /* Queue data is contiguous. */
+        end = queue->front + drain_count;
+        for (i = queue->front; i < end; ++i) {
+            record_ref_dec(queue->data[i]);
+        }
+    }
+    else {
+        /* Queue data wraps around. */
+        end_records = queue->max_len - queue->front;
+        if (drain_count <= end_records) {
+            end = queue->front + drain_count;
+        }
+        else {
+            end = queue->max_len;
+        }
+
+        for (i = queue->front; i < end; ++i) {
+            record_ref_dec(queue->data[i]);
+        }
+
+        if (drain_count > end_records) {
+            /* More to drain at the start of the array. */
+            end = drain_count - end_records;
+            for (i = 0; i < end; ++i) {
+                record_ref_dec(queue->data[i]);
+            }
+        }
+    }
+
+    queue->front = end % queue->max_len;
+    queue->front_seqno += drain_count;
+    queue->len = new_len;
+}
+
+static
+void drain_nolock(struct queue *queue)
+{
+    drain_until(queue, 0);
+}
+
+static
+bool is_contiguous(struct queue *queue)
+{
+    if (queue->len == queue->max_len) {
+        return false;
+    }
+
+    return (queue->front + queue->len) <= queue->max_len;
+}
+
+static
+void contract_queue(struct queue *queue, size_t new_max_len)
+{
+    size_t back;
+    size_t count;
+    size_t start;
+
+    XASSERT_LT(new_max_len, queue->max_len);
+
+    /* Trim the queue to match the new size. */
+    drain_until(queue, new_max_len);
+
+    /*
+     * Calculate how many records will "fall off the end" after contraction, and
+     * move these records to the front of the queue. If there are records at the
+     * front of the queue, we also need to move these records forward.
+     *
+     * This code is tricky, as there are 4 cases, depending on the queue
+     * structure and where we are truncating the queue. To clarify things a
+     * little, bit we have ASCII art depicting the queue before and after
+     * truncation. The legend for the art is as follows:
+     *
+     * |     indicates the start and end of queue->data
+     * _     indicates empty space in the queue
+     * -     indicates where we are truncating the queue
+     * 1,2,3 indicate the queue items
+     * f     indicates the front position of the queue
+     * b     indicates the back position of the queue
+     * -->   indicates how the queue will change after truncation
+     */
+    back = (queue->front + queue->len) % queue->max_len;
+    if (is_contiguous(queue)) {
+        /* Queue data is contiguous. */
+        if (queue->front >= new_max_len) {
+            /*
+             * The entirety of the queue data needs to be moved, so front also
+             * moves to the start of the array.
+             *
+             *         f  b
+             * |_____-_123_|
+             * -->
+             *  f  b
+             * |123__|
+             */
+            start = queue->front;
+            count = back - queue->front;
+            queue->front = 0;
+        }
+        else if (back > new_max_len) {
+            /*
+             * The new queue will cut through the currently-contiguous array.
+             * Move the last part of the array to the start of the array, making
+             * this into a wrap-around array.
+             *
+             *     f   b
+             * |___12-3____|
+             * -->
+             *   b f
+             * |3__12|
+             *
+             */
+            start = new_max_len;
+            count = back - new_max_len;
+        }
+        else {
+            /*
+             * Nothing falling off the end, so we're done.
+             *
+             *   f  b
+             * |_123_-_____|
+             * -->
+             *   f  b
+             * |_123_|
+             *
+             * */
+            return;
+        }
+    }
+    else {
+        /* Queue data wraps around. */
+        if (queue->front >= new_max_len) {
+            /*
+             * The new queue will completely remove the records at the end of
+             * the array. Move these records to the start, making the array
+             * contiguous.
+             *
+             *   b       f
+             * |3____-___12|
+             * -->
+             *  f  b
+             * |123__|
+             *
+             */
+            start = queue->front;
+            count = queue->max_len - queue->front;
+            queue->front = 0;
+        }
+        else {
+            /*
+             * The new queue will cut through part of the records at the end of
+             * the array. Move these records to the start, keeping the queue as
+             * wrap-around.
+             *
+             *   b  f
+             * |3___1-2____|
+             * -->
+             *    b f
+             * |23__1|
+             *
+             */
+            start = new_max_len;
+            count = queue->len - back - (new_max_len - queue->front);
+        }
+
+        /*
+         * We need to move the block of records at the start of the data to the
+         * right so we can later move the "falling off" records to the start of
+         * the array.
+         */
+        memmove(
+            queue->data + count,
+            queue->data,
+            back * sizeof(*queue->data));
+    }
+
+    /*
+     * Move the records that are about to fall off to the front of the array so
+     * we will naturally wrap around to them when we contract the queue.
+     */
+    memcpy(
+        queue->data,
+        queue->data + start,
+        count * sizeof(*queue->data));
+}
+
+static
+void expand_queue(struct queue *queue, size_t new_max_len)
+{
+    size_t back;
+    size_t diff;
+
+    XASSERT_GT(new_max_len, queue->len);
+
+    if (is_contiguous(queue)) {
+        /*
+         * See above for ASCI art legend.
+         *
+         * Contiguous queue, so nothing to do here.
+         *   f  b
+         * |_123_|
+         * -->
+         *   f  b
+         * |_123______|
+         */
+        return;
+    }
+
+    /*
+     * The queue is not contiguous, so move the data that previously wrapped
+     * around from the start of the array to the new array end.
+     */
+    back = (queue->front + queue->len) % queue->max_len;
+    diff = new_max_len - queue->max_len;
+    if (back <= diff) {
+        /*
+         * We can fit all the data from the start of the array at the end of the
+         * new array.
+         *
+         * Array size increasing from 5 to 7.
+         *
+         *    b f
+         * |23__1|
+         * -->
+         *      f  b
+         * |____123|
+         */
+        memcpy(
+            queue->data + queue->len,
+            queue->data,
+            back * sizeof(*queue->data));
+    }
+    else {
+        /*
+         * We *cannot* fit all the data from the start of the array at the end of the
+         * new array. Copy as much as we can and then move everything past that
+         * to the start of the array.
+         *
+         * Array size increasing from 6 to 7.
+         *
+         *    b  f
+         * |23___1|
+         * -->
+         *   b   f
+         * |3____12|
+         */
+        memcpy(
+            queue->data + queue->len,
+            queue->data,
+            diff * sizeof(*queue->data));
+        memmove(
+            queue->data,
+            queue->data + diff,
+            (back - diff) * sizeof(*queue->data));
+    }
+}
+
+hound_err queue_resize(struct queue **out_queue, size_t max_len, bool flush)
+{
+    hound_err err;
+    struct queue *queue;
+
+    queue = *out_queue;
+    XASSERT_NOT_NULL(queue);
+
+    pthread_mutex_lock(&queue->mutex);
+
+    if (flush) {
+        drain_nolock(queue);
+        /*
+         * Reset the front pointer to make sure it's in bounds of the new
+         * queue length.
+         */
+        queue->front = 0;
+    }
+    else if (max_len < queue->max_len) {
+        contract_queue(queue, max_len);
+    }
+
+    if (max_len != queue->max_len) {
+        queue = realloc(
+            queue,
+            sizeof(*queue) + sizeof(*queue->data)*max_len);
+        if (queue == NULL) {
+            err = HOUND_OOM;
+            goto out;
+        }
+        *out_queue = queue;
+
+        if (max_len > queue->max_len) {
+            expand_queue(queue, max_len);
+        }
+    }
+
+    queue->max_len = max_len;
+    err = HOUND_OK;
+
+out:
+    pthread_mutex_unlock(&queue->mutex);
+    return err;
+}
+
 void queue_destroy(struct queue *queue)
 {
     XASSERT_NOT_NULL(queue);
@@ -100,13 +418,16 @@ void pop_helper(
     XASSERT_LTE(records, queue->max_len);
 
     right_records = queue->max_len - queue->front;
-    if (records <= right_records) {
+    if (records < right_records) {
         /* All records we need are between [front, back]. */
         memcpy(buf, queue->data + queue->front, records * sizeof(*buf));
         queue->front += records;
     }
     else {
-        /* We need records from both [front, end] and [start, back]. */
+        /*
+         * Records wrap around, so we need records from both [front, end] and
+         * [start, back].
+         */
         memcpy(buf, queue->data + queue->front, right_records * sizeof(*buf));
         memcpy(
             buf + right_records,
@@ -299,29 +620,10 @@ size_t queue_pop_records_nowait(
 
 void queue_drain(struct queue *queue)
 {
-    size_t back;
-    size_t i;
+    XASSERT_NOT_NULL(queue);
 
     pthread_mutex_lock(&queue->mutex);
-    back = (queue->front + queue->len) % queue->max_len;
-    if (back >= queue->front) {
-        /* Queue data is contiguous. */
-        for (i = queue->front; i < back; ++i) {
-            record_ref_dec(queue->data[i]);
-        }
-    }
-    else {
-        /* Queue data wraps around. */
-        for (i = queue->front; i < queue->max_len; ++i) {
-            record_ref_dec(queue->data[i]);
-        }
-        for (i = 0; i < back; ++i) {
-            record_ref_dec(queue->data[i]);
-        }
-    }
-
-    queue->front_seqno += queue->len;
-    queue->len = 0;
+    drain_nolock(queue);
     pthread_mutex_unlock(&queue->mutex);
 }
 
