@@ -193,11 +193,13 @@ void queue_push(struct queue *queue, struct record_info *rec)
     }
     else {
         /*
-         * Overflow. Increment front so it points to the oldest entry instead of
-         * the one we just inserted.
+         * Overflow. Increment front so we remove the oldest entry, preserving
+         * our max queue length.
          */
+        XASSERT_EQ(queue->len, queue->max_len);
+        XASSERT_EQ(queue->front, back);
+        tmp = queue->data[queue->front];
         queue->front = (queue->front + 1) % queue->max_len;
-        tmp = queue->data[back];
         ++queue->front_seqno;
     }
 
