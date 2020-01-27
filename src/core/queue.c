@@ -29,7 +29,6 @@ struct queue {
     size_t len;
     size_t front;
     hound_seqno front_seqno;
-    hound_seqno back_seqno;
     struct record_info *data[];
 };
 
@@ -73,7 +72,6 @@ hound_err queue_alloc(
     queue->len = 0;
     queue->front = 0;
     queue->front_seqno = 0;
-    queue->back_seqno = 0;
 
     *out_queue = queue;
 
@@ -203,7 +201,6 @@ void queue_push(struct queue *queue, struct record_info *rec)
         ++queue->front_seqno;
     }
 
-    ++queue->back_seqno;
     queue->data[back] = rec;
 
     err = pthread_cond_signal(&queue->data_cond);
@@ -307,7 +304,7 @@ void queue_drain(struct queue *queue)
         }
     }
 
-    queue->front_seqno = queue->back_seqno;
+    queue->front_seqno += queue->len;
     queue->len = 0;
     pthread_mutex_unlock(&queue->mutex);
 }
