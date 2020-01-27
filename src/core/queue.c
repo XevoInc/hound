@@ -220,6 +220,8 @@ void queue_pop_records_sync(
 {
     size_t count;
     hound_err err;
+    hound_seqno *seqno;
+    hound_seqno tmp;
 
     XASSERT_NOT_NULL(queue);
     XASSERT_NOT_NULL(buf);
@@ -236,7 +238,19 @@ void queue_pop_records_sync(
             XASSERT_EQ(err, 0);
         }
 
-        count += pop_records(queue, buf + count, first_seqno, records - count);
+        /*
+         * We want to return the first sequence number for the entire buffer, so
+         * if we call pop_records more than once, just throw away the later
+         * values.
+         */
+        if (count == 0) {
+            seqno = first_seqno;
+        }
+        else {
+            seqno = &tmp;
+        }
+
+        count += pop_records(queue, buf + count, seqno, records - count);
     } while (count < records);
 
     pthread_mutex_unlock(&queue->mutex);
