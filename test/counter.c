@@ -80,7 +80,7 @@ int main(int argc, const char **argv)
     size_t total_records;
 
     if (argc != 3) {
-        fprintf(stderr, "Usage: %s SCHEMA-BASE-PATH\n", argv[0]);
+        fprintf(stderr, "Usage: %s SCHEMA-BASE-PATH CONFIG-PATH\n", argv[0]);
         exit(EXIT_FAILURE);
     }
     if (strnlen(argv[1], PATH_MAX) == PATH_MAX) {
