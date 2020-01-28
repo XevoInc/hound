@@ -537,6 +537,7 @@ void io_remove_fd(int fd)
 {
     struct fdctx *ctx;
     size_t ctx_index;
+    hound_err err;
     size_t fd_index;
     size_t i;
 
@@ -547,11 +548,23 @@ void io_remove_fd(int fd)
 
     io_pause_poll();
 
-    /*
-     * If we have a pointer to this index in the pull mode indices list, remove
-     * it.
-     */
     if (ctx->drv->sched_mode == DRV_SCHED_PULL) {
+        /*
+         * Drain the fd of any buffered data. If we get interrupted, keep trying, as
+         * we don't want to lose data. Note we don't do this for push-mode
+         * drivers, as that could make this an infinite loop as the drivers
+         * continually push more data into the fd. This is safe for pull-mode
+         * drivers because we've already paused polling, so no more data should
+         * be going into the fd.
+         */
+        do {
+            err = io_read(fd, ctx);
+        } while (err == HOUND_INTR);
+
+        /*
+         * If we have a pointer to this index in the pull mode indices list, remove
+         * it.
+         */
         for (i = 0; i < xv_size(s_ios.pull_mode_indices); ++i) {
             if (xv_A(s_ios.pull_mode_indices, i) == ctx_index) {
                 RM_VEC_INDEX(s_ios.pull_mode_indices, i);
