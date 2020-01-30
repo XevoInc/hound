@@ -532,11 +532,15 @@ out:
 
 hound_err ctx_free(struct hound_ctx *ctx)
 {
+    bool active;
     hound_err err;
 
     NULL_CHECK(ctx);
 
-    if (ctx->active) {
+    pthread_rwlock_rdlock(&ctx->rwlock);
+    active = ctx->active;
+    pthread_rwlock_unlock(&ctx->rwlock);
+    if (active) {
         return HOUND_CTX_ACTIVE;
     }
 
