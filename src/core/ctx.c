@@ -29,6 +29,7 @@ struct hound_ctx {
     pthread_rwlock_t rwlock;
 
     bool active;
+    size_t readers;
     hound_cb cb;
     void *cb_ctx;
     struct queue *queue;
@@ -254,6 +255,7 @@ hound_err ctx_alloc(const struct hound_rq *rq, struct hound_ctx **ctx_out)
     }
 
     ctx->active = false;
+    ctx->readers = 0;
     ctx->cb = rq->cb;
     ctx->cb_ctx = rq->cb_ctx;
 
@@ -534,13 +536,15 @@ hound_err ctx_free(struct hound_ctx *ctx)
 {
     bool active;
     hound_err err;
+    size_t readers;
 
     NULL_CHECK(ctx);
 
     pthread_rwlock_rdlock(&ctx->rwlock);
     active = ctx->active;
+    readers = ctx->readers;
     pthread_rwlock_unlock(&ctx->rwlock);
-    if (active) {
+    if (active || readers > 0) {
         return HOUND_CTX_ACTIVE;
     }
 
@@ -562,12 +566,23 @@ void process_callbacks(
     hound_seqno seqno,
     size_t n)
 {
+    hound_cb cb;
+    void *cb_ctx;
     size_t i;
     struct record_info *rec_info;
 
+    /*
+     * Grab the callback and its context, since they can be changed via
+     * ctx_modify.
+     */
+    pthread_rwlock_rdlock(&ctx->rwlock);
+    cb = ctx->cb;
+    cb_ctx = ctx->cb_ctx;
+    pthread_rwlock_unlock(&ctx->rwlock);
+
     for (i = 0; i < n; ++i) {
         rec_info = buf[i];
-        ctx->cb(&rec_info->record, seqno, ctx->cb_ctx);
+        cb(&rec_info->record, seqno, cb_ctx);
         record_ref_dec(rec_info);
         ++seqno;
     }
@@ -606,19 +621,44 @@ hound_err ctx_next(struct hound_ctx *ctx, size_t n)
     return HOUND_OK;
 }
 
+static
+void start_read(struct hound_ctx *ctx, struct queue **queue)
+{
+    /*
+     * It's safe to hold onto a reference to the queue without the lock because
+     * we never change the queue pointer while the context is alive, and the
+     * context can't be freed while readers > 0. The context may be modified,
+     * but that's all done using the queue lock and doesn't change the value of
+     * ctx->queue.
+     */
+    pthread_rwlock_wrlock(&ctx->rwlock);
+    ++ctx->readers;
+    *queue = ctx->queue;
+    pthread_rwlock_unlock(&ctx->rwlock);
+}
+
+static
+void stop_read(struct hound_ctx *ctx)
+{
+    pthread_rwlock_wrlock(&ctx->rwlock);
+    --ctx->readers;
+    pthread_rwlock_unlock(&ctx->rwlock);
+}
+
 hound_err ctx_read(struct hound_ctx *ctx, size_t records)
 {
     struct record_info *buf[DEQUEUE_BUF_SIZE];
     hound_err err;
     hound_seqno first_seqno;
+    struct queue *queue;
     size_t target;
     size_t total;
 
     NULL_CHECK(ctx);
 
-    pthread_rwlock_rdlock(&ctx->rwlock);
+    start_read(ctx, &queue);
 
-    if (records > queue_max_len(ctx->queue)) {
+    if (records > queue_max_len(queue)) {
         err = HOUND_QUEUE_TOO_SMALL;
         goto out;
     }
@@ -627,7 +667,7 @@ hound_err ctx_read(struct hound_ctx *ctx, size_t records)
     total = 0;
     do {
         target = min(records - total, ARRAYLEN(buf));
-        queue_pop_records_sync(ctx->queue, buf, &first_seqno, target);
+        queue_pop_records_sync(queue, buf, &first_seqno, target);
         process_callbacks(ctx, buf, first_seqno, target);
         total += target;
     } while (total < records);
@@ -635,7 +675,7 @@ hound_err ctx_read(struct hound_ctx *ctx, size_t records)
     err = HOUND_OK;
 
 out:
-    pthread_rwlock_unlock(&ctx->rwlock);
+    stop_read(ctx);
     return err;
 }
 
@@ -674,23 +714,24 @@ hound_err ctx_read_nowait(struct hound_ctx *ctx, size_t records, size_t *read)
     struct record_info *buf[DEQUEUE_BUF_SIZE];
     size_t count;
     hound_seqno first_seqno;
+    struct queue *queue;
     size_t total;
     size_t target;
 
     NULL_CHECK(ctx);
 
-    pthread_rwlock_rdlock(&ctx->rwlock);
+    start_read(ctx, &queue);
 
     total = 0;
     do {
         target = min(records - total, ARRAYLEN(buf));
-        count = queue_pop_records_nowait(ctx->queue, buf, &first_seqno, target);
+        count = queue_pop_records_nowait(queue, buf, &first_seqno, target);
         process_callbacks(ctx, buf, first_seqno, count);
         total += count;
     } while (count == target && total < records);
     *read = total;
 
-    pthread_rwlock_unlock(&ctx->rwlock);
+    stop_read(ctx);
 
     return HOUND_OK;
 }
@@ -704,6 +745,7 @@ hound_err ctx_read_bytes_nowait(
     struct record_info *buf[DEQUEUE_BUF_SIZE];
     size_t count;
     hound_seqno first_seqno;
+    struct queue *queue;
     size_t records;
     size_t total_bytes;
     size_t total_records;
@@ -711,7 +753,7 @@ hound_err ctx_read_bytes_nowait(
 
     NULL_CHECK(ctx);
 
-    pthread_rwlock_rdlock(&ctx->rwlock);
+    start_read(ctx, &queue);
 
     total_bytes = 0;
     total_records = 0;
@@ -719,7 +761,7 @@ hound_err ctx_read_bytes_nowait(
         target = min(bytes - total_bytes, sizeof(buf));
 
         count = queue_pop_bytes_nowait(
-            ctx->queue,
+            queue,
             buf,
             target,
             &first_seqno,
@@ -733,7 +775,7 @@ hound_err ctx_read_bytes_nowait(
     *bytes_read = total_bytes;
     *records_read = total_records;
 
-    pthread_rwlock_unlock(&ctx->rwlock);
+    stop_read(ctx);
 
     return HOUND_OK;
 }
