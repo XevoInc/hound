@@ -684,10 +684,8 @@ hound_err ctx_read_nowait(struct hound_ctx *ctx, size_t records, size_t *read)
     total = 0;
     do {
         target = min(records - total, ARRAYLEN(buf));
-
         count = queue_pop_records_nowait(ctx->queue, buf, &first_seqno, target);
         process_callbacks(ctx, buf, first_seqno, count);
-
         total += count;
     } while (count == target && total < records);
     *read = total;
