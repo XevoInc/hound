@@ -7,7 +7,7 @@ project('hound', 'c',
         'buildtype=debug',
         'warning_level=3',
         'werror=true'],
-    meson_version: '0.53.0')
+    meson_version: '>= 0.53.0')
 
 cflags = ['-Wshadow', '-fvisibility=internal']
 add_project_arguments(cflags, language: 'c')
