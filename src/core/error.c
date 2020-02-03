@@ -77,6 +77,8 @@ const char *error_strerror(hound_err err)
             return "driver provided the same data ID in multiple descriptors";
         case HOUND_DRIVER_ALREADY_PRESENT:
             return "driver is already initialized at the given path";
+        case HOUND_CTX_STOPPED:
+            return "context has stopped during a blocking read";
     }
 
     /*

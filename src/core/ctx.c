@@ -421,6 +421,7 @@ hound_err ctx_stop_nolock(struct hound_ctx *ctx)
         return HOUND_CTX_NOT_ACTIVE;
     }
 
+    queue_interrupt(ctx->queue);
     unref_drivers(ctx);
     ctx->active = false;
 
@@ -645,9 +646,10 @@ void stop_read(struct hound_ctx *ctx)
     pthread_rwlock_unlock(&ctx->rwlock);
 }
 
-hound_err ctx_read(struct hound_ctx *ctx, size_t records)
+hound_err ctx_read(struct hound_ctx *ctx, size_t records, size_t *read)
 {
     struct record_info *buf[DEQUEUE_BUF_SIZE];
+    bool ctx_stopped;
     hound_err err;
     hound_seqno first_seqno;
     struct queue *queue;
@@ -667,12 +669,21 @@ hound_err ctx_read(struct hound_ctx *ctx, size_t records)
     total = 0;
     do {
         target = min(records - total, ARRAYLEN(buf));
-        queue_pop_records_sync(queue, buf, &first_seqno, target);
+        ctx_stopped = queue_pop_records_sync(queue, buf, &first_seqno, target);
         process_callbacks(ctx, buf, first_seqno, target);
         total += target;
-    } while (total < records);
+    } while (total < records && !ctx_stopped);
 
-    err = HOUND_OK;
+    if (ctx_stopped) {
+        err = HOUND_CTX_STOPPED;
+    }
+    else {
+        err = HOUND_OK;
+    }
+
+    if (read != NULL) {
+        *read = total;
+    }
 
 out:
     stop_read(ctx);

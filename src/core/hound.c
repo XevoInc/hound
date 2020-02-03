@@ -72,9 +72,9 @@ hound_err hound_next(struct hound_ctx *ctx, size_t n)
 }
 
 PUBLIC_API
-hound_err hound_read(struct hound_ctx *ctx, size_t records)
+hound_err hound_read(struct hound_ctx *ctx, size_t records, size_t *read)
 {
-    return ctx_read(ctx, records);
+    return ctx_read(ctx, records, read);
 }
 
 PUBLIC_API

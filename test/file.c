@@ -121,7 +121,7 @@ int main(int argc, const char **argv)
     while (text.index < total_count) {
         err = hound_next(ctx, 1);
         XASSERT_OK(err);
-        err = hound_read(ctx, 1);
+        err = hound_read(ctx, 1, NULL);
         XASSERT_OK(err);
     }
     XASSERT_EQ(text.index, total_count);

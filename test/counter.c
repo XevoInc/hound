@@ -145,13 +145,15 @@ int main(int argc, const char **argv)
 
     /* Do individual, sync reads. */
     for (count_records = 0; count_records < total_records; ++count_records) {
-        err = hound_read(cb_ctx.ctx, 1);
+        err = hound_read(cb_ctx.ctx, 1, &records_read);
         XASSERT_OK(err);
+        XASSERT_EQ(records_read, 1);
     }
 
     /* Do one larger, sync read. */
-    err = hound_read(cb_ctx.ctx, total_records);
+    err = hound_read(cb_ctx.ctx, total_records, &records_read);
     XASSERT_OK(err);
+        XASSERT_EQ(records_read, total_records);
 
     /* Do single async reads. */
     count_records = 0;

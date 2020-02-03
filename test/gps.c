@@ -145,7 +145,7 @@ int main(int argc, const char **argv)
     err = sigaction(SIGTSTP, &act, NULL);
     XASSERT_EQ(err, 0);
     while (s_sig_pending == 0) {
-        err = hound_read(ctx, 1);
+        err = hound_read(ctx, 1, NULL);
         XASSERT_OK(err);
     }
 

@@ -34,7 +34,7 @@ hound_err ctx_read_bytes_nowait(
     size_t bytes,
     size_t *records_read,
     size_t *bytes_read);
-hound_err ctx_read(struct hound_ctx *ctx, size_t records);
+hound_err ctx_read(struct hound_ctx *ctx, size_t records, size_t *read);
 hound_err ctx_read_nowait(struct hound_ctx *ctx, size_t records, size_t *read);
 hound_err ctx_read_all_nowait(struct hound_ctx *ctx, size_t *read);
 

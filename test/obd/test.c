@@ -162,7 +162,7 @@ void test_read(hound_data_period period_ns)
             err = hound_next(ctx, 1);
             XASSERT_OK(err);
         }
-        err = hound_read(ctx, s_ctx.count);
+        err = hound_read(ctx, s_ctx.count, NULL);
         XASSERT_OK(err);
     }
 

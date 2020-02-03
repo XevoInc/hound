@@ -34,11 +34,13 @@ hound_err queue_resize(struct queue **queue, size_t max_len, bool flush);
 
 void queue_destroy(struct queue *queue);
 
+void queue_interrupt(struct queue *queue);
+
 void queue_push(
     struct queue *queue,
     struct record_info *rec);
 
-void queue_pop_records_sync(
+bool queue_pop_records_sync(
     struct queue *queue,
     struct record_info **buf,
     hound_seqno *first_seqno,

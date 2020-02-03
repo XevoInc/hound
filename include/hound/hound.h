@@ -48,7 +48,8 @@ typedef enum {
     HOUND_DUPLICATE_DATA_REQUESTED = -24,
     HOUND_ID_NOT_IN_SCHEMA = -25,
     HOUND_DESC_DUPLICATE = -26,
-    HOUND_DRIVER_ALREADY_PRESENT = -27
+    HOUND_DRIVER_ALREADY_PRESENT = -27,
+    HOUND_CTX_STOPPED = -28
 } hound_err;
 
 /**
@@ -362,14 +363,19 @@ hound_err hound_next(struct hound_ctx *ctx, size_t n);
  * requested data has finished a callback invocation.  Also calls hound_next()
  * for any pull-mode data.
  *
- * @param[in] ctx a context
- * @param[in] records the number of records to read. Reads the records as fast
- *            as possible, blocking when the queue is empty until a new item is
- *            available.
+ * @param[in]  ctx a context
+ * @param[in]  records the number of records to read. Reads the records as fast
+ *             as possible, blocking when the queue is empty until a new item is
+ *             available.
+ * @param[out] read if not NULL, filled in with the number of records that were
+ *                  read This will generally be the requested number of records,
+ *                  but it can be less if HOUND_CTX_STOPPED is returned.
  *
- * @return an error code
+ * @return HOUND_OK, or HOUND_CTX_STOPPED if the context is stopped during the
+ *         read. If HOUND_CTX_STOPPED is returned, then the number of records
+ *         read may be less than the number requested.
  */
-hound_err hound_read(struct hound_ctx *ctx, size_t records);
+hound_err hound_read(struct hound_ctx *ctx, size_t records, size_t *read);
 
 /**
  * Triggers callback invocations to process queued data. If fewer than n records
