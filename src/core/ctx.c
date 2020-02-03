@@ -688,25 +688,25 @@ out:
  *
  * That said, it would be possible to implement a queue_pop_bytes_sync function.
  * You could do something like this:
-    - add a new property to each context indicating a guess of how many bytes
-      per sample. initially set this property to something reasonably small but
-      arbitrary. call this property "guess".
-    - when doing ctx_read_bytes:
-        - sync read target bytes / "guess" number of samples.
-        - block waiting for that read to finish
-        - check how many bytes you got. adjust "guess" according to this, erring
-          on the low side because you don't want to read more bytes than
-          requested. you would want to figure out a heuristic for how to adjust
-          "guess" (always take the most recent guess, average the new guess and
-          the old one, or something else?)
-        - keep reading until you're done, continually adjusting "guess" based on
-          how many bytes are in the samples you're getting.
+ *  - add a new property to each context indicating a guess of how many bytes
+ *    per sample. initially set this property to something reasonably small but
+ *    arbitrary. call this property "guess".
+ *  - when doing ctx_read_bytes:
+ *      - sync read target bytes / "guess" number of samples.
+ *      - block waiting for that read to finish
+ *      - check how many bytes you got. adjust "guess" according to this, erring
+ *        on the low side because you don't want to read more bytes than
+ *        requested. you would want to figure out a heuristic for how to adjust
+ *        "guess" (always take the most recent guess, average the new guess and
+ *        the old one, or something else?)
+ *      - keep reading until you're done, continually adjusting "guess" based on
+ *        how many bytes are in the samples you're getting.
 
-   Considering that the heuristic requered is non-obvious, this is clearly
-   complex, and you risk reading more samples than requested, let's not
-   implement ctx_read_bytes until there is a clear need for it. At that point,
-   perhaps concrete requirements will make it more obvious how it should be
-   implemented.
+ * Considering that the heuristic requered is non-obvious, this is clearly
+ * complex, and you risk reading more samples than requested, let's not
+ * implement ctx_read_bytes until there is a clear need for it. At that point,
+ * perhaps concrete requirements will make it more obvious how it should be
+ * implemented.
 */
 
 hound_err ctx_read_nowait(struct hound_ctx *ctx, size_t records, size_t *read)
