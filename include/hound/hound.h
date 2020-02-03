@@ -387,7 +387,7 @@ hound_err hound_read(struct hound_ctx *ctx, size_t records, size_t *read);
  * @param[in] ctx a context
  * @param[in] records trigger callbacks for up to the specified records. If fewer
  *                    than this count is available, reads all available records.
- * @param[in] read filled in to indicate how many records were actually read.
+ * @param[out] read filled in to indicate how many records were actually read.
  *
  * @return an error code
  */
@@ -409,8 +409,8 @@ hound_err hound_read_nowait(struct hound_ctx *ctx, size_t records, size_t *read)
  * @param[in] bytes trigger callbacks for up to the specified bytes of records. If
  *                  fewer than this count is available, reads all available
  *                  records.
- * @param[in] records_read filled in to indicate how many records were actually read
- * @param[in] read filled in to indicate how many bytes were actually read
+ * @param[out] records_read filled in to indicate how many records were actually read
+ * @param[out] bytes_read filled in to indicate how many bytes were actually read
  *
  * @return an error code
  */
@@ -425,7 +425,7 @@ hound_err hound_read_bytes_nowait(
  * is equivalent to calling hound_read_nowait(ctx, INFINITY).
  *
  * @param[in] ctx a context
- * @param[in] read filled in to indicate how many records were actually read
+ * @param[out] read filled in to indicate how many records were actually read
  *
  * @return an error code
  */
@@ -435,7 +435,7 @@ hound_err hound_read_all_nowait(struct hound_ctx *ctx, size_t *read);
  * Returns how many records are currently available in the queue.
  *
  * @param[in] ctx a context
- * @param[in] count filled in with the current number of available records
+ * @param[out] count filled in with the current number of available records
  *
  * @return an error code
  */
@@ -445,7 +445,7 @@ hound_err hound_queue_length(struct hound_ctx *ctx, size_t *count);
  * Returns the maximum queue length.
  *
  * @param[in] ctx a context
- * @param[in] count filled in with the max number of records
+ * @param[out] count filled in with the max number of records
  *
  * @return an error code
  */
