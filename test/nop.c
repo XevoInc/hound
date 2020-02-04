@@ -46,6 +46,12 @@ void test_driver_init(const char *config_path, const char *schema_base)
 
     err = hound_init_config(config_path, schema_base);
     XASSERT_OK(err);
+
+    err = hound_destroy_all_drivers();
+    XASSERT_OK(err);
+
+    err = hound_init_config(config_path, schema_base);
+    XASSERT_OK(err);
 }
 
 static

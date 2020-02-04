@@ -138,6 +138,12 @@ hound_err hound_destroy_driver(const char *path)
 }
 
 PUBLIC_API
+hound_err hound_destroy_all_drivers(void)
+{
+    return driver_destroy_all();
+}
+
+PUBLIC_API
 const char *hound_strerror(hound_err err)
 {
     return error_strerror(err);

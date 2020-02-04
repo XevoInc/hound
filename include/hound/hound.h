@@ -488,6 +488,16 @@ hound_err hound_init_driver(
  */
 hound_err hound_destroy_driver(const char *path);
 
+/**
+ * Destroys all registered drivers.
+ * backing driver.
+ *
+ * @param[in] path the path to a device file
+ *
+ * @return an error code
+ */
+hound_err hound_destroy_all_drivers(void);
+
 #ifdef __cplusplus
 }
 #endif

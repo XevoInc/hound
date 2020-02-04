@@ -558,6 +558,29 @@ hound_err driver_destroy(const char *path)
     return driver_destroy_helper(path, &s_driver_rwlock);
 }
 
+hound_err driver_destroy_all(void)
+{
+    hound_err drv_err;
+    hound_err err;
+    const char *path;
+
+    err = HOUND_OK;
+    pthread_rwlock_wrlock(&s_driver_rwlock);
+    xh_foreach_key(s_device_map, path,
+        drv_err = driver_destroy_nolock(path);
+        if (drv_err != HOUND_OK) {
+            err = drv_err;
+            hound_log_err(
+                drv_err,
+                "Failed to destroy driver at path %s",
+                path);
+        }
+    );
+    pthread_rwlock_unlock(&s_driver_rwlock);
+
+    return err;
+}
+
 static
 size_t get_active_data_index(
     const struct driver *drv,

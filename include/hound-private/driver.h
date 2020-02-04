@@ -176,6 +176,7 @@ hound_err driver_init(
     const struct hound_init_arg *args);
 
 hound_err driver_destroy(const char *path);
+hound_err driver_destroy_all(void);
 
 hound_err driver_next(struct driver *drv, hound_data_id id, size_t n);
 
