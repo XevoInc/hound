@@ -38,6 +38,9 @@ static xhash_t(DEVICE_MAP) *s_device_map = NULL;
 XHASH_MAP_INIT_INT64(DATA_MAP, struct driver *)
 static xhash_t(DATA_MAP) *s_data_map;
 
+/* Forward declaration. */
+hound_err driver_destroy_nolock(const char *path);
+
 static pthread_rwlock_t s_driver_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
 void driver_init_statics(void)
@@ -58,7 +61,7 @@ void driver_destroy_statics(void)
 
     xh_destroy(OPS_MAP, s_ops_map);
     xh_foreach_key(s_device_map, path,
-        driver_destroy(path);
+        driver_destroy_nolock(path);
     );
     xh_destroy(DEVICE_MAP, s_device_map);
     xh_destroy(DATA_MAP, s_data_map);
@@ -470,7 +473,7 @@ out:
     return err;
 }
 
-hound_err driver_destroy(const char *path)
+hound_err driver_destroy_helper(const char *path, pthread_rwlock_t *lock)
 {
     struct driver *drv;
     const char *drv_path;
@@ -481,7 +484,9 @@ hound_err driver_destroy(const char *path)
 
     NULL_CHECK(path);
 
-    pthread_rwlock_wrlock(&s_driver_rwlock);
+    if (lock != NULL) {
+        pthread_rwlock_wrlock(lock);
+    }
 
     /* Make sure the driver is actually registered. */
     iter = xh_get(DEVICE_MAP, s_device_map, path);
@@ -514,7 +519,9 @@ hound_err driver_destroy(const char *path)
 
     free((char *) drv_path);
 
-    pthread_rwlock_unlock(&s_driver_rwlock);
+    if (lock != NULL) {
+        pthread_rwlock_unlock(lock);
+    }
 
     /* Finally, stop and free the driver. */
     err = drv_op_destroy(drv);
@@ -539,6 +546,16 @@ hound_err driver_destroy(const char *path)
 
 out:
     return err;
+}
+
+hound_err driver_destroy_nolock(const char *path)
+{
+    return driver_destroy_helper(path, NULL);
+}
+
+hound_err driver_destroy(const char *path)
+{
+    return driver_destroy_helper(path, &s_driver_rwlock);
 }
 
 static
