@@ -479,7 +479,7 @@ hound_err hound_init_driver(
     const struct hound_init_arg *args);
 
 /**
- * Destroys an initialized driver at the given path, effectively unloading the
+ * Destroys a registered driver at the given path, effectively unloading the
  * backing driver.
  *
  * @param[in] path the path to a device file
