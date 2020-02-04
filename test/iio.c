@@ -76,7 +76,7 @@ int main(int argc, const char **argv)
     struct hound_ctx *ctx;
     const char *dev;
     char *end;
-    struct hound_datadesc *desc;
+    struct hound_datadesc *descs;
     hound_err err;
     hound_data_period freq;
     struct hound_init_arg init;
@@ -124,31 +124,31 @@ int main(int argc, const char **argv)
     err = hound_init_driver("iio", dev, NULL, 1, &init);
     XASSERT_OK(err);
 
-    err = hound_get_datadesc(&desc, &len);
+    err = hound_get_datadescs(&descs, &len);
     XASSERT_OK(err);
-    XASSERT_NOT_NULL(desc);
+    XASSERT_NOT_NULL(descs);
     XASSERT_GT(len, 0);
 
     printf("Found available data:\n");
     iio_count = 0;
     for (i = 0; i < len; ++i) {
-        if (desc[i].data_id != HOUND_DATA_ACCEL &&
-            desc[i].data_id != HOUND_DATA_GYRO) {
+        if (descs[i].data_id != HOUND_DATA_ACCEL &&
+            descs[i].data_id != HOUND_DATA_GYRO) {
             continue;
         }
         ++iio_count;
         if (i != len-1) {
             printf("---\n");
         }
-        printf("Hound ID: %d\n", desc[i].data_id);
-        printf("Name: %s\n", desc[i].name);
+        printf("Hound ID: %d\n", descs[i].data_id);
+        printf("Name: %s\n", descs[i].name);
         printf("Available periods:");
-        for (j = 0; j < desc[i].period_count; ++j) {
-            printf(" %" PRIu64, desc[i].avail_periods[j]);
+        for (j = 0; j < descs[i].period_count; ++j) {
+            printf(" %" PRIu64, descs[i].avail_periods[j]);
         }
         printf("\nAvailable frequencies:");
-        for (j = 0; j < desc[i].period_count; ++j) {
-            freq = NSEC_PER_SEC / desc[i].avail_periods[j];
+        for (j = 0; j < descs[i].period_count; ++j) {
+            freq = NSEC_PER_SEC / descs[i].avail_periods[j];
             printf(" %" PRIu64, freq);
         }
         printf("\n---\n");
@@ -162,11 +162,11 @@ int main(int argc, const char **argv)
         goto error;
     }
     for (i = 0; i < iio_count; ++i) {
-        rq.rq_list.data[i].id = desc[i].data_id;
+        rq.rq_list.data[i].id = descs[i].data_id;
         /* Arbitrarily select the first available period, likely the slowest. */
-        rq.rq_list.data[i].period_ns = desc[i].avail_periods[0];
+        rq.rq_list.data[i].period_ns = descs[i].avail_periods[0];
     }
-    hound_free_datadesc(desc);
+    hound_free_datadescs(descs);
 
     err = hound_alloc_ctx(&rq, &ctx);
     XASSERT_OK(err);
@@ -204,7 +204,7 @@ int main(int argc, const char **argv)
     goto out;
 
 error:
-    hound_free_datadesc(desc);
+    hound_free_datadescs(descs);
 out:
     err = hound_destroy_driver(dev);
     XASSERT_OK(err);

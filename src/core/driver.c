@@ -119,7 +119,7 @@ hound_err driver_get_dev_name(hound_dev_id id, const char **name)
     return err;
 }
 
-hound_err driver_get_datadesc(struct hound_datadesc **desc, size_t *len)
+hound_err driver_get_datadescs(struct hound_datadesc **descs, size_t *len)
 {
     struct driver *drv;
     hound_err err;
@@ -127,7 +127,7 @@ hound_err driver_get_datadesc(struct hound_datadesc **desc, size_t *len)
     size_t size;
 
     NULL_CHECK(len);
-    NULL_CHECK(desc);
+    NULL_CHECK(descs);
 
     pthread_rwlock_rdlock(&s_driver_rwlock);
 
@@ -140,23 +140,23 @@ hound_err driver_get_datadesc(struct hound_datadesc **desc, size_t *len)
     *len = size;
     if (size == 0) {
         /*
-         * If there's no data, set desc to NULL to help protect caller's against
-         * freeing random memory when they call hound_free_datadesc to cleanup.
+         * If there's no data, set descs to NULL to help protect caller's against
+         * freeing random memory when they call hound_free_datadescs to cleanup.
          */
-        *desc = NULL;
+        *descs = NULL;
         err = HOUND_OK;
         goto out;
     }
     else {
         /* Allocate. */
-        *desc = malloc(size*sizeof(**desc));
-        if (*desc == NULL) {
+        *descs = malloc(size*sizeof(**descs));
+        if (*descs == NULL) {
             err = HOUND_OOM;
             goto out;
         }
     }
 
-    pos = *desc;
+    pos = *descs;
     xh_foreach_value(s_device_map, drv,
         memcpy((void *) pos, drv->data, drv->datacount*sizeof(*drv->data));
         pos += drv->datacount;
@@ -169,14 +169,14 @@ out:
     return err;
 }
 
-void driver_free_datadesc(struct hound_datadesc *desc)
+void driver_free_datadescs(struct hound_datadesc *descs)
 {
     /*
      * Note: This frees the user-facing data descriptor but not the descriptor
      * allocated by the driver, which we store and free only when the driver
      * unregisters.
      */
-    free(desc);
+    free(descs);
 }
 
 static hound_dev_id s_next_dev_id = 0;

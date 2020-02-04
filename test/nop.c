@@ -55,41 +55,41 @@ void test_driver_init(const char *config_path, const char *schema_base)
 }
 
 static
-void test_datadesc(void)
+void test_datadescs(void)
 {
     hound_err err;
-    struct hound_datadesc *desc;
-    size_t desc_len;
+    struct hound_datadesc *descs;
+    size_t descs_len;
 
-    err = hound_get_datadesc(NULL, &desc_len);
+    err = hound_get_datadescs(NULL, &descs_len);
     XASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
-    err = hound_get_datadesc(&desc, NULL);
+    err = hound_get_datadescs(&descs, NULL);
     XASSERT_ERRCODE(err, HOUND_NULL_VAL);
 
-    err = hound_get_datadesc(&desc, &desc_len);
+    err = hound_get_datadescs(&descs, &descs_len);
     XASSERT_OK(err);
 
-    XASSERT_EQ(desc[0].data_id, HOUND_DATA_NOP1);
-    XASSERT_STREQ(desc[0].name, "nop");
+    XASSERT_EQ(descs[0].data_id, HOUND_DATA_NOP1);
+    XASSERT_STREQ(descs[0].name, "nop");
 
-    XASSERT_EQ(desc[0].fmt_count, 2);
-    XASSERT_STREQ(desc[0].fmts[0].name, "a");
-    XASSERT_EQ(desc[0].fmts[0].unit, HOUND_UNIT_PERCENT);
-    XASSERT_EQ(desc[0].fmts[0].type, HOUND_TYPE_UINT8);
-    XASSERT_STREQ(desc[0].fmts[1].name, "b");
-    XASSERT_EQ(desc[0].fmts[1].unit, HOUND_UNIT_NONE);
-    XASSERT_EQ(desc[0].fmts[1].type, HOUND_TYPE_BYTES);
+    XASSERT_EQ(descs[0].fmt_count, 2);
+    XASSERT_STREQ(descs[0].fmts[0].name, "a");
+    XASSERT_EQ(descs[0].fmts[0].unit, HOUND_UNIT_PERCENT);
+    XASSERT_EQ(descs[0].fmts[0].type, HOUND_TYPE_UINT8);
+    XASSERT_STREQ(descs[0].fmts[1].name, "b");
+    XASSERT_EQ(descs[0].fmts[1].unit, HOUND_UNIT_NONE);
+    XASSERT_EQ(descs[0].fmts[1].type, HOUND_TYPE_BYTES);
 
-    XASSERT_EQ(desc[1].data_id, HOUND_DATA_NOP2);
-    XASSERT_STREQ(desc[1].name, "nop2");
+    XASSERT_EQ(descs[1].data_id, HOUND_DATA_NOP2);
+    XASSERT_STREQ(descs[1].name, "nop2");
 
-    XASSERT_EQ(desc[1].fmt_count, 1);
-    XASSERT_STREQ(desc[1].fmts[0].name, "x");
-    XASSERT_EQ(desc[1].fmts[0].unit, HOUND_UNIT_NONE);
-    XASSERT_EQ(desc[1].fmts[0].type, HOUND_TYPE_BYTES);
+    XASSERT_EQ(descs[1].fmt_count, 1);
+    XASSERT_STREQ(descs[1].fmts[0].name, "x");
+    XASSERT_EQ(descs[1].fmts[0].unit, HOUND_UNIT_NONE);
+    XASSERT_EQ(descs[1].fmts[0].type, HOUND_TYPE_BYTES);
 
-    hound_free_datadesc(desc);
+    hound_free_datadescs(descs);
 }
 
 static
@@ -220,7 +220,7 @@ int main(int argc, const char **argv)
 
     test_strerror();
     test_driver_init(config_path, schema_base);
-    test_datadesc();
+    test_datadescs();
     test_alloc_ctx(&ctx);
     test_start_ctx(ctx);
     test_stop_ctx(ctx);

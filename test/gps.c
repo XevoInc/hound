@@ -88,7 +88,7 @@ int main(int argc, const char **argv)
 {
     struct sigaction act;
     struct hound_ctx *ctx;
-    struct hound_datadesc *desc;
+    struct hound_datadesc *descs;
     hound_err err;
     size_t len;
     const char *location;
@@ -115,15 +115,15 @@ int main(int argc, const char **argv)
     err = hound_init_driver("gps", location, NULL, 0, NULL);
     XASSERT_OK(err);
 
-    err = hound_get_datadesc(&desc, &len);
+    err = hound_get_datadescs(&descs, &len);
     XASSERT_OK(err);
-    XASSERT_NOT_NULL(desc);
+    XASSERT_NOT_NULL(descs);
     XASSERT_EQ(len, 1);
-    XASSERT_EQ(desc->data_id, HOUND_DATA_GPS);
-    XASSERT_STREQ(desc->name, "gps-data");
-    XASSERT_EQ(desc->period_count, 1);
-    XASSERT_EQ(*desc->avail_periods, NSEC_PER_SEC);
-    hound_free_datadesc(desc);
+    XASSERT_EQ(descs->data_id, HOUND_DATA_GPS);
+    XASSERT_STREQ(descs->name, "gps-data");
+    XASSERT_EQ(descs->period_count, 1);
+    XASSERT_EQ(*descs->avail_periods, NSEC_PER_SEC);
+    hound_free_datadescs(descs);
 
     err = hound_alloc_ctx(&rq, &ctx);
     XASSERT_OK(err);

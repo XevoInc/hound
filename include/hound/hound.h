@@ -269,14 +269,14 @@ struct hound_init_arg {
  *
  * @return an error code
  */
-hound_err hound_get_datadesc(struct hound_datadesc **desc, size_t *len);
+hound_err hound_get_datadescs(struct hound_datadesc **descs, size_t *len);
 
 /**
  * Frees a list of descriptors acquired by a call to hound_free_datadesc.
  *
  * @param[in] descs an array of descriptors
  */
-void hound_free_datadesc(struct hound_datadesc *desc);
+void hound_free_datadescs(struct hound_datadesc *descs);
 
 /* Devices. */
 

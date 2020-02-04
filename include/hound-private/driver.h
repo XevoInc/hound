@@ -163,8 +163,8 @@ struct driver;
 
 hound_err driver_get_dev_name(hound_dev_id id, const char **name);
 
-hound_err driver_get_datadesc(struct hound_datadesc **desc, size_t *len);
-void driver_free_datadesc(struct hound_datadesc *desc);
+hound_err driver_get_datadescs(struct hound_datadesc **descs, size_t *len);
+void driver_free_datadescs(struct hound_datadesc *descs);
 
 void driver_register(const char *name, const struct driver_ops *ops);
 

@@ -126,7 +126,7 @@ int main(int argc, const char **argv)
     err = hound_start(cb_ctx.ctx);
     XASSERT_OK(err);
 
-    err = hound_get_datadesc(&desc, &size);
+    err = hound_get_datadescs(&desc, &size);
     XASSERT_OK(err);
     XASSERT_STREQ(desc->name, "counter");
     XASSERT_EQ(size, 1);
@@ -141,7 +141,7 @@ int main(int argc, const char **argv)
 
     cb_ctx.dev_id = desc->dev_id;
 
-    hound_free_datadesc(desc);
+    hound_free_datadescs(desc);
 
     /* Do individual, sync reads. */
     for (count_records = 0; count_records < total_records; ++count_records) {
