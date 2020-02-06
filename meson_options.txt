@@ -2,3 +2,6 @@
 option('gps', type: 'feature', value: 'auto')
 option('iio', type: 'feature', value: 'auto')
 option('obd', type: 'feature', value: 'auto')
+
+# Other options.
+option('install-tools', type: 'boolean', value: 'false')

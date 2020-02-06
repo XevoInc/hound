@@ -123,7 +123,8 @@ if not get_option('obd').disabled()
         'obdsim',
         ['test/obd/sim.c'],
         include_directories: include_directories('test/include'),
-        dependencies: [dependency('yobd'), xlib_dep, threads_dep])
+        dependencies: [dependency('yobd'), xlib_dep, threads_dep],
+        install: get_option('install-tools'))
 endif
 
 # Automated unit tests.
