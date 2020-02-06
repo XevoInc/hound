@@ -186,7 +186,7 @@ pid_t start_sim(const char *iface, const char *schema_file, const char *sim_path
     int err;
     pid_t pid;
     sem_t *sem;
-    const char *sem_name;
+    static const char *sem_name;
 
     sem_name = "/hound-obd-sim";
     sem = sem_open(sem_name, O_CREAT, 0644, 0);
