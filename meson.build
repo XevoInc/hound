@@ -116,13 +116,23 @@ pkg.generate(
     version: meson.project_version())
 hound_dep = declare_dependency(link_with: lib, include_directories: include)
 
+# Tools.
+if not get_option('obd').disabled()
+    # OBD-II server simulator.
+    obdsim = executable(
+        'obdsim',
+        ['test/obd/sim.c'],
+        include_directories: include_directories('test/include'),
+        dependencies: [dependency('yobd'), xlib_dep, threads_dep])
+endif
+
 # Automated unit tests.
 run_target('can-setup', command: ['meson/vcan', 'setup'])
 run_target('can-destroy', command: ['meson/vcan', 'destroy'])
 
 add_test_setup(
     'valgrind',
-    exe_wrapper: ['valgrind'],
+    exe_wrapper: ['valgrind', '--trace-children=yes'],
     timeout_multiplier: 100)
 # meson won't let us pass a directory to files(), so we use current_source_dir()
 # as a workaround.
@@ -174,9 +184,9 @@ driver_tests = {
     },
     'obd': {
         'deps': ['valgrind', 'yobd'],
-        'src': ['test/obd/sim.c', 'test/obd/test.c'],
+        'src': ['test/obd/test.c'],
         'unit-test': {
-            'args': ['hound-vcan0', prod_schema_dir],
+            'args': ['hound-vcan0', obdsim.full_path(), prod_schema_dir],
             'is-parallel': false
         }
     }

@@ -7,16 +7,23 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
+#define UNUSED __attribute__((unused))
 
 #include <errno.h>
-#include <hound-test/obd/sim.h>
+#include <fcntl.h>
 #include <linux/can/raw.h>
+#include <linux/if.h>
 #include <net/if.h>
-#include <pthread.h>
+#include <signal.h>
+#include <semaphore.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
 #include <yobd/yobd.h>
 #include <xlib/xassert.h>
+
+struct yobd_ctx *s_ctx = NULL;
+int s_fd = -1;
 
 static
 int make_can_socket(const char *iface)
@@ -122,13 +129,17 @@ void event_loop(int fd, struct yobd_ctx *ctx)
     struct can_frame frame;
     int ret;
 
+    srand(time(NULL));
     while (true) {
         ret = read(fd, &frame, sizeof(frame));
         if (ret == -1) {
-            if (errno != EINTR) {
-                perror("read");
+            if (errno == EINTR) {
+                continue;
             }
-            break;
+            else {
+                perror("read");
+                exit(EXIT_FAILURE);
+            }
         }
 
         ret = can_response(fd, ctx, &frame);
@@ -139,51 +150,87 @@ void event_loop(int fd, struct yobd_ctx *ctx)
 }
 
 static
-void cleanup(void *data)
+void cleanup(UNUSED int signal)
 {
-    struct thread_ctx *ctx;
-
-    XASSERT_NOT_NULL(data);
-    ctx = data;
-
-    if (ctx->yobd_ctx != NULL) {
-        yobd_free_ctx(ctx->yobd_ctx);
+    /*
+     * Since we don't set s_ctx and s_fd atomically, technically we have a
+     * possible race condition. However, since this is intended for unit test
+     * code and not to run in production, I think making protecting all this
+     * with a lock would be overkill. We can always add it later if needed.
+     */
+    if (s_ctx != NULL) {
+        yobd_free_ctx(s_ctx);
     }
-    if (ctx->fd != -1) {
-        close(ctx->fd);
+    if (s_fd != -1) {
+        close(s_fd);
     }
+
+    exit(EXIT_SUCCESS);
 }
 
-void *run_sim(void *data)
+int main(int argc, const char **argv)
 {
-    struct thread_ctx *ctx;
     yobd_err err;
+    const char *iface;
+    struct sigaction sa;
+    sem_t *sem;
+    const char * sem_name;
+    const char *yobd_schema;
 
-    XASSERT_NOT_NULL(data);
-    ctx = data;
-    ctx->yobd_ctx = NULL;
-    ctx->fd = -1;
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s IFACE YOBD-SCHEMA [SEMAPHORE-NAME]\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
 
-    srand(time(NULL));
+    if (strnlen(argv[1], IFNAMSIZ) == IFNAMSIZ) {
+        fprintf(stderr, "Device argument is longer than IFNAMSIZ\n");
+        exit(EXIT_FAILURE);
+    }
+    iface = argv[1];
 
-    pthread_cleanup_push(cleanup, ctx);
+    yobd_schema = argv[2];
 
-    err = yobd_parse_schema(ctx->schema_file, &ctx->yobd_ctx);
-    XASSERT_EQ(err, YOBD_OK);
-
-    ctx->fd = make_can_socket(ctx->iface);
-    XASSERT_NEQ(ctx->fd, -1);
+    sem_name = argv[3];
+    sem = sem_open(sem_name, 0);
+    if (sem == SEM_FAILED) {
+        fprintf(
+            stderr,
+            "failed to open semaphore %s: %s\n",
+            sem_name,
+            strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 
     /*
-     * We have a socket now, so if the driver starts writing data, it will
-     * buffer in the socket instead of being dropped. Thus it's time to wake up
-     * the driver thread.
+     * Register signal handlers to cleanup. Block all signals while we are
+     * cleaning up, since we will exit after the cleanup anyway, and we don't
+     * want to crash because of an unhandled signal.
      */
-    sem_post(&ctx->ready);
+    sa.sa_handler = cleanup;
+    sa.sa_flags = 0;
+    sigfillset(&sa.sa_mask);
 
-    event_loop(ctx->fd, ctx->yobd_ctx);
+    err = sigaction(SIGHUP, &sa, NULL);
+    XASSERT_EQ(err, 0);
+    err = sigaction(SIGTERM, &sa, NULL);
+    XASSERT_EQ(err, 0);
 
-    pthread_cleanup_pop(true);
+    err = yobd_parse_schema(yobd_schema, &s_ctx);
+    XASSERT_EQ(err, YOBD_OK);
 
-    return NULL;
+    s_fd = make_can_socket(iface);
+    XASSERT_NEQ(s_fd, -1);
+
+    /*
+     * If we were given a semaphore, signal on it to indicate we are ready to
+     * respond to requests.
+     */
+    sem_post(sem);
+    sem_close(sem);
+
+    event_loop(s_fd, s_ctx);
+
+    /* The event loop is an infinite-loop, so we should never get here. */
+    XASSERT_ERROR;
+    return 0;
 }

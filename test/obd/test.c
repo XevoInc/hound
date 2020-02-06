@@ -7,17 +7,20 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
+#include <fcntl.h>
 #include <hound/driver/obd.h>
 #include <hound/hound.h>
 #include <hound-private/util.h>
 #include <hound-test/assert.h>
-#include <hound-test/obd/sim.h>
 #include <linux/can.h>
 #include <linux/limits.h>
-#include <pthread.h>
+#include <semaphore.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <valgrind.h>
 #include <xlib/xassert.h>
@@ -178,56 +181,66 @@ void test_read(hound_data_period period_ns)
 }
 
 static
-void start_sim_thread(
-    const char *iface,
-    const char *schema_file,
-    pthread_t *thread,
-    struct thread_ctx *ctx)
+pid_t start_sim(const char *iface, const char *schema_file, const char *sim_path)
 {
     int err;
+    pid_t pid;
+    sem_t *sem;
+    const char *sem_name;
 
-    ctx->iface = iface;
-    ctx->schema_file = schema_file;
-    sem_init(&ctx->ready, false, 0);
+    sem_name = "/hound-obd-sim";
+    sem = sem_open(sem_name, O_CREAT, 0644, 0);
+    XASSERT_NEQ((void *) sem, (void *) SEM_FAILED);
 
-    err = pthread_create(thread, NULL, run_sim, ctx);
-    XASSERT_EQ(err, 0);
+    pid = fork();
+    XASSERT_NEQ(pid, -1);
+    if (pid == 0) {
+        /* Child. */
+        err = execl(sim_path, sim_path, iface, schema_file, sem_name, NULL);
+        XASSERT_NEQ(err, -1);
+    }
 
     /* Wait for the OBD simulator to be ready to receive data. */
-    sem_wait(&ctx->ready);
+    sem_wait(sem);
 
     /*
      * We use this semaphore until to know when the simulation has started, so
      * we can destroy it now.
      */
-    sem_destroy(&ctx->ready);
+    sem_close(sem);
+    sem_unlink(sem_name);
+
+    return pid;
 }
 
 static
-void stop_sim_thread(pthread_t thread)
+void stop_sim(pid_t pid)
 {
     int err;
-    void *ret;
+    int status;
 
-    err = pthread_cancel(thread);
+    err = kill(pid, SIGTERM);
     XASSERT_EQ(err, 0);
 
-    err = pthread_join(thread, &ret);
-    XASSERT_EQ(err, EXIT_SUCCESS);
-    XASSERT_EQ(ret, PTHREAD_CANCELED);
+    err = waitpid(pid, &status, 0);
+    XASSERT_EQ(err, pid);
+    XASSERT(WIFEXITED(status));
 }
 
 int main(int argc, const char **argv)
 {
-    struct thread_ctx ctx;
     hound_err err;
     struct hound_init_arg init;
     const char *schema_base;
-    pthread_t thread;
+    pid_t pid;
+    const char *sim_path;
     const char *yobd_schema;
 
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s CAN-IFACE SCHEMA-BASE-PATH\n", argv[0]);
+    if (argc != 4) {
+        fprintf(
+            stderr,
+            "Usage: %s CAN-IFACE SIM-PATH SCHEMA-BASE-PATH\n",
+            argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -238,10 +251,16 @@ int main(int argc, const char **argv)
     strcpy(s_ctx.iface, argv[1]); /* NOLINT, string size already checked */
 
     if (strnlen(argv[2], PATH_MAX) == PATH_MAX) {
+        fprintf(stderr, "obd simulator path is longer than PATH_MAX\n");
+        exit(EXIT_FAILURE);
+    }
+    sim_path = argv[2];
+
+    if (strnlen(argv[3], PATH_MAX) == PATH_MAX) {
         fprintf(stderr, "Schema base path is longer than PATH_MAX\n");
         exit(EXIT_FAILURE);
     }
-    schema_base = argv[2];
+    schema_base = argv[3];
 
     if (!can_iface_exists(s_ctx.iface)) {
         fprintf(
@@ -254,13 +273,12 @@ int main(int argc, const char **argv)
     }
 
     yobd_schema = "standard-pids.yaml";
-
     init.type = HOUND_TYPE_BYTES;
     init.data.as_bytes = yobd_schema;
     err = hound_init_driver("obd", s_ctx.iface, schema_base, 1, &init);
     XASSERT_OK(err);
 
-    start_sim_thread(s_ctx.iface, yobd_schema, &thread, &ctx);
+    pid = start_sim(s_ctx.iface, yobd_schema, sim_path);
 
     /* On-demand data. */
     test_read(0);
@@ -268,7 +286,7 @@ int main(int argc, const char **argv)
     /* Periodic data. */
     test_read(1e9/10000);
 
-    stop_sim_thread(thread);
+    stop_sim(pid);
 
     err = hound_destroy_driver(s_ctx.iface);
     XASSERT_OK(err);
