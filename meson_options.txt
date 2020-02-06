@@ -1,7 +1,7 @@
 # Selection of which drivers to build.
-option('gps', type: 'feature', value: 'auto')
-option('iio', type: 'feature', value: 'auto')
-option('obd', type: 'feature', value: 'auto')
+option('gps', type: 'boolean', value: 'true')
+option('iio', type: 'boolean', value: 'true')
+option('obd', type: 'boolean', value: 'true')
 
 # Other options.
 option('install-tools', type: 'boolean', value: 'false')

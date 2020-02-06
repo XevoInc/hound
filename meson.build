@@ -85,7 +85,7 @@ drivers = {
 }
 driver_tests = []
 foreach name, props : drivers
-    if get_option(name).disabled()
+    if not get_option(name)
         message('skipping driver "' + name + '" by user request')
         continue
     endif
@@ -117,7 +117,7 @@ pkg.generate(
 hound_dep = declare_dependency(link_with: lib, include_directories: include)
 
 # Tools.
-if not get_option('obd').disabled()
+if get_option('obd')
     # OBD-II server simulator.
     obdsim = executable(
         'obdsim',
@@ -194,7 +194,7 @@ driver_tests = {
 }
 # Add in any enabled driver tests.
 foreach name, t : driver_tests
-    if not get_option(name).disabled()
+    if get_option(name)
         tests += {name: t}
     endif
 endforeach
