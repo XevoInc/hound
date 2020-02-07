@@ -178,7 +178,7 @@ int main(int argc, const char **argv)
     const char *yobd_schema;
 
     if (argc != 4) {
-        fprintf(stderr, "Usage: %s IFACE YOBD-SCHEMA [SEMAPHORE-NAME]\n", argv[0]);
+        fprintf(stderr, "Usage: %s IFACE YOBD-SCHEMA SEMAPHORE-NAME\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
