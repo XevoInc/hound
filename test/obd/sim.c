@@ -177,8 +177,8 @@ int main(int argc, const char **argv)
     const char * sem_name;
     const char *yobd_schema;
 
-    if (argc != 4) {
-        fprintf(stderr, "Usage: %s IFACE YOBD-SCHEMA SEMAPHORE-NAME\n", argv[0]);
+    if (argc != 3 && argc != 4) {
+        fprintf(stderr, "Usage: %s IFACE YOBD-SCHEMA [SEMAPHORE-NAME]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -190,15 +190,17 @@ int main(int argc, const char **argv)
 
     yobd_schema = argv[2];
 
-    sem_name = argv[3];
-    sem = sem_open(sem_name, 0);
-    if (sem == SEM_FAILED) {
-        fprintf(
-            stderr,
-            "failed to open semaphore %s: %s\n",
-            sem_name,
-            strerror(errno));
-        exit(EXIT_FAILURE);
+    if (argc > 3) {
+        sem_name = argv[3];
+        sem = sem_open(sem_name, 0);
+        if (sem == SEM_FAILED) {
+            fprintf(
+                stderr,
+                "failed to open semaphore %s: %s\n",
+                sem_name,
+                strerror(errno));
+            exit(EXIT_FAILURE);
+        }
     }
 
     /*
@@ -225,8 +227,10 @@ int main(int argc, const char **argv)
      * If we were given a semaphore, signal on it to indicate we are ready to
      * respond to requests.
      */
-    sem_post(sem);
-    sem_close(sem);
+    if (sem != NULL) {
+        sem_post(sem);
+        sem_close(sem);
+    }
 
     event_loop(s_fd, s_ctx);
 
