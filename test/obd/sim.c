@@ -202,6 +202,9 @@ int main(int argc, const char **argv)
             exit(EXIT_FAILURE);
         }
     }
+    else {
+        sem = NULL;
+    }
 
     /*
      * Register signal handlers to cleanup. Block all signals while we are
