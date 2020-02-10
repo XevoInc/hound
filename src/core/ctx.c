@@ -572,6 +572,10 @@ void process_callbacks(
     size_t i;
     struct record_info *rec_info;
 
+    if (n == 0) {
+        return;
+    }
+
     /*
      * Grab the callback and its context, since they can be changed via
      * ctx_modify.
@@ -649,9 +653,10 @@ void stop_read(struct hound_ctx *ctx)
 hound_err ctx_read(struct hound_ctx *ctx, size_t records, size_t *read)
 {
     struct record_info *buf[DEQUEUE_BUF_SIZE];
-    bool ctx_stopped;
     hound_err err;
     hound_seqno first_seqno;
+    bool interrupt;
+    size_t pop_count;
     struct queue *queue;
     size_t target;
     size_t total;
@@ -669,12 +674,17 @@ hound_err ctx_read(struct hound_ctx *ctx, size_t records, size_t *read)
     total = 0;
     do {
         target = min(records - total, ARRAYLEN(buf));
-        ctx_stopped = queue_pop_records_sync(queue, buf, &first_seqno, target);
-        process_callbacks(ctx, buf, first_seqno, target);
-        total += target;
-    } while (total < records && !ctx_stopped);
+        pop_count = queue_pop_records_sync(
+            queue,
+            buf,
+            target,
+            &first_seqno,
+            &interrupt);
+        process_callbacks(ctx, buf, first_seqno, pop_count);
+        total += pop_count;
+    } while (total < records && !interrupt);
 
-    if (ctx_stopped) {
+    if (interrupt) {
         err = HOUND_CTX_STOPPED;
     }
     else {

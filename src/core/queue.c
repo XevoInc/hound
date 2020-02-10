@@ -548,15 +548,15 @@ void queue_push(struct queue *queue, struct record_info *rec)
     }
 }
 
-bool queue_pop_records_sync(
+size_t queue_pop_records_sync(
     struct queue *queue,
     struct record_info **buf,
+    size_t records,
     hound_seqno *first_seqno,
-    size_t records)
+    bool *interrupt)
 {
     size_t count;
     hound_err err;
-    bool interrupt;
     hound_seqno *seqno;
     hound_seqno tmp;
 
@@ -564,7 +564,7 @@ bool queue_pop_records_sync(
     XASSERT_NOT_NULL(buf);
 
     count = 0;
-    interrupt = false;
+    *interrupt = false;
     do {
         pthread_mutex_lock(&queue->mutex);
         /* TODO: Possible optimization: wake up only when n records/bytes are
@@ -576,7 +576,7 @@ bool queue_pop_records_sync(
             XASSERT_EQ(err, 0);
         }
         if (queue->interrupt) {
-            interrupt = true;
+            *interrupt = true;
             queue->interrupt = false;
             break;
         }
@@ -598,7 +598,7 @@ bool queue_pop_records_sync(
 
     pthread_mutex_unlock(&queue->mutex);
 
-    return interrupt;
+    return count;
 }
 
 size_t queue_pop_bytes_nowait(

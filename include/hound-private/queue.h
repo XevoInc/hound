@@ -40,11 +40,12 @@ void queue_push(
     struct queue *queue,
     struct record_info *rec);
 
-bool queue_pop_records_sync(
+size_t queue_pop_records_sync(
     struct queue *queue,
     struct record_info **buf,
+    size_t records,
     hound_seqno *first_seqno,
-    size_t n);
+    bool *interrupt);
 
 size_t queue_pop_bytes_nowait(
     struct queue *queue,
