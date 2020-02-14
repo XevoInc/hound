@@ -6,7 +6,7 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
-#include <asm/sockios.h>
+#include <asm/socket.h>
 #include <errno.h>
 #include <hound/hound.h>
 #include <hound/driver/obd.h>
