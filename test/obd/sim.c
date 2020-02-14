@@ -219,6 +219,8 @@ int main(int argc, const char **argv)
     XASSERT_EQ(err, 0);
     err = sigaction(SIGTERM, &sa, NULL);
     XASSERT_EQ(err, 0);
+    err = sigaction(SIGABRT, &sa, NULL);
+    XASSERT_EQ(err, 0);
 
     err = yobd_parse_schema(yobd_schema, &s_ctx);
     XASSERT_EQ(err, YOBD_OK);
