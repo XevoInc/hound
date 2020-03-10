@@ -76,7 +76,7 @@ drivers = {
     'obd': {
         'deps': ['yobd'],
         'header': 'obd.h',
-        'schema': 'schema/driver/deploy/standard-pids.yaml',
+        'schema': 'schema/driver/deploy/sae-standard.yaml',
         'src': ['src/driver/obd.c']
     }
 }
