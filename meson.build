@@ -122,6 +122,9 @@ if get_option('obd')
         include_directories: include_directories('test/include'),
         dependencies: [dependency('yobd'), xlib_dep, threads_dep],
         install: get_option('install-tools'))
+    if get_option('install-tools')
+      install_data('scripts/yobd-to-hound', install_dir: get_option('bindir'))
+    endif
 endif
 
 # Automated unit tests.
