@@ -20,24 +20,24 @@ fmt:
     - name: altitude
       unit: m
       type: double
-    - name: longitude uncertainty
+    - name: altitude uncertainty
       unit: m
       type: double
     - name: course relative to true north
       unit: degree
       type: double
-    - name: longitude uncertainty
-      unit: m
+    - name: track uncertainty
+      unit: degree
       type: double
     - name: speed over ground
       unit: m/s
       type: double
-    - name: speed over ground
+    - name: speed uncertainty
       unit: m/s
       type: double
     - name: vertical speed
       unit: m/s
       type: double
-    - name: vertical speed
+    - name: vertical speed uncertainty
       unit: m/s
       type: double
