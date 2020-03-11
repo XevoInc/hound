@@ -24,7 +24,10 @@ install_subdir(
 
 # Config header generation.
 conf = configuration_data()
-hound_confdir = join_paths(get_option('sysconfdir'), 'hound')
+hound_confdir = join_paths(
+    get_option('prefix'),
+    get_option('sysconfdir'),
+    'hound')
 schemadir = join_paths(hound_confdir, 'schema')
 conf.set_quoted('CONFIG_HOUND_SCHEMADIR', schemadir)
 configure_file(
