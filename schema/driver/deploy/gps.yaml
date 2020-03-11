@@ -12,7 +12,7 @@ fmt:
       unit: m
       type: double
     - name: longitude
-      unit: long
+      unit: lng
       type: double
     - name: longitude uncertainty
       unit: m
