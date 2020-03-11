@@ -6,13 +6,13 @@ fmt:
       unit: ns
       type: double
     - name: latitude
-      unit: degree
+      unit: lat
       type: double
     - name: latitude uncertainty
       unit: m
       type: double
     - name: longitude
-      unit: degree
+      unit: long
       type: double
     - name: longitude uncertainty
       unit: m

@@ -63,6 +63,12 @@ hound_unit find_unit(const char *val)
     else if (strcmp(val, "kg/s") == 0) {
         return HOUND_UNIT_KG_PER_S;
     }
+    else if (strcmp(val, "lat") == 0) {
+        return HOUND_UNIT_LATITUDE;
+    }
+    else if (strcmp(val, "long") == 0) {
+        return HOUND_UNIT_LONGITUDE;
+    }
     else if (strcmp(val, "m") == 0) {
         return HOUND_UNIT_METER;
     }
