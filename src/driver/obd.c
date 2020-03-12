@@ -416,11 +416,11 @@ hound_err obd_parse(
         XASSERT_EQ(yerr, YOBD_OK);
         hound_obd_get_data_id(mode, pid, &record->data_id);
 
-        err = yobd_parse_can_response(
+        yerr = yobd_parse_can_response(
             ctx->yobd_ctx,
             (struct can_frame *) buf,
             (float *) record->data);
-        XASSERT_OK(err);
+        XASSERT_EQ(yerr, YOBD_OK);
 
         pos += sizeof(struct can_frame);
     }
