@@ -24,10 +24,18 @@ install_subdir(
 
 # Config header generation.
 conf = configuration_data()
-hound_confdir = join_paths(
-    get_option('prefix'),
-    get_option('sysconfdir'),
-    'hound')
+
+# sysconfdir is special, as when the prefix is /usr, it gets set to /etc. So we
+# need to treat this specially so it always gets installed in the right place.
+prefix = get_option('prefix')
+sysconfdir = get_option('sysconfdir')
+if prefix == '/usr'
+    base = sysconfdir
+else
+    base = join_paths(prefix, sysconfdir)
+endif
+hound_confdir = join_paths(base, 'hound')
+
 schemadir = join_paths(hound_confdir, 'schema')
 conf.set_quoted('CONFIG_HOUND_SCHEMADIR', schemadir)
 configure_file(
