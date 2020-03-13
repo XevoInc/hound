@@ -8,7 +8,11 @@ add_test_setup(
     timeout_multiplier: 100)
 # meson won't let us pass a directory to files(), so we use current_source_dir()
 # as a workaround.
-prod_schema_dir = join_paths(meson.source_root(), 'schema', 'driver', 'deploy')
+example_schema_dir = join_paths(
+    meson.source_root(),
+    'schema',
+    'driver',
+    'example')
 test_schema_dir = join_paths(meson.current_source_dir(), 'schema')
 
 tests = {
@@ -61,7 +65,7 @@ if get_option('obd')
             'deps': ['valgrind', 'yobd'],
             'src': ['obd/test.c'],
             'unit-test': {
-                'args': ['hound-vcan0', obdsim.full_path(), prod_schema_dir],
+                'args': ['hound-vcan0', obdsim.full_path(), example_schema_dir],
                 'is-parallel': false
             }
         }

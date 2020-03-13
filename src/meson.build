@@ -71,7 +71,6 @@ drivers = {
     'obd': {
         'deps': ['yobd'],
         'header': 'obd.h',
-        'schema': 'sae-standard.yaml',
         'src': ['driver/obd.c']
     }
 }
@@ -85,11 +84,13 @@ foreach name, props : drivers
     foreach dep : props.get('deps')
         lib_deps += dependency(dep)
     endforeach
-    schema = join_paths(
-        meson.source_root(),
-        'schema/driver/deploy',
-        props.get('schema'))
-    install_data(schema, install_dir: schemadir)
+    if 'schema' in props
+        schema = join_paths(
+            meson.source_root(),
+            'schema/driver/deploy',
+            props.get('schema'))
+        install_data(schema, install_dir: schemadir)
+    endif
     driver_header = join_paths('include/hound/driver', name + '.h')
     if 'header' in props
       install_headers(

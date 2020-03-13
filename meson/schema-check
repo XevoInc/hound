@@ -32,6 +32,9 @@ fi
 for datafile in "$MESON_SOURCE_ROOT"/schema/driver/deploy/*; do
     check_schema "$MESON_SOURCE_ROOT/schema/driver/meta/schema.yaml" "$datafile"
 done
+for datafile in "$MESON_SOURCE_ROOT"/schema/driver/example/*; do
+    check_schema "$MESON_SOURCE_ROOT/schema/driver/meta/schema.yaml" "$datafile"
+done
 for datafile in "$MESON_SOURCE_ROOT"/test/config/*; do
     check_schema "$MESON_SOURCE_ROOT/schema/config/meta/schema.yaml" "$datafile"
 done
