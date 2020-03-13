@@ -7,10 +7,10 @@ check_schema() {
     local data="$2"
 
     if [[ ! -f $data ]]; then
-        continue
+        return
     fi
     if [[ $data == $schema ]]; then
-        continue
+        return
     fi
 
     CMD=""$MESON_SOURCE_ROOT/scripts/schema-check" \
