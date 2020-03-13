@@ -91,7 +91,7 @@ drivers = {
         'src': ['src/driver/obd.c']
     }
 }
-driver_tests = []
+
 foreach name, props : drivers
     if not get_option(name)
         message('skipping driver "' + name + '" by user request')
@@ -124,112 +124,26 @@ pkg.generate(
     version: meson.project_version())
 hound_dep = declare_dependency(link_with: lib, include_directories: include)
 
-# Tools.
-if get_option('obd')
-    # OBD-II server simulator.
+if get_option('obd') and (get_option('install-tools') or get_option('build-tests'))
+    # OBD-II server simulator, used for unit tests and installable as a
+    # standalone utility.
     obdsim = executable(
         'obdsim',
         ['test/obd/sim.c'],
         include_directories: include_directories('test/include'),
         dependencies: [dependency('yobd'), xlib_dep, threads_dep],
         install: get_option('install-tools'))
-    if get_option('install-tools')
-      install_data('scripts/yobd-to-hound', install_dir: get_option('bindir'))
+endif
+
+if get_option('install-tools')
+    if get_option('obd')
+        install_data('scripts/yobd-to-hound', install_dir: get_option('bindir'))
     endif
 endif
 
-# Automated unit tests.
-run_target('can-setup', command: ['meson/vcan', 'setup'])
-run_target('can-destroy', command: ['meson/vcan', 'destroy'])
-
-add_test_setup(
-    'valgrind',
-    exe_wrapper: ['valgrind', '--trace-children=yes'],
-    timeout_multiplier: 100)
-# meson won't let us pass a directory to files(), so we use current_source_dir()
-# as a workaround.
-prod_schema_dir = join_paths(
-    meson.source_root(),
-    meson.current_source_dir(),
-    'schema',
-    'driver',
-    'deploy')
-test_schema_dir = join_paths(
-    meson.source_root(),
-    meson.current_source_dir(),
-    'test',
-    'schema')
-tests = {
-    'nop': {
-        'src': ['test/driver/nop.c', 'test/nop.c'],
-        'deps': [],
-        'unit-test': {
-            'args': [test_schema_dir, files('test/config/nop.yaml')],
-            'is-parallel': true,
-        },
-    },
-    'counter': {
-        'src': ['test/driver/counter.c', 'test/counter.c'],
-        'deps': ['valgrind'],
-        'unit-test': {
-            'args': [test_schema_dir, files('test/config/counter.yaml')],
-            'is-parallel': true,
-        },
-    },
-    'file': {
-        'src': ['test/driver/file.c', 'test/file.c'],
-        'deps': [],
-        'unit-test': {
-            'args': [test_schema_dir, files('test/data/testfile')],
-            'is-parallel': true,
-        }
-    }
-}
-driver_tests = {
-    'gps': {
-        'deps': ['libgps'],
-        'src': ['test/gps.c'],
-    },
-    'iio': {
-        'deps': [],
-        'src': ['test/iio.c'],
-    },
-    'obd': {
-        'deps': ['valgrind', 'yobd'],
-        'src': ['test/obd/test.c'],
-        'unit-test': {
-            'args': ['hound-vcan0', obdsim.full_path(), prod_schema_dir],
-            'is-parallel': false
-        }
-    }
-}
-# Add in any enabled driver tests.
-foreach name, t : driver_tests
-    if get_option(name)
-        tests += {name: t}
-    endif
-endforeach
-
-foreach name, t : tests
-    deps = [threads_dep, xlib_dep, hound_dep]
-    foreach dep : t.get('deps')
-        deps += dependency(dep)
-    endforeach
-    exe = executable(
-        name + '-test',
-        t.get('src'),
-        include_directories: include_directories('test/include'),
-        dependencies: deps)
-    if 'unit-test' in t
-        props = t.get('unit-test')
-        test(
-            name,
-            exe,
-            args: props.get('args'),
-            is_parallel: props.get('is-parallel'),
-            timeout: 50)
-    endif
-endforeach
+if get_option('build-tests')
+    subdir('test')
+endif
 
 # Documentation.
 run_target('docs', command: 'meson/makedoc')

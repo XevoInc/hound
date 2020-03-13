@@ -4,4 +4,5 @@ option('iio', type: 'boolean', value: 'true')
 option('obd', type: 'boolean', value: 'true')
 
 # Other options.
+option('build-tests', type: 'boolean', value: 'true')
 option('install-tools', type: 'boolean', value: 'false')
