@@ -24,10 +24,10 @@ fmt:
       unit: m
       type: double
     - name: course relative to true north
-      unit: degree
+      unit: lng
       type: double
     - name: track uncertainty
-      unit: degree
+      unit: lng
       type: double
     - name: speed over ground
       unit: m/s
