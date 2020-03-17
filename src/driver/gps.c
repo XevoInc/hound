@@ -198,17 +198,6 @@ hound_err gps_setdata(const struct hound_data_rq_list *data_list)
     return HOUND_OK;
 }
 
-static void
-unix_to_timespec (double timestamp, struct timespec *ts)
-{
-  double fraction;
-
-  /* gpsd timestamps as a double value representing UNIX epoch time. */
-  ts->tv_sec = timestamp;
-  fraction = timestamp - ts->tv_sec;
-  ts->tv_nsec = NSEC_PER_SEC * fraction;
-}
-
 static
 void populate_gps_data(struct gps_data *data, struct gps_fix_t *fix)
 {
@@ -270,7 +259,7 @@ hound_err gps_parse(
     record->size = sizeof(ctx->gps.fix);
 
     record->data_id = HOUND_DATA_GPS;
-    unix_to_timespec(ctx->gps.fix.time, &record->timestamp);
+    ctx->gps.fix.time = record->timestamp;
 
     *record_count = 1;
     *bytes = 0;

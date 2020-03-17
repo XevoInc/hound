@@ -25,12 +25,9 @@ void sig_handler(int sig)
 }
 
 static
-void dump_timestamp(timestamp_t ts)
+void dump_timestamp(struct timespec *ts)
 {
-    time_t time;
-
-    time = (time_t) ts;
-    printf("time: %s", ctime(&time));
+    printf("%ld.%.9ld\n", ts->tv_sec, ts->tv_nsec);
 }
 
 static
@@ -41,7 +38,7 @@ void dump_fix(struct gps_fix_t *fix)
     }
 
     /* See gps.h (shipped with gpsd) for details. */
-    dump_timestamp(fix->time);
+    dump_timestamp(&fix->time);
     DUMP(fix, ept, "expected time uncertainty");
 
     if (fix->mode >= MODE_2D) {
