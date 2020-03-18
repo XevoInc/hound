@@ -198,6 +198,29 @@ hound_err gps_setdata(const struct hound_data_rq_list *data_list)
     return HOUND_OK;
 }
 
+#if (GPSD_API_MAJOR_VERSION < 9)
+static void
+convert_time (double timestamp, struct timespec *ts)
+{
+  double fraction;
+
+  /* gpsd timestamps as a double value representing UNIX epoch time. */
+  ts->tv_sec = timestamp;
+  fraction = timestamp - ts->tv_sec;
+  ts->tv_nsec = NSEC_PER_SEC * fraction;
+}
+#else
+static void
+convert_time (struct timespec ts, struct timespec *out_ts)
+{
+    /*
+     * gpsd versions >= 0 use timespec instead of double, so we don't have to do
+     * anything special here.
+     */
+    *out_ts = ts;
+}
+#endif
+
 static
 void populate_gps_data(struct gps_data *data, struct gps_fix_t *fix)
 {
@@ -259,7 +282,7 @@ hound_err gps_parse(
     record->size = sizeof(ctx->gps.fix);
 
     record->data_id = HOUND_DATA_GPS;
-    ctx->gps.fix.time = record->timestamp;
+    convert_time(ctx->gps.fix.time, &record->timestamp);
 
     *record_count = 1;
     *bytes = 0;
