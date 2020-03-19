@@ -14,13 +14,22 @@ conf = configuration_data()
 prefix = get_option('prefix')
 sysconfdir = get_option('sysconfdir')
 if prefix == '/usr'
-    base = sysconfdir
+    base = ''
+    pkgconfig_base = ''
 else
-    base = join_paths(prefix, sysconfdir)
+    base = prefix
+    pkgconfig_base = '${prefix}'
 endif
-hound_confdir = join_paths(base, 'hound')
+confdir = join_paths(sysconfdir, 'hound')
+schemadir = join_paths(confdir, 'schema')
 
-schemadir = join_paths(hound_confdir, 'schema')
+hound_schemadir = join_paths(base, schemadir)
+
+confdir_pkgconfig = join_paths(pkgconfig_base, confdir)
+schemadir_pkgconfig = join_paths('${confdir}', 'schema')
+pkgconfig_vars = ['confdir=' + confdir_pkgconfig,
+                  'schemadir=' + schemadir_pkgconfig]
+
 conf.set_quoted('CONFIG_HOUND_SCHEMADIR', schemadir)
 configure_file(
     input: join_paths(include, 'hound-private/config.h.in'),
@@ -110,5 +119,6 @@ pkg.generate(
     name: 'hound',
     description: 'A generic, performant sensor gathering library',
     libraries: [lib],
-    version: meson.project_version())
+    version: meson.project_version(),
+    variables: pkgconfig_vars)
 hound_dep = declare_dependency(link_with: lib, include_directories: include)
