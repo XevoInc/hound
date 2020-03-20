@@ -20,7 +20,7 @@ else
     base = prefix
     pkgconfig_base = '${prefix}'
 endif
-confdir = join_paths(sysconfdir, 'hound')
+confdir = join_paths(base, sysconfdir, 'hound')
 schemadir = join_paths(confdir, 'schema')
 
 hound_schemadir = join_paths(base, schemadir)
