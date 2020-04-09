@@ -180,6 +180,14 @@ void test_read(hound_data_period period_ns)
     XASSERT_OK(err);
 }
 
+static pid_t child_pid = -1;
+
+void sig_handler(int sig)
+{
+    /* Propagate the signal to the child process. */
+    kill(child_pid, sig);
+}
+
 static
 pid_t start_sim(const char *iface, const char *schema_file, const char *sim_path)
 {
@@ -187,12 +195,24 @@ pid_t start_sim(const char *iface, const char *schema_file, const char *sim_path
     pid_t pid;
     sem_t *sem;
     static const char *sem_name;
+    struct sigaction sigact;
+
+    /*
+     * Propagate kill signals to the children so we don't leave zombie processes
+     * if we crash.
+     */
+    memset(&sigact, 0, sizeof(sigact));
+    sigact.sa_handler = sig_handler;
+    sigact.sa_flags = 0;
+    sigaction(SIGABRT, &sigact, NULL);
+    sigaction(SIGSTOP, &sigact, NULL);
+    sigaction(SIGTERM, &sigact, NULL);
 
     sem_name = "/hound-obd-sim";
     sem = sem_open(sem_name, O_CREAT, 0644, 0);
     XASSERT_NEQ((void *) sem, (void *) SEM_FAILED);
 
-    pid = fork();
+    child_pid = pid = fork();
     XASSERT_NEQ(pid, -1);
     if (pid == 0) {
         /* Child. */
