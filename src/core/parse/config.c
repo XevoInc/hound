@@ -381,25 +381,6 @@ out:
     return err;
 }
 
-static
-void norm_path(const char *base, const char *path, size_t len, char *out)
-{
-    int count;
-
-    /* Return absolute paths as-is, and make relative paths relative to base. */
-    if (path[0] == '/') {
-        strcpy(out, path);
-    }
-    else {
-        count = snprintf(out, len, "%s/%s", base, path);
-        if (count == (int) len) {
-            log_msg(
-                LOG_ERR,
-                "Path is too long when joined with configuration directory");
-        }
-    }
-}
-
 hound_err parse_config(const char *config_path, const char *schema_base)
 {
     hound_err err;

@@ -45,4 +45,6 @@
 size_t min(size_t a, size_t b);
 size_t max(size_t a, size_t b);
 
+void norm_path(const char *base, const char *path, size_t len, char *out);
+
 #endif /* HOUND_PRIVATE_UTIL_H_ */

@@ -351,7 +351,7 @@ hound_err schema_parse(
 
     XASSERT_NOT_NULL(schema);
 
-    sprintf(path, "%s/%s", schema_base, schema);
+    norm_path(schema_base, schema, ARRAYLEN(path), path);
     f = fopen(path, "r");
     if (f == NULL) {
         err = HOUND_IO_ERROR;
