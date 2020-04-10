@@ -13,9 +13,13 @@
 #include <hound/hound.h>
 #include <hound-private/log.h>
 #include <hound-private/parse/common.h>
+#include <hound-private/util.h>
+#include <linux/limits.h>
 #include <string.h>
 #include <xlib/xassert.h>
 #include <yaml.h>
+
+#include "config.h"
 
 struct driver_init {
     const char *name;
@@ -377,12 +381,33 @@ out:
     return err;
 }
 
+static
+void norm_path(const char *base, const char *path, size_t len, char *out)
+{
+    int count;
+
+    /* Return absolute paths as-is, and make relative paths relative to base. */
+    if (path[0] == '/') {
+        strcpy(out, path);
+    }
+    else {
+        count = snprintf(out, len, "%s/%s", base, path);
+        if (count == (int) len) {
+            log_msg(
+                LOG_ERR,
+                "Path is too long when joined with configuration directory");
+        }
+    }
+}
+
 hound_err parse_config(const char *config_path, const char *schema_base)
 {
     hound_err err;
     FILE *f;
+    char path[PATH_MAX];
 
-    f = fopen(config_path, "r");
+    norm_path(CONFIG_HOUND_CONFDIR, config_path, ARRAYLEN(path), path);
+    f = fopen(path, "r");
     if (f == NULL) {
         err = HOUND_IO_ERROR;
         goto error_fopen;

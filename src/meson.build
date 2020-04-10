@@ -30,7 +30,9 @@ schemadir_pkgconfig = join_paths('${confdir}', 'schema')
 pkgconfig_vars = ['confdir=' + confdir_pkgconfig,
                   'schemadir=' + schemadir_pkgconfig]
 
+conf.set_quoted('CONFIG_HOUND_CONFDIR', confdir)
 conf.set_quoted('CONFIG_HOUND_SCHEMADIR', schemadir)
+
 configure_file(
     input: join_paths(include, 'hound-private/config.h.in'),
     output: 'config.h',
