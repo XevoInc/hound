@@ -45,7 +45,7 @@ hound_data_id parse_num(const char *s)
     hound_data_id id;
 
     errno = 0;
-    id = strtol(s, NULL, 0);
+    id = strtoul(s, NULL, 0);
     XASSERT_OK(errno);
 
     return id;
