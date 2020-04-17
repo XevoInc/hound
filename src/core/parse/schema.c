@@ -48,6 +48,12 @@ hound_data_id parse_num(const char *s)
     id = strtoul(s, NULL, 0);
     XASSERT_OK(errno);
 
+    /*
+     * Make sure we are within UINT32_MAX, to guard against 32/64 bit issues
+     * with sizeof(long).
+     */
+    XASSERT_LTE(id, UINT32_MAX);
+
     return id;
 }
 
