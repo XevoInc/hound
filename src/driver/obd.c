@@ -594,7 +594,7 @@ static struct driver_ops obd_driver = {
 };
 
 HOUND_DRIVER_REGISTER_FUNC
-static void register_gps_driver(void)
+static void register_obd_driver(void)
 {
     driver_register("obd", &obd_driver);
 }
