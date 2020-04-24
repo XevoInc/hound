@@ -37,7 +37,7 @@ struct driver_ops {
      * @param device_name a pointer to a string with length HOUND_DEVICE_NAME_MAX,
      * including the '\0' character. The driver must fill this in with a device
      * ID and include the '\0' character. If the driver does not have or cannot
-     * find a device ID, it should fill in an empty string of just '0'.
+     * find a device ID, it should fill in an empty string.
      *
      * @return an error code
      */
