@@ -339,7 +339,7 @@ void destroy_init_list(size_t init_count, struct driver_init *init_list)
 }
 
 static
-hound_err parse_file(FILE *file, const char *schema_base)
+hound_err register_config(FILE *file, const char *schema_base)
 {
     yaml_document_t doc;
     hound_err err;
@@ -394,7 +394,7 @@ hound_err parse_config(const char *config_path, const char *schema_base)
         goto error_fopen;
     }
 
-    err = parse_file(f, schema_base);
+    err = register_config(f, schema_base);
     fclose(f);
     if (err != HOUND_OK) {
         goto error_parse;
