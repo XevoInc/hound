@@ -15,7 +15,6 @@
 #include <hound-test/assert.h>
 #include <hound-test/id.h>
 #include <linux/limits.h>
-#include <string.h>
 #include <unistd.h>
 
 #define FD_INVALID (-1)
@@ -91,7 +90,6 @@ static
 hound_err file_datadesc(
     size_t *desc_count,
     struct hound_datadesc **out_descs,
-    char *schema,
     drv_sched_mode *mode)
 {
     struct hound_datadesc *desc;
@@ -99,7 +97,6 @@ hound_err file_datadesc(
 
     XASSERT_NOT_NULL(desc_count);
     XASSERT_NOT_NULL(out_descs);
-    XASSERT_NOT_NULL(schema);
 
     *desc_count = 1;
     desc = drv_alloc(sizeof(*desc));
@@ -107,8 +104,6 @@ hound_err file_datadesc(
         err = HOUND_OOM;
         goto out;
     }
-
-    strcpy(schema, "file.yaml");
 
     err = drv_deepcopy_desc(desc, &s_datadesc);
     if (err != HOUND_OK) {

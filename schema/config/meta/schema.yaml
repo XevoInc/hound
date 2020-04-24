@@ -25,6 +25,10 @@ items:
       type: string
       description: a driver device path
       minLength: 1
+    schema:
+      type: string
+      description: a driver schema
+      minLength: 1
     args:
       description: initialization arguments for a driver
       oneOf:

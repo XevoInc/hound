@@ -21,7 +21,6 @@
 #include <linux/sockios.h>
 #include <net/if.h>
 #include <stdbool.h>
-#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -220,7 +219,6 @@ static
 hound_err obd_datadesc(
     size_t *desc_count,
     struct hound_datadesc **out_descs,
-    char *schema,
     drv_sched_mode *mode)
 {
     struct obd_ctx *ctx;
@@ -230,12 +228,10 @@ hound_err obd_datadesc(
 
     XASSERT_NOT_NULL(desc_count);
     XASSERT_NOT_NULL(out_descs);
-    XASSERT_NOT_NULL(schema);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
 
-    strcpy(schema, ctx->yobd_schema);
     *mode = DRV_SCHED_PULL;
 
     yerr = yobd_get_pid_count(ctx->yobd_ctx, desc_count);

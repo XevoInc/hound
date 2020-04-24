@@ -125,10 +125,11 @@ hound_err hound_init_driver(
     const char *name,
     const char *path,
     const char *schema_base,
+    const char *schema,
     size_t arg_count,
     const struct hound_init_arg *args)
 {
-    return driver_init(name, path, schema_base, arg_count, args);
+    return driver_init(name, path, schema_base, schema, arg_count, args);
 }
 
 PUBLIC_API

@@ -1,4 +1,5 @@
 ---
 - name: nop
   path: /dev/nop
+  schema: nop.yaml
   args:

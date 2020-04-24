@@ -120,7 +120,7 @@ int main(int argc, const char **argv)
     }
     location = argv[1];
 
-    err = hound_init_driver("gps", location, NULL, 0, NULL);
+    err = hound_init_driver("gps", location, NULL, "gps.yaml", 0, NULL);
     XASSERT_OK(err);
 
     err = hound_get_datadescs(&descs, &len);

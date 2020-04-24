@@ -121,7 +121,7 @@ int main(int argc, const char **argv)
 
     init.type = HOUND_TYPE_UINT64;
     init.data.as_uint64 = buf_ns;
-    err = hound_init_driver("iio", dev, NULL, 1, &init);
+    err = hound_init_driver("iio", dev, NULL, "iio.yaml", 1, &init);
     XASSERT_OK(err);
 
     err = hound_get_datadescs(&descs, &len);

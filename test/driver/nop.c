@@ -88,7 +88,6 @@ static
 hound_err nop_datadesc(
     size_t *desc_count,
     struct hound_datadesc **out_descs,
-    char *schema,
     drv_sched_mode *mode)
 {
     struct hound_datadesc *desc;
@@ -97,7 +96,6 @@ hound_err nop_datadesc(
 
     XASSERT_NOT_NULL(desc_count);
     XASSERT_NOT_NULL(out_descs);
-    XASSERT_NOT_NULL(schema);
 
     *desc_count = ARRAYLEN(s_datadesc);
     desc = drv_alloc(*desc_count*sizeof(*desc));
@@ -105,8 +103,6 @@ hound_err nop_datadesc(
         err = HOUND_OOM;
         goto out;
     }
-
-    strcpy(schema, "nop.yaml");
 
     for (i = 0; i < ARRAYLEN(s_datadesc); ++i) {
         err = drv_deepcopy_desc(&desc[i], &s_datadesc[i]);

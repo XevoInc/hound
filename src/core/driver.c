@@ -227,6 +227,7 @@ hound_err driver_init(
     const char *name,
     const char *path,
     const char *schema_base,
+    const char *schema,
     size_t arg_count,
     const struct hound_init_arg *args)
 {
@@ -242,7 +243,6 @@ hound_err driver_init(
     size_t offset;
     const struct driver_ops *ops;
     int ret;
-    char schema[PATH_MAX];
     size_t schema_desc_count;
     struct schema_desc *schema_desc;
     struct schema_desc *schema_descs;
@@ -313,27 +313,17 @@ hound_err driver_init(
         goto error_device_name;
     }
 
+    err = schema_parse(schema_base, schema, &schema_desc_count, &schema_descs);
+    if (err != HOUND_OK) {
+        goto error_datadesc;
+    }
+
     /* Get all the supported data for the driver. */
     err = drv_op_datadesc(
         drv,
         &drv->datacount,
         &drv->data,
-        schema,
         &drv->sched_mode);
-    if (err != HOUND_OK) {
-        goto error_datadesc;
-    }
-
-    /*
-     * Parse and verify the schema, and calculate offsets from the provided
-     * lengths.
-     */
-    if (strnlen(schema, PATH_MAX) == PATH_MAX) {
-        err = HOUND_INVALID_STRING;
-        goto error_datadesc;
-    }
-
-    err = schema_parse(schema_base, schema, &schema_desc_count, &schema_descs);
     if (err != HOUND_OK) {
         goto error_datadesc;
     }

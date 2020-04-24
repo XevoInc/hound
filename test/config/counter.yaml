@@ -1,6 +1,7 @@
 ---
 - name: counter
   path: /dev/counter
+  schema: counter.yaml
   args:
     - type: uint64
       val: 0

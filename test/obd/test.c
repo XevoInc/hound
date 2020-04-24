@@ -295,7 +295,13 @@ int main(int argc, const char **argv)
     yobd_schema = "sae-standard.yaml";
     init.type = HOUND_TYPE_BYTES;
     init.data.as_bytes = yobd_schema;
-    err = hound_init_driver("obd", s_ctx.iface, schema_base, 1, &init);
+    err = hound_init_driver(
+        "obd",
+        s_ctx.iface,
+        schema_base,
+        "sae-standard.yaml",
+        1,
+        &init);
     XASSERT_OK(err);
 
     pid = start_sim(s_ctx.iface, yobd_schema, sim_path);

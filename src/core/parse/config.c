@@ -24,6 +24,7 @@
 struct driver_init {
     const char *name;
     const char *path;
+    const char *schema;
     size_t arg_count;
     struct hound_init_arg *args;
 };
@@ -231,6 +232,11 @@ hound_err parse_driver(
             val_str = (const char *) val->data.scalar.value;
             init->path = val_str;
         }
+        else if (strcmp(key_str, "schema") == 0) {
+            XASSERT_EQ(val->type, YAML_SCALAR_NODE);
+            val_str = (const char *) val->data.scalar.value;
+            init->schema = val_str;
+        }
         else if (strcmp(key_str, "args") == 0) {
             err = parse_args(doc, val, init);
             if (err != HOUND_OK) {
@@ -306,6 +312,7 @@ hound_err register_drivers(
             init->name,
             init->path,
             schema_base,
+            init->schema,
             init->arg_count,
             init->args);
         if (err != HOUND_OK) {

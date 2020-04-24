@@ -16,7 +16,6 @@
 #include <hound-private/log.h>
 #include <hound-private/util.h>
 #include <stdlib.h>
-#include <string.h>
 
 /* Make sure gps.h looks the way we expect. */
 static_assert(
@@ -152,7 +151,6 @@ static
 hound_err gps_datadesc(
     size_t *desc_count,
     struct hound_datadesc **out_descs,
-    char *schema,
     drv_sched_mode *mode)
 {
     struct hound_datadesc *desc;
@@ -160,7 +158,6 @@ hound_err gps_datadesc(
 
     XASSERT_NOT_NULL(desc_count);
     XASSERT_NOT_NULL(out_descs);
-    XASSERT_NOT_NULL(schema);
 
     *desc_count = 1;
     desc = drv_alloc(sizeof(*desc));
@@ -168,8 +165,6 @@ hound_err gps_datadesc(
         err = HOUND_OOM;
         goto out;
     }
-
-    strcpy(schema, "gps.yaml");
 
     err = drv_deepcopy_desc(desc, &s_datadesc);
     if (err != HOUND_OK) {

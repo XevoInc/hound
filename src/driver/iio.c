@@ -20,7 +20,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
@@ -43,7 +42,6 @@ struct device_entry {
     const struct chan_desc *channels;
     const char *freqs_file;
     const char *freqs_avail_file;
-    const char *schema;
 };
 
 struct device_parse_entry {
@@ -114,7 +112,6 @@ static const struct device_entry s_channels[] = {
         .channels = s_accel_chan,
         .freqs_file = "in_accel_sampling_frequency",
         .freqs_avail_file = "in_accel_sampling_frequency_available",
-        .schema = "accel.yaml"
     },
     {
         .id = HOUND_DATA_GYRO,
@@ -122,7 +119,6 @@ static const struct device_entry s_channels[] = {
         .channels = s_gyro_chan,
         .freqs_file = "in_anglvel_sampling_frequency",
         .freqs_avail_file = "in_anglvel_sampling_frequency_available",
-        .schema = "gyro.yaml"
     }
 };
 
@@ -754,7 +750,6 @@ static
 hound_err iio_datadesc(
     size_t *out_desc_count,
     struct hound_datadesc **out_descs,
-    char *schema,
     drv_sched_mode *mode)
 {
     hound_data_period *avail_periods;
@@ -770,7 +765,6 @@ hound_err iio_datadesc(
 
     XASSERT_NOT_NULL(out_desc_count);
     XASSERT_NOT_NULL(out_descs);
-    XASSERT_NOT_NULL(schema);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
@@ -855,7 +849,6 @@ hound_err iio_datadesc(
     }
 
     *mode = DRV_SCHED_PUSH;
-    strcpy(schema, "iio.yaml");
     *out_descs = descs;
     *out_desc_count = desc_count;
     err = HOUND_OK;

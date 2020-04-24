@@ -456,7 +456,7 @@ hound_err hound_max_queue_length(struct hound_ctx *ctx, size_t *count);
 /**
  * Initializes drivers specified in the given config file.
  *
- * @param[in] config the path to a device file
+ * @param[in] config the path to a driver config file
  *
  * @return an error code
  */
@@ -467,7 +467,9 @@ hound_err hound_init_config(const char *config, const char *schema_base);
  *
  * @param[in] name the name of the driver
  * @param[in] path the path to a device file
- * @param[in] schema_base the directory in which schema files reside
+ * @param[in] schema_base the directory in which schema files reside, or NULL,
+ *                        which will use the default schema directory
+ * @param[in] schema the name of a schema to use
  * @param[in] arg_count the number of driver init argumnts
  * @param[in] args an array of strings representing driver init arguments
  *
@@ -477,6 +479,7 @@ hound_err hound_init_driver(
     const char *name,
     const char *path,
     const char *schema_base,
+    const char *schema,
     size_t arg_count,
     const struct hound_init_arg *args);
 
