@@ -46,10 +46,9 @@ typedef enum {
     HOUND_DEV_DOES_NOT_EXIST = -22,
     HOUND_TOO_MUCH_DATA_REQUESTED = -23,
     HOUND_DUPLICATE_DATA_REQUESTED = -24,
-    HOUND_ID_NOT_IN_SCHEMA = -25,
-    HOUND_DESC_DUPLICATE = -26,
-    HOUND_DRIVER_ALREADY_PRESENT = -27,
-    HOUND_CTX_STOPPED = -28
+    HOUND_DRIVER_ALREADY_PRESENT = -25,
+    HOUND_CTX_STOPPED = -26,
+    HOUND_NO_DESCS_ENABLED = -27
 } hound_err;
 
 /**
@@ -176,7 +175,7 @@ struct hound_data_fmt {
      */
     size_t size;
 
-    /** The type of the given data format. */
+    /** the type of the given data format. */
     hound_type type;
 };
 
@@ -187,20 +186,21 @@ struct hound_datadesc {
     /** an ID uniquely describing a device. */
     hound_dev_id dev_id;
 
-    /** the name of this datatype */
+    /** the name of this datatype. */
     const char *name;
 
     /** the number of available periods for this data */
     hound_period_count period_count;
 
     /** an array of periods available for this data */
-    const hound_data_period *avail_periods;
+    hound_data_period *avail_periods;
 
     /** the number of data formats inside a given record */
     size_t fmt_count;
 
     /** an array of data formats */
     struct hound_data_fmt *fmts;
+
 };
 
 struct hound_data_rq {

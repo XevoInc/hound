@@ -9,7 +9,6 @@
 
 #include <hound/hound.h>
 #include <hound-private/driver.h>
-#include <hound-private/driver/util.h>
 #include <hound-private/util.h>
 #include <hound-test/assert.h>
 #include <hound-test/id.h>
@@ -21,13 +20,6 @@
 
 #define READ_END (0)
 #define WRITE_END (1)
-
-static const char *s_device_name = "counter";
-static const struct hound_datadesc s_datadesc = {
-    .data_id = HOUND_DATA_COUNTER,
-    .period_count = 0,
-    .avail_periods = NULL
-};
 
 struct counter_ctx {
     int pipe[2];
@@ -73,43 +65,28 @@ hound_err counter_destroy(void)
 static
 hound_err counter_device_name(char *device_name)
 {
-    strcpy(device_name, s_device_name);
+    strcpy(device_name, "counter");
 
     return HOUND_OK;
 }
 
 static
 hound_err counter_datadesc(
-    size_t *desc_count,
-    struct hound_datadesc **out_descs,
+    size_t desc_count,
+    struct drv_datadesc *descs,
     drv_sched_mode *mode)
 {
-    struct hound_datadesc *desc;
-    hound_err err;
+    struct drv_datadesc *desc;
 
-    XASSERT_NOT_NULL(desc_count);
-    XASSERT_NOT_NULL(out_descs);
-
-    *desc_count = 1;
-    desc = drv_alloc(sizeof(*desc));
-    if (desc == NULL) {
-        err = HOUND_OOM;
-        goto out;
-    }
-
-    err = drv_deepcopy_desc(desc, &s_datadesc);
-    if (err != HOUND_OK) {
-        goto error_deepcopy;
-    }
+    XASSERT_EQ(desc_count, 1);
+    desc = &descs[0];
+    desc->enabled = true;
+    desc->period_count = 0;
+    desc->avail_periods = NULL;
 
     *mode = DRV_SCHED_PULL;
-    *out_descs = desc;
-    goto out;
 
-error_deepcopy:
-    drv_free(desc);
-out:
-    return err;
+    return HOUND_OK;
 }
 
 static
@@ -162,7 +139,7 @@ hound_err counter_parse(
         /* We have at least a full record. */
         err = clock_gettime(CLOCK_REALTIME, &record->timestamp);
         XASSERT_EQ(err, 0);
-        record->data_id = s_datadesc.data_id;
+        record->data_id = HOUND_DATA_COUNTER;
         record->size = sizeof(ctx->count);
         memcpy(record->data, pos, sizeof(ctx->count));
         pos += sizeof(ctx->count);

@@ -11,7 +11,6 @@
 #include <hound-private/driver.h>
 #include <hound-private/error.h>
 #include <hound-private/driver.h>
-#include <hound-private/driver/util.h>
 #include <hound-private/parse/common.h>
 #include <hound-private/parse/schema.h>
 #include <hound-private/util.h>
@@ -28,14 +27,14 @@ void destroy_desc_fmts(size_t count, struct hound_data_fmt *fmts)
     size_t i;
 
     for (i = 0; i < count; ++i) {
-        drv_free((char *) fmts[i].name);
+        free((char *) fmts[i].name);
     }
-    drv_free(fmts);
+    free(fmts);
 }
 
 void destroy_schema_desc(struct schema_desc *desc)
 {
-    drv_free((char *) desc->name);
+    free((char *) desc->name);
     destroy_desc_fmts(desc->fmt_count, desc->fmts);
 }
 
@@ -194,7 +193,7 @@ hound_err parse_fmts(
     XASSERT_GTE(fmt_count, 1);
     XASSERT_LTE(fmt_count, MAX_FMT_ENTRIES);
 
-    fmts = drv_alloc(fmt_count * sizeof(*fmts));
+    fmts = malloc(fmt_count * sizeof(*fmts));
     if (fmts == NULL) {
         return HOUND_OOM;
     }
@@ -322,7 +321,7 @@ hound_err parse(
 
     if (err == HOUND_OK) {
         descs_size = xv_size(descs) * sizeof(**out_descs);
-        *out_descs = drv_alloc(descs_size);
+        *out_descs = malloc(descs_size);
         if (*out_descs == NULL) {
             err = HOUND_OOM;
         }

@@ -14,13 +14,6 @@
 void schema_init(void);
 void schema_destroy(void);
 
-struct schema_desc {
-    hound_data_id data_id;
-    char *name;
-    size_t fmt_count;
-    struct hound_data_fmt *fmts;
-};
-
 void destroy_desc_fmts(size_t count, struct hound_data_fmt *fmts);
 void destroy_schema_desc(struct schema_desc *desc);
 

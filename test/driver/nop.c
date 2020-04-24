@@ -9,7 +9,6 @@
 
 #include <hound/hound.h>
 #include <hound-private/driver.h>
-#include <hound-private/driver/util.h>
 #include <hound-private/util.h>
 #include <hound-test/assert.h>
 #include <hound-test/id.h>
@@ -21,7 +20,11 @@
 
 #define FD_INVALID (-1)
 
-static const char *s_device_name = "nop";
+struct period_desc {
+    size_t period_count;
+    const hound_data_period *avail_periods;
+};
+
 static const hound_data_period s_nop1_period[] = {
     0,
     NSEC_PER_SEC,
@@ -31,14 +34,12 @@ static const hound_data_period s_nop1_period[] = {
     NSEC_PER_SEC/2000
 };
 static const hound_data_period s_nop2_period[] = { 0 };
-static const struct hound_datadesc s_datadesc[] = {
+static const struct period_desc s_period_descs[] = {
     {
-        .data_id = HOUND_DATA_NOP1,
         .period_count = ARRAYLEN(s_nop1_period),
         .avail_periods = s_nop1_period
     },
     {
-        .data_id = HOUND_DATA_NOP2,
         .period_count = ARRAYLEN(s_nop2_period),
         .avail_periods = s_nop2_period
     }
@@ -79,49 +80,43 @@ hound_err nop_device_name(char *device_name)
 {
     XASSERT_NOT_NULL(device_name);
 
-    strcpy(device_name, s_device_name);
+    strcpy(device_name, "nop");
 
     return HOUND_OK;
 }
 
 static
 hound_err nop_datadesc(
-    size_t *desc_count,
-    struct hound_datadesc **out_descs,
+    size_t desc_count,
+    struct drv_datadesc *descs,
     drv_sched_mode *mode)
 {
-    struct hound_datadesc *desc;
-    hound_err err;
+    struct drv_datadesc *desc;
+    const struct period_desc *p_desc;
     size_t i;
+    size_t size;
 
-    XASSERT_NOT_NULL(desc_count);
-    XASSERT_NOT_NULL(out_descs);
+    XASSERT_EQ(desc_count, ARRAYLEN(s_period_descs));
 
-    *desc_count = ARRAYLEN(s_datadesc);
-    desc = drv_alloc(*desc_count*sizeof(*desc));
-    if (desc == NULL) {
-        err = HOUND_OOM;
-        goto out;
-    }
-
-    for (i = 0; i < ARRAYLEN(s_datadesc); ++i) {
-        err = drv_deepcopy_desc(&desc[i], &s_datadesc[i]);
-        if (err != HOUND_OK) {
-            for (--i; i < ARRAYLEN(s_datadesc); --i) {
-                drv_destroy_desc(&desc[i]);
+    for (i = 0; i < ARRAYLEN(s_period_descs); ++i) {
+        desc = &descs[i];
+        p_desc = &s_period_descs[i];
+        desc->enabled = true;
+        desc->period_count = p_desc->period_count;
+        size = p_desc->period_count * sizeof(*p_desc->avail_periods);
+        desc->avail_periods = drv_alloc(size);
+        if (desc->avail_periods == NULL) {
+            for (--i; i < ARRAYLEN(s_period_descs); ++i) {
+                drv_free(descs[i].avail_periods);
+                return HOUND_OOM;
             }
-            goto error_deepcopy;
         }
+        memcpy(desc->avail_periods, p_desc->avail_periods, size);
     }
 
     *mode = DRV_SCHED_PUSH;
-    *out_descs = desc;
-    return HOUND_OK;
 
-error_deepcopy:
-    drv_free(desc);
-out:
-    return err;
+    return HOUND_OK;
 }
 
 static

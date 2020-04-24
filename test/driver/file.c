@@ -10,7 +10,6 @@
 #include <fcntl.h>
 #include <hound/hound.h>
 #include <hound-private/driver.h>
-#include <hound-private/driver/util.h>
 #include <hound-private/util.h>
 #include <hound-test/assert.h>
 #include <hound-test/id.h>
@@ -22,7 +21,6 @@
 #define READ_END (0)
 #define WRITE_END (1)
 
-static const char *s_device_name = "file";
 static hound_data_period s_period_ns = 0;
 static struct hound_datadesc s_datadesc = {
     .data_id = HOUND_DATA_FILE,
@@ -81,43 +79,32 @@ hound_err file_device_name(char *device_name)
 {
     XASSERT_NOT_NULL(device_name);
 
-    strcpy(device_name, s_device_name);
+    strcpy(device_name, "file");
 
     return HOUND_OK;
 }
 
 static
 hound_err file_datadesc(
-    size_t *desc_count,
-    struct hound_datadesc **out_descs,
+    size_t desc_count,
+    struct drv_datadesc *descs,
     drv_sched_mode *mode)
 {
-    struct hound_datadesc *desc;
-    hound_err err;
+    struct drv_datadesc *desc;
 
-    XASSERT_NOT_NULL(desc_count);
-    XASSERT_NOT_NULL(out_descs);
-
-    *desc_count = 1;
-    desc = drv_alloc(sizeof(*desc));
-    if (desc == NULL) {
-        err = HOUND_OOM;
-        goto out;
+    XASSERT_EQ(desc_count, 1);
+    desc = &descs[0];
+    desc->enabled = true;
+    desc->period_count = 1;
+    desc->avail_periods = malloc(sizeof(*desc));
+    if (desc->avail_periods == NULL) {
+        return HOUND_OOM;
     }
-
-    err = drv_deepcopy_desc(desc, &s_datadesc);
-    if (err != HOUND_OK) {
-        goto error_deepcopy;
-    }
+    desc->avail_periods[0] = 0;
 
     *mode = DRV_SCHED_PUSH;
-    *out_descs = desc;
-    goto out;
 
-error_deepcopy:
-    drv_free(desc);
-out:
-    return err;
+    return HOUND_OK;
 }
 
 static

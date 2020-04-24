@@ -1,6 +1,5 @@
 #define _POSIX_C_SOURCE 200809L
 #include <hound-private/driver-ops.h>
-#include <hound-private/driver/util.h>
 #include <hound-private/error.h>
 #include <hound-private/parse/schema.h>
 #include <hound-private/util.h>
@@ -56,41 +55,4 @@ void drv_set_ctx(void *ctx)
     drv = get_active_drv();
     XASSERT_NOT_NULL(drv);
     drv->ctx = ctx;
-}
-
-PUBLIC_API
-hound_err drv_deepcopy_desc(
-    struct hound_datadesc *dest,
-    const struct hound_datadesc *src)
-{
-    XASSERT_NOT_NULL(src);
-    XASSERT_NOT_NULL(dest);
-
-    dest->data_id = src->data_id;
-
-    dest->period_count = src->period_count;
-    dest->avail_periods = drv_alloc(
-        src->period_count*sizeof(*src->avail_periods));
-    if (dest->avail_periods == NULL) {
-        return HOUND_OOM;
-    }
-    memcpy(
-        (void *) dest->avail_periods,
-        src->avail_periods,
-        src->period_count*sizeof(*src->avail_periods));
-
-    /*
-     * Note that we don't copy the format information, as it is managed by the
-     * driver core, and not the drivers themselves.
-     */
-
-    return HOUND_OK;
-}
-
-PUBLIC_API
-void drv_destroy_desc(struct hound_datadesc *desc)
-{
-    drv_free((void *) desc->name);
-    drv_free((void *) desc->avail_periods);
-    destroy_desc_fmts(desc->fmt_count, desc->fmts);
 }

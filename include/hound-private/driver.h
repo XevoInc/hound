@@ -18,6 +18,23 @@
 /** Maximum number of records a driver can produce from a single parse call. */
 #define HOUND_DRIVER_MAX_RECORDS 1000
 
+struct schema_desc {
+    hound_data_id data_id;
+    const char *name;
+    size_t fmt_count;
+    struct hound_data_fmt *fmts;
+};
+
+struct drv_datadesc {
+    /* These fields to be filled in by Hound drivers. */
+    bool enabled;
+    hound_period_count period_count;
+    hound_data_period *avail_periods;
+
+    /* These fields to be filled in by the core schema parsing code. */
+    struct schema_desc *schema_desc;
+};
+
 typedef enum {
     DRV_SCHED_PULL,
     DRV_SCHED_PUSH
@@ -44,20 +61,20 @@ struct driver_ops {
     hound_err (*device_name)(char *device_name);
 
     /**
-     * Get the data descriptors supported by this driver. These descriptors must
-     * be allocated with drv_alloc. Their memory is owned by the driver core.
+     * Get the data descriptors supported by this driver.
      *
      * @param desc_count the length of the descriptors array
-     * @param descs a pointer to an array of data descriptors. The memory for
-     *             for this array is owned by the driver core when this driver
-     *             op finishes, so it must be allocated via drv_alloc().
+     * @param descs a pointer to an array of data descriptors as parsed by the
+     *              driver's schema. The driver should set the "enabled" member
+     *              of the struct to true if the descriptor is available and
+     *              false otherwise.
      * @param mode the driver's scheduling mode
      *
      * @return an error code
      */
     hound_err (*datadesc)(
-        size_t *desc_count,
-        struct hound_datadesc **descs,
+        size_t desc_count,
+        struct drv_datadesc *descs,
         drv_sched_mode *mode);
 
     hound_err (*setdata)(const struct hound_data_rq_list *data);

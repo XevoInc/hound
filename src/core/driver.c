@@ -9,7 +9,6 @@
 #include <hound/hound.h>
 #include <hound-private/driver.h>
 #include <hound-private/driver-ops.h>
-#include <hound-private/driver/util.h>
 #include <hound-private/error.h>
 #include <hound-private/io.h>
 #include <hound-private/log.h>
@@ -222,6 +221,42 @@ size_t get_type_size(hound_type type)
     XASSERT_ERROR;
 }
 
+static
+void copy_desc(
+    struct hound_datadesc *datadesc,
+    struct drv_datadesc *drv_desc,
+    hound_dev_id dev_id)
+{
+    struct schema_desc *schema_desc;
+
+    schema_desc = drv_desc->schema_desc;
+    datadesc->data_id = schema_desc->data_id;
+    datadesc->dev_id = dev_id;
+    datadesc->name = schema_desc->name;
+
+    /*
+     * We need to nullify the pointer members of the schema descriptor
+     * because we are moving them into the driver data descriptor. When we
+     * free the schema descriptors, we need to not do a double-free.
+     *
+     * If you like C++, pretend this is std::move :).
+     */
+    datadesc->period_count = drv_desc->period_count;
+    datadesc->avail_periods = drv_desc->avail_periods;
+    datadesc->fmt_count = schema_desc->fmt_count;
+    datadesc->fmts = schema_desc->fmts;
+    drv_desc->avail_periods = NULL;
+    schema_desc->name = NULL;
+    schema_desc->fmt_count = 0;
+    schema_desc->fmts = NULL;
+}
+
+static
+void destroy_drv_desc(struct drv_datadesc *desc)
+{
+    free(desc->avail_periods);
+}
+
 PUBLIC_API
 hound_err driver_init(
     const char *name,
@@ -231,19 +266,21 @@ hound_err driver_init(
     size_t arg_count,
     const struct hound_init_arg *args)
 {
-    struct hound_datadesc *desc;
+    size_t desc_count;
     struct driver *drv;
+    struct drv_datadesc *drv_desc;
+    struct drv_datadesc *drv_descs;
     char *drv_path;
+    size_t enabled_count;
     hound_err err;
     struct hound_data_fmt *fmt;
-    bool found;
     size_t i;
     size_t j;
     xhiter_t iter;
+    size_t next_index;
     size_t offset;
     const struct driver_ops *ops;
     int ret;
-    size_t schema_desc_count;
     struct schema_desc *schema_desc;
     struct schema_desc *schema_descs;
     size_t size;
@@ -258,16 +295,14 @@ hound_err driver_init(
     ops = xh_val(s_ops_map, iter);
 
     if (strnlen(path, PATH_MAX) == PATH_MAX) {
-        err = HOUND_INVALID_STRING;
-        goto out;
+        return HOUND_INVALID_STRING;
     }
 
     if (schema_base == NULL) {
         schema_base = CONFIG_HOUND_SCHEMADIR;
     }
     else if (strnlen(schema_base, PATH_MAX) == PATH_MAX) {
-        err = HOUND_INVALID_STRING;
-        goto out;
+        return HOUND_INVALID_STRING;
     }
 
     pthread_rwlock_wrlock(&s_driver_rwlock);
@@ -313,23 +348,13 @@ hound_err driver_init(
         goto error_device_name;
     }
 
-    err = schema_parse(schema_base, schema, &schema_desc_count, &schema_descs);
+    err = schema_parse(schema_base, schema, &desc_count, &schema_descs);
     if (err != HOUND_OK) {
-        goto error_datadesc;
-    }
-
-    /* Get all the supported data for the driver. */
-    err = drv_op_datadesc(
-        drv,
-        &drv->datacount,
-        &drv->data,
-        &drv->sched_mode);
-    if (err != HOUND_OK) {
-        goto error_datadesc;
+        goto error_schema_parse;
     }
 
     /* Make sure the descriptors and formats are sane. */
-    for (i = 0; i < schema_desc_count; ++i) {
+    for (i = 0; i < desc_count; ++i) {
         schema_desc = &schema_descs[i];
         XASSERT_NOT_NULL(schema_desc->name);
         XASSERT_GTE(schema_desc->fmt_count, 1);
@@ -358,66 +383,85 @@ hound_err driver_init(
         }
     }
 
-    /* Verify that all driver descriptors are sane. */
-    for (i = 0; i < drv->datacount; ++i) {
-        desc = &drv->data[i];
-        if (desc->period_count > 0 && desc->avail_periods == NULL) {
-            err = HOUND_NULL_VAL;
-            goto error_datadesc;
-        }
+    /*
+     * Allocate driver descriptors for the schema data, which drivers will use
+     * to fill in the missing information (enabled/disabled, available periods)
+     * for each schema descriptor.
+     */
+    drv_descs = malloc(desc_count * sizeof(*drv_descs));
+    if (drv_descs == NULL) {
+        err = HOUND_OOM;
+        goto error_alloc_drv_descs;
+    }
 
-        /* Make sure the driver provides at most one entry for each data ID. */
-        for (j = i+1; j < drv->datacount; ++j) {
-            if (desc->data_id == drv->data[j].data_id) {
-                err = HOUND_DESC_DUPLICATE;
-            goto error_datadesc;
-            }
-        }
+    /* Initialize driver descriptors before passing them into the driver. */
+    for (i = 0; i < desc_count; ++i) {
+        drv_desc = &drv_descs[i];
+        drv_desc->enabled = false;
+        drv_desc->period_count = 0;
+        drv_desc->avail_periods = NULL;
+        drv_desc->schema_desc = &schema_descs[i];
+    }
 
-        /*
-         * Make sure this data ID is mentioned in the schema, and copy its
-         * format data.
-         */
-        found = false;
-        for (j = 0; j < schema_desc_count; ++j) {
-            schema_desc = &schema_descs[j];
-            if (desc->data_id == schema_desc->data_id) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            err = HOUND_ID_NOT_IN_SCHEMA;
-            goto error_datadesc;
-        }
-        /*
-         * We need to nullify the pointer members of the schema descriptor
-         * because we are moving them into the driver data descriptor. When we
-         * free the schema descriptors, we need to not do a double-free.
-         *
-         * If you like C++, pretend this is std::move :).
-         */
-        desc->name = schema_desc->name;
-        desc->fmt_count = schema_desc->fmt_count;
-        desc->fmts = schema_desc->fmts;
-        schema_desc->name = NULL;
-        schema_desc->fmt_count = 0;
-        schema_desc->fmts = NULL;
+    /* Get all the supported data for the driver. */
+    err = drv_op_datadesc(
+        drv,
+        desc_count,
+        drv_descs,
+        &drv->sched_mode);
+    if (err != HOUND_OK) {
+        goto error_drv_datadesc;
+    }
 
-        iter = xh_get(DATA_MAP, s_data_map, drv->data[i].data_id);
+    /*
+     * Count the number of enabled descriptors so we can allocate a data
+     * descriptor array. While we're looping through the descriptors, validate
+     * that the driver gave us sane data.
+     */
+    enabled_count = 0;
+    for (i = 0; i < desc_count; ++i) {
+        drv_desc = &drv_descs[i];
+        if (!drv_desc->enabled) {
+            continue;
+        }
+        ++enabled_count;
+
+        /* Verify that multiple drivers don't claim the same data ID. */
+        iter = xh_get(DATA_MAP, s_data_map, drv_desc->schema_desc->data_id);
         if (iter != xh_end(s_data_map)) {
             err = HOUND_CONFLICTING_DRIVERS;
-            goto error_datadesc;
+            goto error_drv_datadesc;
         }
 
-        desc->dev_id = drv->id;
+    }
+    if (enabled_count == 0) {
+        err = HOUND_NO_DESCS_ENABLED;
+        goto error_drv_datadesc;
     }
 
-    for (i = 0; i < schema_desc_count; ++i) {
-        schema_desc = &schema_descs[i];
-        destroy_schema_desc(schema_desc);
+    /* Copy driver descriptors into user-facing data descriptors. */
+    drv->data = malloc(enabled_count * sizeof(*drv->data));
+    if (drv->data == NULL) {
+        err = HOUND_OOM;
+        goto error_drv_datadesc;
     }
-    drv_free(schema_descs);
+
+    drv->datacount = enabled_count;
+    next_index = 0;
+    for (i = 0; i < desc_count; ++i) {
+        if (!drv_descs[i].enabled) {
+            continue;
+        }
+        copy_desc(&drv->data[next_index], &drv_descs[i], drv->id);
+        ++next_index;
+    }
+
+    for (i = 0; i < desc_count; ++i) {
+        destroy_drv_desc(&drv_descs[i]);
+        destroy_schema_desc(&schema_descs[i]);
+    }
+    free(drv_descs);
+    free(schema_descs);
 
     /*
      * Finally, commit the driver into all the maps.
@@ -454,13 +498,32 @@ error_data_map_put:
 error_device_map_put:
     free(drv_path);
 error_alloc_drv_path:
-error_datadesc:
+    free(drv->data);
+error_drv_datadesc:
+    for (i = 0; i < desc_count; ++i) {
+        destroy_drv_desc(&drv_descs[i]);
+    }
+    free(drv_descs);
+error_alloc_drv_descs:
+    for (i = 0; i < desc_count; ++i) {
+        destroy_schema_desc(&schema_descs[i]);
+    }
+    free(schema_descs);
+error_schema_parse:
 error_device_name:
 error_init:
     free(drv);
 out:
     pthread_rwlock_unlock(&s_driver_rwlock);
     return err;
+}
+
+static
+void drv_destroy_desc(struct hound_datadesc *desc)
+{
+    drv_free((void *) desc->name);
+    drv_free((void *) desc->avail_periods);
+    destroy_desc_fmts(desc->fmt_count, desc->fmts);
 }
 
 hound_err driver_destroy_helper(const char *path, pthread_rwlock_t *lock)

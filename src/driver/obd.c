@@ -11,7 +11,6 @@
 #include <hound/hound.h>
 #include <hound/driver/obd.h>
 #include <hound-private/driver.h>
-#include <hound-private/driver/util.h>
 #include <hound-private/error.h>
 #include <hound-private/log.h>
 #include <hound-private/util.h>
@@ -194,61 +193,36 @@ struct iter_helper {
 };
 
 static
-bool make_desc(
-    UNUSED const struct yobd_pid_desc *pid_desc,
-    yobd_mode mode,
-    yobd_pid pid,
-    void *data)
-{
-    struct hound_datadesc *desc;
-    struct iter_helper *iter;
-
-    iter = data;
-    desc = &iter->descs[iter->i];
-
-    hound_obd_get_data_id(mode, pid, &desc->data_id);
-    desc->period_count = 0;
-    desc->avail_periods = NULL;
-
-    ++iter->i;
-
-    return false;
-}
-
-static
 hound_err obd_datadesc(
-    size_t *desc_count,
-    struct hound_datadesc **out_descs,
+    size_t desc_count,
+    struct drv_datadesc *descs,
     drv_sched_mode *mode)
 {
     struct obd_ctx *ctx;
-    struct hound_datadesc *descs;
-    struct iter_helper iter;
+    struct drv_datadesc *desc;
+    size_t i;
+    size_t pid_count;
     yobd_err yerr;
-
-    XASSERT_NOT_NULL(desc_count);
-    XASSERT_NOT_NULL(out_descs);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
 
     *mode = DRV_SCHED_PULL;
 
-    yerr = yobd_get_pid_count(ctx->yobd_ctx, desc_count);
+    /*
+     * The PID count and Hound descriptor count should be the same, as the Hound
+     * schema should be generated from the yobd schema.
+     */
+    yerr = yobd_get_pid_count(ctx->yobd_ctx, &pid_count);
     XASSERT_EQ(yerr, YOBD_OK);
+    XASSERT_EQ(pid_count, desc_count);
 
-    descs = drv_alloc(*desc_count * sizeof(*descs));
-    if (descs == NULL && *desc_count > 0) {
-        return HOUND_OOM;
+    for (i = 0; i < desc_count; ++i) {
+        desc = &descs[i];
+        desc->enabled = true;
+        desc->period_count = 0;
+        desc->avail_periods = NULL;
     }
-
-    iter.i = 0;
-    iter.descs = descs;
-    yerr = yobd_pid_foreach(ctx->yobd_ctx, make_desc, &iter);
-    XASSERT_EQ(yerr, YOBD_OK);
-    XASSERT_EQ(iter.i, *desc_count);
-
-    *out_descs = descs;
 
     return HOUND_OK;
 }

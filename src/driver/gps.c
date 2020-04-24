@@ -11,7 +11,6 @@
 #include <hound/hound.h>
 #include <hound/driver/gps.h>
 #include <hound-private/driver.h>
-#include <hound-private/driver/util.h>
 #include <hound-private/error.h>
 #include <hound-private/log.h>
 #include <hound-private/util.h>
@@ -24,14 +23,6 @@ static_assert(
     "guaranteed to be 4 bytes. Since we want to guarantee an ABI to the user, "
     "we fix it at 4 bytes. Thus if the assumption of a 4-byte int ever "
     "changes, we will need code to handle it.");
-
-/* GPS always yields data once per second. */
-static hound_data_period s_avail_periods = NSEC_PER_SEC;
-static struct hound_datadesc s_datadesc = {
-    .data_id = HOUND_DATA_GPS,
-    .period_count = 1,
-    .avail_periods = &s_avail_periods
-};
 
 struct gps_ctx {
     bool active;
@@ -149,36 +140,25 @@ hound_err gps_device_name(char *device_name)
 
 static
 hound_err gps_datadesc(
-    size_t *desc_count,
-    struct hound_datadesc **out_descs,
+    size_t desc_count,
+    struct drv_datadesc *descs,
     drv_sched_mode *mode)
 {
-    struct hound_datadesc *desc;
-    hound_err err;
+    struct drv_datadesc *desc;
 
-    XASSERT_NOT_NULL(desc_count);
-    XASSERT_NOT_NULL(out_descs);
-
-    *desc_count = 1;
-    desc = drv_alloc(sizeof(*desc));
-    if (desc == NULL) {
-        err = HOUND_OOM;
-        goto out;
+    XASSERT_EQ(desc_count, 1);
+    desc = &descs[0];
+    desc->enabled = true;
+    desc->period_count = 1;
+    desc->avail_periods = malloc(sizeof(*desc->avail_periods));
+    if (desc->avail_periods == NULL) {
+        return HOUND_OOM;
     }
-
-    err = drv_deepcopy_desc(desc, &s_datadesc);
-    if (err != HOUND_OK) {
-        goto error_deepcopy;
-    }
+    desc->avail_periods[0] = NSEC_PER_SEC;
 
     *mode = DRV_SCHED_PUSH;
-    *out_descs = desc;
-    goto out;
 
-error_deepcopy:
-    drv_free(desc);
-out:
-    return err;
+    return HOUND_OK;
 }
 
 static

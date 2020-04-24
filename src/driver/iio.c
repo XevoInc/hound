@@ -11,7 +11,6 @@
 #include <errno.h>
 #include <hound/hound.h>
 #include <hound-private/driver.h>
-#include <hound-private/driver/util.h>
 #include <hound-private/error.h>
 #include <hound-private/util.h>
 #include <fcntl.h>
@@ -748,43 +747,28 @@ bool iio_scan_readable(
 
 static
 hound_err iio_datadesc(
-    size_t *out_desc_count,
-    struct hound_datadesc **out_descs,
+    size_t desc_count,
+    struct drv_datadesc *descs,
     drv_sched_mode *mode)
 {
     hound_data_period *avail_periods;
     const struct chan_desc *channels;
     struct iio_ctx *ctx;
-    struct hound_datadesc *descs;
-    size_t desc_count;
+    struct drv_datadesc *desc;
     const struct device_entry *entry;
     hound_err err;
     size_t i;
     size_t j;
     hound_period_count period_count;
 
-    XASSERT_NOT_NULL(out_desc_count);
-    XASSERT_NOT_NULL(out_descs);
-
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
-
-    /*
-     * Preallocate more data than we probably need. We will realloc it once
-     * we've scanned the system and know the correct size.
-     */
-    descs = malloc(DESC_COUNT_MAX * sizeof(*descs));
-    if (descs == NULL) {
-        err = HOUND_OOM;
-        goto out;
-    }
 
     /*
      * This loop is not very efficient, but we do it only once. The alternative
      * is first building a hash-map, which is probably slower since we're doing
      * the lookup exactly once.
      */
-    desc_count = 0;
     for (i = 0; i < ARRAYLEN(s_channels); ++i) {
         entry = &s_channels[i];
         channels = entry->channels;
@@ -804,21 +788,20 @@ hound_err iio_datadesc(
             continue;
         }
 
-        descs[desc_count].data_id = entry->id;
-        ++desc_count;
+        /* Enable the descriptor matching this data. */
+        for (j = 0; j < desc_count; ++j) {
+            desc = &descs[i];
+            if (desc->schema_desc->data_id == entry->id) {
+                desc->enabled = true;
+                break;
+            }
+        }
+        /*
+         * We should have a match in the schema, or else the code and schema are
+         * out of sync.
+         */
+        XASSERT_LT(j, desc_count);
     }
-
-    if (desc_count == 0) {
-        /* We have a device but no channels! */
-        err = HOUND_DRIVER_FAIL;
-        goto error_desc;
-    };
-
-    descs = realloc(descs, desc_count*sizeof(*descs));
-    if (descs == NULL) {
-        err = HOUND_OOM;
-        goto error_desc;
-    };
 
     /*
      * The periods are the same for all channels, so just parse them once and
@@ -833,34 +816,35 @@ hound_err iio_datadesc(
         goto error_parse_avail_periods;
     }
 
-    descs[0].period_count = period_count;
-    descs[0].avail_periods = avail_periods;
-    for (i = 1; i < desc_count; ++i) {
-        descs[i].period_count = period_count;
-        descs[i].avail_periods = malloc(period_count * sizeof(*avail_periods));
-        if (descs[i].avail_periods == NULL) {
-            goto error_alloc_avail_periods;
+    /* Set the periods for each enabled device. */
+    for (i = 0; i < desc_count; ++i ) {
+        desc = &descs[i];
+        if (!desc->enabled) {
+            continue;
         }
 
+        desc->period_count = period_count;
+        desc->avail_periods = drv_alloc(period_count * sizeof(*avail_periods));
+        if (descs->avail_periods == NULL) {
+            for (--i; i < desc_count; --i) {
+                drv_free(desc->avail_periods);
+            }
+            drv_free(avail_periods);
+            goto error_alloc_avail_periods;
+        }
         memcpy(
-            (hound_data_period *) descs[i].avail_periods,
+            desc->avail_periods,
             avail_periods,
             period_count * sizeof(*avail_periods));
     }
 
+
     *mode = DRV_SCHED_PUSH;
-    *out_descs = descs;
-    *out_desc_count = desc_count;
     err = HOUND_OK;
     goto out;
 
 error_alloc_avail_periods:
-    for (--i; i < desc_count; --i) {
-        free((hound_data_period *) descs[i].avail_periods);
-    }
 error_parse_avail_periods:
-error_desc:
-    free(descs);
 out:
     return err;
 }
