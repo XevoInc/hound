@@ -36,7 +36,7 @@ struct drv_datadesc {
     hound_data_period *avail_periods;
 
     /* The schema for this descriptor. */
-    struct schema_desc *schema_desc;
+    const struct schema_desc *schema_desc;
 };
 
 typedef enum {

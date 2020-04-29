@@ -229,7 +229,7 @@ void copy_desc(
 {
     struct schema_desc *schema_desc;
 
-    schema_desc = drv_desc->schema_desc;
+    schema_desc = (struct schema_desc *) drv_desc->schema_desc;
     datadesc->data_id = schema_desc->data_id;
     datadesc->dev_id = dev_id;
     datadesc->name = schema_desc->name;
