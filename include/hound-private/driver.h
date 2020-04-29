@@ -26,12 +26,16 @@ struct schema_desc {
 };
 
 struct drv_datadesc {
-    /* These fields to be filled in by Hound drivers. */
+    /** True if this descriptor is enabled; false otherwise. */
     bool enabled;
+
+    /** For enabled data, the number of periods in the avail_periods array. */
     hound_period_count period_count;
+
+    /** For enabled data, the available data periods for this descriptor. */
     hound_data_period *avail_periods;
 
-    /* These fields to be filled in by the core schema parsing code. */
+    /* The schema for this descriptor. */
     struct schema_desc *schema_desc;
 };
 
@@ -67,7 +71,8 @@ struct driver_ops {
      * @param descs a pointer to an array of data descriptors as parsed by the
      *              driver's schema. The driver should set the "enabled" member
      *              of the struct to true if the descriptor is available and
-     *              false otherwise.
+     *              false otherwise, and fill in the frequnecies at which
+     *              enabled data is available.
      * @param mode the driver's scheduling mode
      *
      * @return an error code
