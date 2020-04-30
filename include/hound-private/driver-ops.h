@@ -19,7 +19,7 @@
  *
  * @return the active driver
  */
-void *get_active_drv(void);
+struct driver *get_active_drv(void);
 
 /**
  * Sets the active driver.
