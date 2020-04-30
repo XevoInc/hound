@@ -106,7 +106,7 @@ hound_err nop_datadesc(
         size = p_desc->period_count * sizeof(*p_desc->avail_periods);
         desc->avail_periods = drv_alloc(size);
         if (desc->avail_periods == NULL) {
-            for (--i; i < ARRAYLEN(s_period_descs); ++i) {
+            for (--i; i < ARRAYLEN(s_period_descs); --i) {
                 drv_free(descs[i].avail_periods);
                 return HOUND_OOM;
             }
