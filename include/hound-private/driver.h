@@ -101,12 +101,11 @@ struct driver_ops {
      *              driver needs to reference the unconsumed bytes, it must
      *              store them itself.
      * @param records a pointer to a block of records that the driver may use,
-     *                up to a maximum of HOUND_DRIVER_MAX_RECORDS. Each record
-     *                data should be allocated via drv_alloc. driver via
-     *                drv_alloc.  All record fields -- except the sequence
-     *                number -- shall be filled in by the driver. Each record
-     *                data should be allocated via drv_alloc, and the memory for
-     *                it shall be owned by the driver core.
+     *                up to a maximum of HOUND_DRIVER_MAX_RECORDS. All record
+     *                fields -- except the sequence number -- shall be filled in
+     *                by the driver. Each record data should be allocated via
+     *                drv_alloc, and the memory for it shall be owned by the
+     *                driver core.
      * @param record_count the driver shall set this to the number of records
      *                     produced.
      *
