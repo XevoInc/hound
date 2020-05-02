@@ -134,7 +134,7 @@ hound_err file_parse(
     struct timespec timestamp;
     struct hound_record *record;
 
-    err = clock_gettime(CLOCK_MONOTONIC, &timestamp);
+    err = clock_gettime(CLOCK_REALTIME, &timestamp);
     XASSERT_EQ(err, 0);
 
     XASSERT_NOT_NULL(buf);
