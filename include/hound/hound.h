@@ -145,6 +145,7 @@ typedef enum {
  * primitive types.
  */
 typedef enum {
+    HOUND_TYPE_BOOL,
     HOUND_TYPE_BYTES,
     HOUND_TYPE_DOUBLE,
     HOUND_TYPE_FLOAT,
@@ -249,6 +250,7 @@ struct hound_init_arg {
      */
     hound_type type;
     union {
+        bool as_bool;
         float as_float;
         double as_double;
         int8_t as_int8;

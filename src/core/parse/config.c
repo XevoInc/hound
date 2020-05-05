@@ -64,14 +64,33 @@ struct driver_init {
     } while (0);
 
 static
+bool parse_bool(const char *data)
+{
+    if (strcmp(data, "true") == 0) {
+        return true;
+    }
+    else if (strcmp(data, "false") == 0) {
+        return false;
+    }
+    else {
+        /* This schema was not validate properly! */
+        XASSERT_ERROR;
+    }
+}
+
+static
 hound_err populate_arg(
     const char *type_str,
     const char *data,
     struct hound_init_arg *arg)
 {
     hound_type type;
+
     type = parse_type(type_str);
     switch (type) {
+        case HOUND_TYPE_BOOL:
+            arg->data.as_bool = parse_bool(data);
+            break;
         case HOUND_TYPE_BYTES:
             arg->data.as_bytes = data;
             break;

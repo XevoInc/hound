@@ -194,6 +194,8 @@ static
 size_t get_type_size(hound_type type)
 {
     switch (type) {
+        case HOUND_TYPE_BOOL:
+            return sizeof(bool);
         case HOUND_TYPE_FLOAT:
             return sizeof(float);
         case HOUND_TYPE_DOUBLE:
