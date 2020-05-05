@@ -72,11 +72,14 @@ hound_err populate_arg(
     hound_type type;
     type = parse_type(type_str);
     switch (type) {
-        case HOUND_TYPE_FLOAT:
-            PARSE_FLOAT(float, strtof, data, arg);
+        case HOUND_TYPE_BYTES:
+            arg->data.as_bytes = data;
             break;
         case HOUND_TYPE_DOUBLE:
             PARSE_FLOAT(double, strtod, data, arg);
+            break;
+        case HOUND_TYPE_FLOAT:
+            PARSE_FLOAT(float, strtof, data, arg);
             break;
         case HOUND_TYPE_INT8:
             PARSE_INT(int8, strtoimax, INT8_MIN, INT8_MAX, data, arg);
@@ -101,9 +104,6 @@ hound_err populate_arg(
             break;
         case HOUND_TYPE_UINT64:
             PARSE_UINT(uint64, strtoumax, UINT64_MAX, data, arg);
-            break;
-        case HOUND_TYPE_BYTES:
-            arg->data.as_bytes = data;
             break;
     }
 
