@@ -1654,6 +1654,7 @@ static struct driver_ops iio_driver = {
     .device_name = iio_device_name,
     .datadesc = iio_datadesc,
     .setdata = iio_setdata,
+    .poll = NULL,
     .parse = iio_parse,
     .start = iio_start,
     .next = iio_next,

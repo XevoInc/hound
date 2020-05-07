@@ -30,7 +30,7 @@
 #define WRITE_END 1
 
 #define POLL_BUF_SIZE (100*1024)
-#define POLL_HAS_DATA (POLLIN|POLLPRI)
+#define POLL_DEFAULT_EVENTS (POLLIN|POLLOUT|POLLPRI|POLLERR|POLLHUP)
 
 struct pull_timing_entry {
     hound_data_id id;
@@ -122,34 +122,71 @@ struct fdctx *get_fdctx_from_fd_index(size_t fd_index)
 }
 
 static
-hound_err make_records(struct fdctx *ctx, unsigned char *buf, size_t size)
+void push_records(struct fdctx *ctx, struct hound_record *records, size_t count)
 {
-    size_t bytes_left;
     const struct hound_record *end;
     struct queue_entry *entry;
-    hound_err err;
     size_t i;
-    unsigned char *pos;
     struct hound_record *record;
-    size_t record_count;
     struct record_info *rec_info;
+
+    /* Add to all user queues. */
+    end = records + count;
+    for (record = records; record < end; ++record) {
+        rec_info = drv_alloc(sizeof(*rec_info));
+        if (rec_info == NULL) {
+            hound_log_err_nofmt(
+                HOUND_OOM,
+                "Failed to allocate a rec_info; can't add record to user queue");
+            continue;
+        }
+        record->dev_id = ctx->drv->id;
+        memcpy(&rec_info->record, record, sizeof(*record));
+        atomic_ref_init(&rec_info->refcount, 0);
+
+        for (i = 0; i < xv_size(ctx->queues); ++i) {
+            entry = &xv_A(ctx->queues, i);
+            if (record->data_id == entry->id) {
+                atomic_ref_inc(&rec_info->refcount);
+                queue_push(entry->queue, rec_info);
+            }
+        }
+    }
+}
+
+static
+hound_err make_records(
+    struct driver *drv,
+    unsigned char *buf,
+    size_t size,
+    struct hound_record *records,
+    size_t *record_count)
+{
+    size_t bytes_left;
+    hound_err err;
+    unsigned char *pos;
 
     /* Ask the driver to make records from the buffer. */
     pos = buf;
     bytes_left = size;
     while (bytes_left > 0) {
-        record_count = 0;
-        err = drv_op_parse(
-            ctx->drv,
+        *record_count = 0;
+        /*
+         * NOTE: We don't use drv_ops_parse here, which would set the active
+         * driver and take the driver ops mutex. This is because we are already
+         * inside a driver ops callback, so re-taking the mutex will cause a
+         * deadlock!
+         */
+        err = drv->ops.parse(
             pos,
             &bytes_left,
-            s_records,
-            &record_count);
+            records,
+            record_count);
         if (err != HOUND_OK) {
             hound_log_err(
                 err,
                 "Driver failed to parse records (size = %zu, drv = 0x%p)",
-                bytes_left, ctx->drv);
+                bytes_left, drv);
             return err;
         }
         XASSERT_LTE(bytes_left, size);
@@ -159,69 +196,75 @@ hound_err make_records(struct fdctx *ctx, unsigned char *buf, size_t size)
             break;
         }
 
-        XASSERT_GT(record_count, 0);
+        XASSERT_GT(*record_count, 0);
         pos += size - bytes_left;
-
-        /* Add to all user queues. */
-        end = s_records + record_count;
-        for (record = s_records; record < end; ++record) {
-            rec_info = drv_alloc(sizeof(*rec_info));
-            if (rec_info == NULL) {
-                hound_log_err_nofmt(
-                    HOUND_OOM,
-                    "Failed to allocate a rec_info; can't add record to user queue");
-                continue;
-            }
-            record->dev_id = ctx->drv->id;
-            memcpy(&rec_info->record, record, sizeof(*record));
-            atomic_ref_init(&rec_info->refcount, 0);
-
-            for (i = 0; i < xv_size(ctx->queues); ++i) {
-                entry = &xv_A(ctx->queues, i);
-                if (record->data_id == entry->id) {
-                    atomic_ref_inc(&rec_info->refcount);
-                    queue_push(entry->queue, rec_info);
-                }
-            }
-        }
     }
 
     return HOUND_OK;
 }
 
-static
-hound_err io_read(int fd, struct fdctx *ctx)
+hound_err io_default_poll(
+    short events,
+    short *next_events,
+    struct hound_record *records,
+    size_t *record_count)
 {
     ssize_t bytes_read;
-    hound_err err;
+    struct driver *drv;
+    int fd;
 
-    while (true) {
-        bytes_read = read(fd, s_read_buf, ARRAYLEN(s_read_buf));
-        if (bytes_read <= 0) {
-            if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
-                /* No more data to read, so we're done. */
-                break;
-            }
+    drv = get_active_drv();
+    fd = drv_fd();
 
-            /* Someone wanted to pause polling; we can finish reading later. */
-            if (errno == EINTR) {
-                return HOUND_INTR;
-            }
-            else if (errno == EIO) {
-                hound_log_err(errno, "read returned EIO on fd %d", fd);
-                return HOUND_IO_ERROR;
-            }
-            else {
-                /* Other error codes are likely program bugs. */
-                XASSERT_ERROR;
-            }
+    if (!(events | POLLIN)) {
+        *record_count = 0;
+        return HOUND_OK;
+    }
+
+    bytes_read = read(fd, s_read_buf, ARRAYLEN(s_read_buf));
+    if (bytes_read < 0) {
+        if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
+            /* No more data to read, so we're done. */
+            return HOUND_OK;
         }
 
-        err = make_records(ctx, s_read_buf, bytes_read);
-        if (err != HOUND_OK) {
-            return err;
+        /* Someone wanted to pause polling; we can finish reading later. */
+        if (errno == EINTR) {
+            return HOUND_INTR;
+        }
+        else if (errno == EIO) {
+            hound_log_err(errno, "read returned EIO on fd %d", fd);
+            return HOUND_IO_ERROR;
+        }
+        else {
+            /* Other error codes are likely program bugs. */
+            XASSERT_ERROR;
         }
     }
+
+    *next_events = POLLIN;
+
+    return make_records(
+        drv,
+        s_read_buf,
+        bytes_read,
+        records,
+        record_count);
+}
+
+static
+hound_err io_read(struct fdctx *ctx, short events, short *next_events)
+{
+    hound_err err;
+    size_t record_count;
+
+    record_count = 0;
+    err = drv_op_poll(ctx->drv, events, next_events, s_records, &record_count);
+    if (err != HOUND_OK) {
+        return err;
+    }
+
+    push_records(ctx, s_records, record_count);
 
     return HOUND_OK;
 }
@@ -270,7 +313,7 @@ bool need_to_pause(void)
     struct pollfd *pfd;
 
     pfd = &xv_A(s_ios.fds, PAUSE_FD_INDEX);
-    if (!(pfd->revents & POLL_HAS_DATA)) {
+    if (!(pfd->revents & POLLIN)) {
         return false;
     }
 
@@ -328,7 +371,10 @@ void *io_poll(UNUSED void *data)
             timeout = NULL;
         }
 
-        /* Wait for I/O. */
+        /*
+         * Wait for I/O. We use ppoll for a more precise timeout, not because we
+         * need to care about signals.
+         */
         fds = ppoll(xv_data(s_ios.fds), xv_size(s_ios.fds), timeout, NULL);
         if (fds > 0 && need_to_pause()) {
             continue;
@@ -392,10 +438,9 @@ void *io_poll(UNUSED void *data)
             if (pfd->revents == 0) {
                 continue;
             }
-            XASSERT(pfd->revents & POLL_HAS_DATA);
 
             ctx = get_fdctx_from_fd_index(i);
-            err = io_read(pfd->fd, ctx);
+            err = io_read(ctx, pfd->revents, &pfd->events);
             if (err == HOUND_INTR) {
                 /* Someone wants to pause polling; finish reading later. */
                 break;
@@ -500,7 +545,7 @@ hound_err io_add_fd(int fd, struct driver *drv)
         goto error_fds_push;
     }
     pfd->fd = fd;
-    pfd->events = POLL_HAS_DATA;
+    pfd->events = POLL_DEFAULT_EVENTS;
 
     ctx = xv_pushp(struct fdctx, s_ios.ctx);
     if (ctx == NULL) {
@@ -538,8 +583,11 @@ void io_remove_fd(int fd)
     struct fdctx *ctx;
     size_t ctx_index;
     hound_err err;
+    int fds;
     size_t fd_index;
     size_t i;
+    short next_events;
+    struct pollfd pfd;
 
     fd_index = get_fd_index(fd);
     ctx_index = get_fdctx_index(fd_index);
@@ -557,9 +605,34 @@ void io_remove_fd(int fd)
          * drivers because we've already paused polling, so no more data should
          * be going into the fd.
          */
-        do {
-            err = io_read(fd, ctx);
-        } while (err == HOUND_INTR);
+        pfd.fd = fd;
+        pfd.events = POLLIN;
+        while (true) {
+            /*
+             * Since we are returning immediately and don't need to care about
+             * signals, we can safely use poll here instead of ppoll.
+             */
+            fds = poll(&pfd, 1, 0);
+            if (fds == -1) {
+                if (errno == EINTR) {
+                    /* Interrupted; try again. */
+                    continue;
+                }
+                else {
+                    hound_log_err(errno, "failed to drain fd %d", fd);
+                    break;
+                }
+            }
+
+            break;
+        }
+
+        if (fds == 1) {
+            err = io_read(ctx, pfd.revents, &next_events);
+            if (err != HOUND_OK) {
+                hound_log_err(err, "failed to read from fd %d", fd);
+            }
+        }
 
         /*
          * If we have a pointer to this index in the pull mode indices list, remove
@@ -723,7 +796,7 @@ void io_init(void)
         return;
     }
     pfd->fd = s_self_pipe[READ_END];
-    pfd->events = POLL_HAS_DATA;
+    pfd->events = POLLIN;
 
     err = io_start_poll();
     if (err != HOUND_OK) {

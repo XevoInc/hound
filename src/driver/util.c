@@ -56,3 +56,17 @@ void drv_set_ctx(void *ctx)
     XASSERT_NOT_NULL(drv);
     drv->ctx = ctx;
 }
+
+PUBLIC_API
+int drv_fd(void)
+{
+    struct driver *drv;
+
+    /*
+     * This should be called only from a driver's callback, so we should already
+     * hold the driver's mutex.
+     */
+    drv = get_active_drv();
+    XASSERT_NOT_NULL(drv);
+    return drv->fd;
+}

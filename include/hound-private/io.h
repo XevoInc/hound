@@ -21,6 +21,12 @@ void io_remove_fd(int fd);
 
 void io_set_sched_mode(int fd, drv_sched_mode mode);
 
+hound_err io_default_poll(
+    short events,
+    short *next_events,
+    struct hound_record *records,
+    size_t *record_count);
+
 hound_err io_add_queue(
     int fd,
     const struct hound_data_rq_list *drv_data_list,

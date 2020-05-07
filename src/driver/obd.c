@@ -557,6 +557,7 @@ static struct driver_ops obd_driver = {
     .device_name = obd_device_name,
     .datadesc = obd_datadesc,
     .setdata = obd_setdata,
+    .poll = NULL,
     .parse = obd_parse,
     .start = obd_start,
     .next = obd_next,

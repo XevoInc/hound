@@ -246,6 +246,7 @@ static struct driver_ops file_driver = {
     .device_name = file_device_name,
     .datadesc = file_datadesc,
     .setdata = file_setdata,
+    .poll = NULL,
     .parse = file_parse,
     .start = file_start,
     .next = file_next,

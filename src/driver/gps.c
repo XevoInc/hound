@@ -357,6 +357,7 @@ static struct driver_ops gps_driver = {
     .device_name = gps_device_name,
     .datadesc = gps_datadesc,
     .setdata = gps_setdata,
+    .poll = NULL,
     .parse = gps_parse,
     .start = gps_start,
     .next = gps_next,

@@ -68,7 +68,7 @@ void driver_destroy_statics(void)
 }
 
 PUBLIC_API
-void driver_register(const char *name, const struct driver_ops *ops)
+void driver_register(const char *name, struct driver_ops *ops)
 {
     xhiter_t iter;
     int ret;
@@ -79,10 +79,17 @@ void driver_register(const char *name, const struct driver_ops *ops)
     XASSERT_NOT_NULL(ops->device_name);
     XASSERT_NOT_NULL(ops->datadesc);
     XASSERT_NOT_NULL(ops->setdata);
-    XASSERT_NOT_NULL(ops->parse);
     XASSERT_NOT_NULL(ops->start);
     XASSERT_NOT_NULL(ops->next);
     XASSERT_NOT_NULL(ops->stop);
+
+    /* poll or parse, but not both, must be filled in. */
+    XASSERT((ops->poll == NULL && ops->parse != NULL) ||
+            (ops->poll != NULL && ops->parse == NULL));
+
+    if (ops->poll == NULL) {
+        ops->poll = io_default_poll;
+    }
 
     /*
      * If we can't initialize a driver this early on (this is called from

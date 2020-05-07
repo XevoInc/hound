@@ -188,6 +188,7 @@ static struct driver_ops nop_driver = {
     .device_name = nop_device_name,
     .datadesc = nop_datadesc,
     .setdata = nop_setdata,
+    .poll = NULL,
     .parse = nop_parse,
     .start = nop_start,
     .next = nop_next,

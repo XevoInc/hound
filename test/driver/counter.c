@@ -231,6 +231,7 @@ static struct driver_ops counter_driver = {
     .device_name = counter_device_name,
     .datadesc = counter_datadesc,
     .setdata = counter_setdata,
+    .poll = NULL,
     .parse = counter_parse,
     .start = counter_start,
     .next = counter_next,

@@ -85,7 +85,37 @@ struct driver_ops {
     hound_err (*setdata)(const struct hound_data_rq_list *data);
 
     /**
-     * Parse the raw data from the I/O layer and produce a record.
+     * Called when the driver's fd is ready to read or write data. A driver must
+     * implement either poll or parse, but not both. If it implements poll, then
+     * it is responsible for reading and writing to its polled fd and creating
+     * records.
+     *
+     * @param events the events returned by the most recent call to poll()
+     * @param next_events to be filled in with the next events that should be
+     *                    monitored. For more details, see the manpage for
+     *                    poll(). If this is not set, the value will be
+     *                    unchanged from the last time poll() was called.
+     * @param records a pointer to a block of records that the driver may use,
+     *                up to a maximum of HOUND_DRIVER_MAX_RECORDS. Each record
+     *                data should be allocated via drv_alloc. driver via
+     *                drv_alloc.  All record fields -- except the sequence
+     *                number -- shall be filled in by the driver. Each record
+     *                data should be allocated via drv_alloc, and the memory for
+     *                it shall be owned by the driver core.
+     * @param record_count the driver shall set this to the number of records
+     *                     produced.
+     */
+    hound_err (*poll)(
+        short events,
+        short *next_events,
+        struct hound_record *records,
+        size_t *record_count);
+
+    /**
+     * Parse the raw data from the I/O layer and produce one or more records. A
+     * driver must implement either poll or parse, but not both. If it
+     * implements parse, then the I/O core will read any data available on the
+     * driver's fd and pass it into parse, as a buffer.
      *
      * @param data the raw data coming from the I/O layer
      * @param bytes a pointer to the number of bytes in the buffer. The pointer
@@ -167,12 +197,20 @@ void drv_free(void *p);
  * been set.
  */
 void *drv_ctx(void);
+
 /**
  * Set a driver context void * for private driver context.
  *
  * @return a driver context pointer
  */
 void drv_set_ctx(void *ctx);
+
+/**
+ * Get the driver's associated file descriptor.
+ *
+ * @return the driver's file descriptor
+ */
+int drv_fd(void);
 
 void driver_init_statics(void);
 void driver_destroy_statics(void);
@@ -185,7 +223,7 @@ hound_err driver_get_dev_name(hound_dev_id id, const char **name);
 hound_err driver_get_datadescs(struct hound_datadesc **descs, size_t *len);
 void driver_free_datadescs(struct hound_datadesc *descs);
 
-void driver_register(const char *name, const struct driver_ops *ops);
+void driver_register(const char *name, struct driver_ops *ops);
 
 hound_err driver_init(
     const char *name,

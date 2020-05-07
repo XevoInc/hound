@@ -98,6 +98,14 @@ DEFINE_DRV_OP(
     TOKENIZE(desc_count, descs, mode))
 DEFINE_DRV_OP(setdata, const struct hound_data_rq_list *data, data)
 DEFINE_DRV_OP(
+    poll,
+    TOKENIZE(
+        short events,
+        short *next_events,
+        struct hound_record *records,
+        size_t *record_count),
+    TOKENIZE(events, next_events, records, record_count))
+DEFINE_DRV_OP(
     parse,
     TOKENIZE(
         unsigned char *buf,
