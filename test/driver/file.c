@@ -125,7 +125,7 @@ hound_err file_setdata(const struct hound_data_rq_list *data)
 
 static
 hound_err file_parse(
-    uint8_t *buf,
+    unsigned char *buf,
     size_t *bytes,
     struct hound_record *records,
     size_t *record_count)

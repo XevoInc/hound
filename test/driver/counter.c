@@ -97,7 +97,7 @@ hound_err counter_setdata(UNUSED const struct hound_data_rq_list *rq_list)
 
 static
 hound_err counter_parse(
-    uint8_t *buf,
+    unsigned char *buf,
     size_t *bytes,
     struct hound_record *records,
     size_t *record_count)
@@ -107,7 +107,7 @@ hound_err counter_parse(
     hound_err err;
     size_t i;
     struct hound_record *record;
-    const uint8_t *pos;
+    const unsigned char *pos;
 
     XASSERT_NOT_NULL(buf);
     XASSERT_NOT_NULL(bytes);

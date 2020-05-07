@@ -92,7 +92,7 @@ hound_err populate_arg(
             arg->data.as_bool = parse_bool(data);
             break;
         case HOUND_TYPE_BYTES:
-            arg->data.as_bytes = data;
+            arg->data.as_bytes = (unsigned char *) data;
             break;
         case HOUND_TYPE_DOUBLE:
             PARSE_FLOAT(double, strtod, data, arg);

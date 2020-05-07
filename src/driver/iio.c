@@ -139,13 +139,13 @@ struct chan_parse_desc {
      */
     /** Copies the data, respecting endianness, scale, mask, and shift. */
     void (*copy_func)(
-        uint8_t *dest,
-        const uint8_t *src,
+        unsigned char *dest,
+        const unsigned char *src,
         uint_fast8_t shift,
         uint_fast64_t mask);
     /** Uses the copy_func to copy the data, then casts to float. */
     float (*copy_func_float)(
-        const uint8_t *src,
+        const unsigned char *src,
         uint_fast8_t shift,
         uint_fast64_t mask);
     /** Scale factor to apply to raw values. */
@@ -189,8 +189,8 @@ struct chan_sort_entry {
 #define _DEFINE_COPY_FUNC(bits, name, endian, endian_func, type) \
 static inline \
 void endian##bits##_copy_##name( \
-    uint8_t *dest, \
-    const uint8_t *src, \
+    unsigned char *dest, \
+    const unsigned char *src, \
     uint_fast8_t shift, \
     uint_fast64_t mask) \
 { \
@@ -210,13 +210,13 @@ void endian##bits##_copy_##name( \
 #define _DEFINE_COPY_FUNC_FLOAT(bits, name, endian, endian_func, fast_type) \
 static inline \
 float endian##bits##_copy_##name##_float( \
-    const uint8_t *src, \
+    const unsigned char *src, \
     uint_fast8_t shift, \
     uint_fast64_t mask) \
 { \
     fast_type t; \
     \
-    endian##bits##_copy_##name((uint8_t *) &t, src, shift, mask); \
+    endian##bits##_copy_##name((unsigned char *) &t, src, shift, mask); \
     \
     return (float) t; \
 }
@@ -1524,7 +1524,7 @@ out_error:
 static
 hound_err iio_make_record(
     const struct device_parse_entry *entry,
-    const uint8_t *buf,
+    const unsigned char *buf,
     struct hound_record *record)
 {
     const struct chan_parse_desc *desc;
@@ -1559,7 +1559,7 @@ hound_err iio_make_record(
 
 static
 hound_err iio_parse(
-    uint8_t *buf,
+    unsigned char *buf,
     size_t *bytes,
     struct hound_record *records,
     size_t *out_record_count)
@@ -1569,7 +1569,7 @@ hound_err iio_parse(
     hound_err err;
     size_t i;
     size_t j;
-    const uint8_t *pos;
+    const unsigned char *pos;
     struct hound_record *record;
     size_t record_count;
     const struct chan_parse_desc *timestamp_desc;
@@ -1601,7 +1601,7 @@ hound_err iio_parse(
     for (i = 0; i < scan_count; ++i) {
         /* Process a scan. */
         timestamp_desc->copy_func(
-            (uint8_t *) &epoch_ns,
+            (unsigned char *) &epoch_ns,
             &buf[timestamp_desc->index],
             timestamp_desc->shift,
             timestamp_desc->mask);

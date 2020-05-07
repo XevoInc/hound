@@ -98,7 +98,7 @@ struct hound_record {
     hound_record_size size;
 
     /** the data for this record. */
-    uint8_t *data;
+    unsigned char *data;
 };
 
 /**
@@ -261,7 +261,7 @@ struct hound_init_arg {
         uint32_t as_uint32;
         int64_t as_int64;
         uint64_t as_uint64;
-        const char *as_bytes;
+        const unsigned char *as_bytes;
     } data;
 };
 

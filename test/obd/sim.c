@@ -60,7 +60,7 @@ int make_can_socket(const char *iface)
 }
 
 static
-void fill_with_random(uint8_t *data, size_t bytes)
+void fill_with_random(unsigned char *data, size_t bytes)
 {
     size_t i;
     int r;
@@ -79,7 +79,7 @@ void fill_with_random(uint8_t *data, size_t bytes)
 static
 int can_response(int fd, struct yobd_ctx *ctx, struct can_frame *frame)
 {
-    uint8_t data[8];
+    unsigned char data[8];
     const struct yobd_pid_desc *desc;
     yobd_err err;
     yobd_mode mode;

@@ -98,7 +98,7 @@ hound_err obd_init(
         err = HOUND_INVALID_VAL;
         goto error_validate;
     }
-    yobd_schema = args->data.as_bytes;
+    yobd_schema = (char *) args->data.as_bytes;
 
     /* Verify the interface exists and is usable. */
     fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
@@ -331,7 +331,7 @@ hound_err obd_setdata(const struct hound_data_rq_list *rq_list)
 
 static
 hound_err obd_parse(
-    uint8_t *buf,
+    unsigned char *buf,
     size_t *bytes,
     struct hound_record *records,
     size_t *record_count)
@@ -342,7 +342,7 @@ hound_err obd_parse(
     size_t i;
     yobd_mode mode;
     yobd_pid pid;
-    const uint8_t *pos;
+    const unsigned char *pos;
     struct hound_record *record;
     struct timeval tv;
     yobd_err yerr;

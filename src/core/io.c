@@ -69,7 +69,7 @@ static pthread_cond_t s_poll_cond = PTHREAD_COND_INITIALIZER;
 static volatile bool s_poll_active_target = false;
 static volatile bool s_poll_active_current = false;
 
-static uint8_t s_read_buf[POLL_BUF_SIZE];
+static unsigned char s_read_buf[POLL_BUF_SIZE];
 static struct hound_record s_records[HOUND_DRIVER_MAX_RECORDS];
 
 static
@@ -122,14 +122,14 @@ struct fdctx *get_fdctx_from_fd_index(size_t fd_index)
 }
 
 static
-hound_err make_records(struct fdctx *ctx, uint8_t *buf, size_t size)
+hound_err make_records(struct fdctx *ctx, unsigned char *buf, size_t size)
 {
     size_t bytes_left;
     const struct hound_record *end;
     struct queue_entry *entry;
     hound_err err;
     size_t i;
-    uint8_t *pos;
+    unsigned char *pos;
     struct hound_record *record;
     size_t record_count;
     struct record_info *rec_info;

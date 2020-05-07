@@ -220,7 +220,7 @@ void populate_gps_data(struct gps_data *data, struct gps_fix_t *fix)
 
 static
 hound_err gps_parse(
-    uint8_t *buf,
+    unsigned char *buf,
     size_t *bytes,
     struct hound_record *records,
     size_t *record_count)

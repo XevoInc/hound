@@ -294,7 +294,7 @@ int main(int argc, const char **argv)
 
     yobd_schema = "sae-standard.yaml";
     init.type = HOUND_TYPE_BYTES;
-    init.data.as_bytes = yobd_schema;
+    init.data.as_bytes = (unsigned char *) yobd_schema;
     err = hound_init_driver(
         "obd",
         s_ctx.iface,
