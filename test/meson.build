@@ -71,6 +71,18 @@ if get_option('obd')
         }
     }
 endif
+if get_option('mqtt')
+    tests += {
+        'mqtt': {
+            'deps': ['libmosquitto', 'msgpack', 'valgrind'],
+            'src': ['mqtt.c'],
+            'unit-test': {
+                'args': [example_schema_dir],
+                'is-parallel': false
+            }
+        }
+    }
+endif
 
 foreach name, t : tests
     deps = [threads_dep, xlib_dep, hound_dep]

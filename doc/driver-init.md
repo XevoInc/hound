@@ -26,3 +26,14 @@ collecting samples that haven't yet been read by userspace).
 ## OBD-II initialization data
 A single null-terminated string (type "bytes") argument indicating the yobd
 schema to use. This will be directly passed to yobd.
+
+## MQTT+msgpack initialization data
+Two uint32 values:
+- The MQTT keepalive value, in seconds
+- The MQTT connect/disconnect timeout, in milliseconds
+Further note that the application is responsible for calling
+`mosquitto_lib_init` and `mosquitto_lib_cleanup`.  Although the hound driver
+could take care of this, if the user also wanted to use the mosquitto library
+(e.g. to publish to the Hound driver), a memory leak would result. This is
+because mosquitto doesn't check if it's already initialized before clobbering
+its own memory, or implement an init/cleanup refcount.

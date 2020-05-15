@@ -79,6 +79,10 @@ drivers = {
         'schema': 'iio.yaml',
         'src': ['driver/iio.c']
     },
+    'mqtt': {
+        'deps': ['libmosquitto', 'msgpack'],
+        'src': ['driver/mqtt.c']
+    },
     'obd': {
         'deps': ['yobd'],
         'header': 'obd.h',

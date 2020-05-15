@@ -1,6 +1,7 @@
 # Selection of which drivers to build.
 option('gps', type: 'boolean', value: 'true')
 option('iio', type: 'boolean', value: 'true')
+option('mqtt', type: 'boolean', value: 'true')
 option('obd', type: 'boolean', value: 'true')
 
 # Other options.

@@ -1,0 +1,60 @@
+---
+id: 0xfe000000
+name: a
+fmt:
+    - name: topic a
+      unit: ns
+      type: uint64
+---
+id: 0xfe000001
+name: b
+fmt:
+    - name: topic b
+      unit: K
+      type: int8
+---
+id: 0xfe000002
+name: c
+fmt:
+    - name: topic c
+      unit: K
+      type: uint16
+---
+id: 0xfe000003
+name: d
+fmt:
+    - name: topic d
+      unit: K
+      type: float
+---
+id: 0xfe000004
+name: e
+fmt:
+    - name: topic e
+      unit: K
+      type: double
+---
+id: 0xfe000005
+name: f
+fmt:
+    - name: topic f
+      unit: K
+      type: bytes
+      size: 0
+---
+id: 0xfe000006
+name: g
+fmt:
+    - name: subfield 1
+      unit: m/s^2
+      type: float
+    - name: subfield 2
+      unit: m/s^2
+      type: float
+    - name: subfield 3
+      unit: m/s^2
+      type: float
+    - name: subfield 4
+      unit: none
+      type: bytes
+      size: 0
