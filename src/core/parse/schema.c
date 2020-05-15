@@ -39,6 +39,89 @@ void destroy_schema_desc(struct schema_desc *desc)
 }
 
 static
+hound_err copy_desc_fmt(
+    const struct hound_data_fmt *src,
+    struct hound_data_fmt *dst)
+{
+    const char *name;
+
+    name = drv_strdup(src->name);
+    if (name == NULL) {
+        return HOUND_OOM;
+    }
+
+    dst->name = name;
+    dst->unit = src->unit;
+    dst->offset = src->offset;
+    dst->size = src->size;
+    dst->type = src->type;
+
+    return HOUND_OK;
+}
+
+static
+hound_err copy_desc_fmts(
+    size_t count,
+    const struct hound_data_fmt *src,
+    struct hound_data_fmt **out_fmts)
+{
+    hound_err err;
+    struct hound_data_fmt *fmts;
+    size_t i;
+    size_t size;
+
+    size = count * sizeof(*fmts);
+    fmts = drv_alloc(size);
+    if (fmts == NULL) {
+        return HOUND_OOM;
+    }
+
+    for (i = 0; i < count; ++i) {
+        err = copy_desc_fmt(&src[i], &fmts[i]);
+        if (err != HOUND_OK) {
+            destroy_desc_fmts(i, fmts);
+            return err;
+        }
+    }
+
+    *out_fmts = fmts;
+
+    return HOUND_OK;
+}
+
+hound_err copy_schema_desc(
+    const struct schema_desc *src,
+    struct schema_desc *schema)
+{
+    hound_err err;
+    struct hound_data_fmt *fmts;
+    const char *name;
+
+    name = strdup(src->name);
+    if (name == NULL) {
+        err = HOUND_OOM;
+        goto error_name;
+    }
+
+    err = copy_desc_fmts(src->fmt_count, src->fmts, &fmts);
+    if (err != HOUND_OK) {
+        goto error_fmts;
+    }
+
+    schema->data_id = src->data_id;
+    schema->name = name;
+    schema->fmt_count = src->fmt_count;
+    schema->fmts = fmts;
+
+    return HOUND_OK;
+
+error_fmts:
+    drv_free((char *) name);
+error_name:
+    return err;
+}
+
+static
 hound_data_id parse_num(const char *s)
 {
     hound_data_id id;

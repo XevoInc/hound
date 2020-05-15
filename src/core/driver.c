@@ -190,7 +190,6 @@ hound_dev_id next_dev_id(void)
     return id;
 }
 
-static
 size_t get_type_size(hound_type type)
 {
     switch (type) {

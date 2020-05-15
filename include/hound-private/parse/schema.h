@@ -14,6 +14,10 @@
 void schema_init(void);
 void schema_destroy(void);
 
+hound_err copy_schema_desc(
+    const struct schema_desc *src,
+    struct schema_desc *schema);
+
 void destroy_desc_fmts(size_t count, struct hound_data_fmt *fmts);
 void destroy_schema_desc(struct schema_desc *desc);
 

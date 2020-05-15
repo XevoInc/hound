@@ -123,6 +123,8 @@ struct driver_ops {
     hound_err (*stop)(void);
 };
 
+size_t get_type_size(hound_type type);
+
 /**
  * A function that drivers should use for any allocations they need to do.
  *
