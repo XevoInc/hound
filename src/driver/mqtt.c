@@ -634,6 +634,19 @@ void reset_cb(cb_state *state)
 }
 
 static
+bool mosq_init_is_safe(void)
+{
+    /*
+     * In mosquitto versions 1.6.10 and higher, init/cleanup becomes refcounted
+     * and can be safely called multiple times. Prior to this version, we need
+     * to assume that the application initializes mosquitto prior to
+     * initializing this MQTT driver, as if we call init/cleanup ourselves, we
+     * will cause memory leaks and/or corruption.
+     */
+    return mosquitto_lib_version(NULL, NULL, NULL) >= 1006010;
+}
+
+static
 hound_err mqtt_init(
     const char *location,
     size_t arg_count,
@@ -648,7 +661,7 @@ hound_err mqtt_init(
     struct mosquitto *mosq;
     int port;
     const char *p;
-    uint32_t rc;
+    int rc;
     unsigned int timeout_ms;
     xhash_t(TOPIC_MAP) *topic_map;
 
@@ -709,6 +722,11 @@ hound_err mqtt_init(
         goto error_alloc_active_ids;
     }
 
+    if (mosq_init_is_safe()) {
+        rc = mosquitto_lib_init();
+        XASSERT_EQ(rc, MOSQ_ERR_SUCCESS);
+    }
+
     errno = 0;
     mosq = mosquitto_new(NULL, true, ctx);
     if (mosq == NULL) {
@@ -752,6 +770,10 @@ hound_err mqtt_init(
 error_mosq_set_threaded:
     mosquitto_destroy(mosq);
 error_mosq_new:
+    if (mosq_init_is_safe()) {
+        rc = mosquitto_lib_cleanup();
+        XASSERT_EQ(rc, MOSQ_ERR_SUCCESS);
+    }
     xh_destroy(ACTIVE_IDS, active_ids);
 error_alloc_active_ids:
     xh_destroy(TOPIC_MAP, topic_map);
@@ -769,11 +791,17 @@ hound_err mqtt_destroy(void)
 {
     struct mqtt_ctx *ctx;
     xhiter_t iter;
+    int rc;
     const struct schema_desc *schema;
 
     ctx = drv_ctx();
 
     mosquitto_destroy(ctx->mosq);
+
+    if (mosq_init_is_safe()) {
+        rc = mosquitto_lib_cleanup();
+        XASSERT_EQ(rc, MOSQ_ERR_SUCCESS);
+    }
 
     xh_destroy(ACTIVE_IDS, ctx->active_ids);
 

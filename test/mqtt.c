@@ -28,6 +28,9 @@
 #define MQTT_PORT_STRING "42000"
 #define MQTT_LOCATION (MQTT_HOST ":" MQTT_PORT_STRING)
 
+/* Mosqitto version 1.6.10 changes its init/cleanup semantics */
+#define MAGIC_MOSQ_VERSION 1006010
+
 /*
  * Use a large keepalive so we don't break the connection if we drop into the
  * debugger.
@@ -265,6 +268,9 @@ void publish_messages(const struct test_ctx *ctx, const char *host, int port)
     msgpack_packer packer;
     msgpack_sbuffer sbuf;
 
+    rc = mosquitto_lib_init();
+    XASSERT_EQ(rc, MOSQ_ERR_SUCCESS);
+
     mosq = mosquitto_new(NULL, true, NULL);
     XASSERT_NOT_NULL(mosq);
 
@@ -287,6 +293,9 @@ void publish_messages(const struct test_ctx *ctx, const char *host, int port)
     XASSERT_EQ(rc, MOSQ_ERR_SUCCESS);
 
     mosquitto_destroy(mosq);
+
+    rc = mosquitto_lib_cleanup();
+    XASSERT_EQ(rc, MOSQ_ERR_SUCCESS);
 }
 
 static pid_t child_pid = -1;
@@ -406,7 +415,6 @@ int main(int argc, const char **argv)
     };
     struct hound_data_rq data_rqs[test_ctx.count];
     size_t i;
-    int rc;
     struct hound_rq rq = {
         .queue_len = 10000,
         .cb = data_cb,
@@ -445,9 +453,6 @@ int main(int argc, const char **argv)
         data_rq->id = test_ctx.info[i].data_id;
         data_rq->period_ns = 0;
     }
-
-    rc = mosquitto_lib_init();
-    XASSERT_EQ(rc, MOSQ_ERR_SUCCESS);
 
     err = hound_init_driver(
         "mqtt",
@@ -489,9 +494,6 @@ int main(int argc, const char **argv)
 
     err = hound_destroy_driver(MQTT_LOCATION);
     XASSERT_OK(err);
-
-    rc = mosquitto_lib_cleanup();
-    XASSERT_EQ(rc, MOSQ_ERR_SUCCESS);
 
     return EXIT_SUCCESS;
 }
