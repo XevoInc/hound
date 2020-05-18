@@ -215,6 +215,7 @@ hound_err io_default_poll(
 
     drv = get_active_drv();
     fd = drv_fd();
+    *next_events = POLLIN;
 
     if (!(events | POLLIN)) {
         *record_count = 0;
@@ -241,8 +242,6 @@ hound_err io_default_poll(
             XASSERT_ERROR;
         }
     }
-
-    *next_events = POLLIN;
 
     return make_records(
         drv,
