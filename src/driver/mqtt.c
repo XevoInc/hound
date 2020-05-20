@@ -468,7 +468,8 @@ int get_time_ms(void)
     struct timespec ts;
 
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (ts.tv_sec * 1000) + (ts.tv_nsec / (NSEC_PER_SEC/MSEC_PER_SEC));
+    return (ts.tv_sec * MSEC_PER_SEC) +
+           (ts.tv_nsec / (NSEC_PER_SEC/MSEC_PER_SEC));
 }
 
 static
