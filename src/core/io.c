@@ -21,6 +21,7 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <xlib/xhash.h>
 #include <xlib/xvec.h>
 
 #define PAUSE_FD_INDEX 0
@@ -32,11 +33,20 @@
 #define POLL_BUF_SIZE (100*1024)
 #define POLL_DEFAULT_EVENTS (POLLIN|POLLOUT|POLLPRI|POLLERR|POLLHUP)
 
-struct pull_timing_entry {
+struct pull_timeout_info {
     hound_data_id id;
     hound_data_period current_timeout;
     hound_data_period max_timeout;
 };
+
+struct pull_info {
+    hound_data_period last_pull;
+    xvec_t(struct pull_timeout_info) timeout_info;
+};
+
+/** Map from fd to pull-mode timeout information for the fd. */
+XHASH_MAP_INIT_INT(PULL_MAP, struct pull_info)
+xhash_t(PULL_MAP) *s_pull_map = NULL;
 
 struct queue_entry {
     hound_data_id id;
@@ -51,14 +61,14 @@ struct queue_entry {
  */
 struct fdctx {
     struct driver *drv;
-    xvec_t(struct pull_timing_entry) timings;
+    bool timeout_enabled;
+    hound_data_period timeout_ns;
     xvec_t(struct queue_entry) queues;
 };
 
 static struct {
     xvec_t(struct fdctx) ctx;
     xvec_t(struct pollfd) fds;
-    xvec_t(size_t) pull_mode_indices;
     uint_fast64_t last_poll_ns;
 } s_ios;
 
@@ -136,8 +146,8 @@ void push_records(struct fdctx *ctx, struct hound_record *records, size_t count)
         rec_info = drv_alloc(sizeof(*rec_info));
         if (rec_info == NULL) {
             hound_log_err_nofmt(
-                HOUND_OOM,
-                "Failed to allocate a rec_info; can't add record to user queue");
+                    HOUND_OOM,
+                    "Failed to allocate a rec_info; can't add record to user queue");
             continue;
         }
         record->dev_id = ctx->drv->id;
@@ -155,6 +165,20 @@ void push_records(struct fdctx *ctx, struct hound_record *records, size_t count)
 }
 
 static
+hound_data_period get_time_ns(void)
+{
+    struct timespec ts;
+
+    /*
+     * Use CLOCK_MONOTONIC_RAW, as it's not subject to time discontinuities due
+     * to NTP, leap seconds, etc.
+     */
+    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+
+    return NSEC_PER_SEC*ts.tv_sec + ts.tv_nsec;
+}
+
+static
 hound_err make_records(
     struct driver *drv,
     unsigned char *buf,
@@ -163,66 +187,13 @@ hound_err make_records(
     size_t *record_count)
 {
     size_t bytes_left;
+    ssize_t bytes_read;
     hound_err err;
+    int fd;
     unsigned char *pos;
 
-    /* Ask the driver to make records from the buffer. */
-    pos = buf;
-    bytes_left = size;
-    while (bytes_left > 0) {
-        *record_count = 0;
-        /*
-         * NOTE: We don't use drv_ops_parse here, which would set the active
-         * driver and take the driver ops mutex. This is because we are already
-         * inside a driver ops callback, so re-taking the mutex will cause a
-         * deadlock!
-         */
-        err = drv->ops.parse(
-            pos,
-            &bytes_left,
-            records,
-            record_count);
-        if (err != HOUND_OK) {
-            hound_log_err(
-                err,
-                "Driver failed to parse records (size = %zu, drv = 0x%p)",
-                bytes_left, drv);
-            return err;
-        }
-        XASSERT_LTE(bytes_left, size);
-
-        if (bytes_left == size) {
-            /* Driver can't make more records from this buffer. We're done. */
-            break;
-        }
-
-        XASSERT_GT(*record_count, 0);
-        pos += size - bytes_left;
-    }
-
-    return HOUND_OK;
-}
-
-hound_err io_default_poll(
-    short events,
-    short *next_events,
-    struct hound_record *records,
-    size_t *record_count)
-{
-    ssize_t bytes_read;
-    struct driver *drv;
-    int fd;
-
-    drv = get_active_drv();
     fd = drv_fd();
-    *next_events = POLLIN;
-
-    if (!(events | POLLIN)) {
-        *record_count = 0;
-        return HOUND_OK;
-    }
-
-    bytes_read = read(fd, s_read_buf, ARRAYLEN(s_read_buf));
+    bytes_read = read(fd, buf, size);
     if (bytes_read < 0) {
         if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
             /* No more data to read, so we're done. */
@@ -243,10 +214,150 @@ hound_err io_default_poll(
         }
     }
 
+    /* Ask the driver to make records from the buffer. */
+    pos = buf;
+    bytes_left = bytes_read;
+    while (bytes_left > 0) {
+        *record_count = 0;
+        /*
+         * NOTE: We don't use drv_ops_parse here, which would set the active
+         * driver and take the driver ops mutex. This is because we are already
+         * inside a driver ops callback, so re-taking the mutex will cause a
+         * deadlock!
+         */
+        err = drv->ops.parse(
+                pos,
+                &bytes_left,
+                records,
+                record_count);
+        if (err != HOUND_OK) {
+            hound_log_err(
+                    err,
+                    "Driver failed to parse records (size = %zu, drv = 0x%p)",
+                    bytes_left, drv);
+            return err;
+        }
+        XASSERT_LTE(bytes_left, size);
+
+        if (bytes_left == size) {
+            /* Driver can't make more records from this buffer. We're done. */
+            break;
+        }
+
+        XASSERT_GT(*record_count, 0);
+        pos += bytes_read - bytes_left;
+    }
+
+    return HOUND_OK;
+}
+
+hound_err io_default_pull(
+    short events,
+    short *next_events,
+    struct hound_record *records,
+    size_t *record_count,
+    bool *timeout_enabled,
+    hound_data_period *timeout)
+{
+    struct driver *drv;
+    hound_err err;
+    size_t i;
+    struct pull_info *info;
+    xhiter_t iter;
+    hound_data_period lateness;
+    hound_data_period min_timeout;
+    hound_data_period now;
+    struct pull_timeout_info *timeout_info;
+    hound_data_period time_since_last_poll;
+
+    now = get_time_ns();
+    drv = get_active_drv();
+
+    iter = xh_get(PULL_MAP, s_pull_map, drv_fd());
+    XASSERT_NEQ(iter, xh_end(s_pull_map));
+    info = &xh_val(s_pull_map, iter);
+
+    /* Adjust our timeout data and trigger a pull if a timeout expired. */
+    time_since_last_poll = now - info->last_pull;
+    min_timeout = UINT64_MAX;
+    for (i = 0; i < xv_size(info->timeout_info); ++i) {
+        timeout_info = &xv_A(info->timeout_info, i);
+
+        if (time_since_last_poll >= timeout_info->current_timeout) {
+            /* Driver is ready to pull data. */
+            lateness = time_since_last_poll - timeout_info->current_timeout;
+            /*
+             * NOTE: We don't use drv_ops_next here, which would set the active
+             * driver and take the driver ops mutex. This is because we are already
+             * inside a driver ops callback, so re-taking the mutex will cause a
+             * deadlock!
+             */
+            err = drv->ops.next(timeout_info->id);
+            if (err != HOUND_OK) {
+                hound_log_err(
+                        err,
+                        "driver %p failed to pull data",
+                        (void *) drv);
+            }
+            if (lateness >= timeout_info->max_timeout) {
+                /* We were so late that the driver is ready again. */
+                timeout_info->current_timeout = 0;
+            }
+            else {
+                timeout_info->current_timeout =
+                    timeout_info->max_timeout - lateness;
+            }
+        }
+        else {
+            timeout_info->current_timeout -= time_since_last_poll;
+        }
+
+        /* Find the next lowest timeout. */
+        min_timeout = min(min_timeout, timeout_info->current_timeout);
+    }
+
+    if (events & POLLIN) {
+        err = make_records(
+            drv,
+            s_read_buf,
+            ARRAYLEN(s_read_buf),
+            records,
+            record_count);
+    }
+    else {
+        *record_count = 0;
+        err = HOUND_OK;
+    }
+
+
+    *next_events = POLLIN;
+    *timeout_enabled = true;
+    *timeout = min_timeout;
+    info->last_pull = get_time_ns();
+
+    return err;
+}
+
+hound_err io_default_push(
+    short events,
+    short *next_events,
+    struct hound_record *records,
+    size_t *record_count,
+    bool *timeout_enabled,
+    UNUSED hound_data_period *timeout)
+{
+    *next_events = POLLIN;
+    *timeout_enabled = false;
+
+    if (!(events & POLLIN)) {
+        *record_count = 0;
+        return HOUND_OK;
+    }
+
     return make_records(
-        drv,
+        get_active_drv(),
         s_read_buf,
-        bytes_read,
+        ARRAYLEN(s_read_buf),
         records,
         record_count);
 }
@@ -258,7 +369,16 @@ hound_err io_read(struct fdctx *ctx, short events, short *next_events)
     size_t record_count;
 
     record_count = 0;
-    err = drv_op_poll(ctx->drv, events, next_events, s_records, &record_count);
+    ctx->timeout_enabled = false;
+    ctx->timeout_ns = UINT64_MAX;
+    err = drv_op_poll(
+        ctx->drv,
+        events,
+        next_events,
+        s_records,
+        &record_count,
+        &ctx->timeout_enabled,
+        &ctx->timeout_ns);
     if (err != HOUND_OK) {
         return err;
     }
@@ -281,20 +401,6 @@ void io_wait_for_ready(void) {
     }
     s_poll_active_current = true;
     pthread_mutex_unlock(&s_poll_mutex);
-}
-
-static
-hound_data_period get_time_ns(void)
-{
-    struct timespec ts;
-
-    /*
-     * Use CLOCK_MONOTONIC_RAW, as it's not subject to time discontinuities due
-     * to NTP, leap seconds, etc.
-     */
-    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
-
-    return NSEC_PER_SEC*ts.tv_sec + ts.tv_nsec;
 }
 
 static
@@ -330,38 +436,34 @@ void *io_poll(UNUSED void *data)
 {
     struct fdctx *ctx;
     hound_err err;
+    bool fd_timeout;
     size_t i;
-    size_t j;
     int fds;
-    hound_data_period lateness;
+    bool have_timeout;
     hound_data_period min_timeout;
     hound_data_period now;
     struct pollfd *pfd;
     struct timespec *timeout;
     struct timespec timeout_spec;
     hound_data_period time_since_last_poll;
-    struct pull_timing_entry *timing_entry;
 
     s_ios.last_poll_ns = get_time_ns();
 
     while (true) {
         io_wait_for_ready();
 
-        /*
-         * Find the timeout we need for the poll, in order to tell a pull-mode
-         * driver to request data.
-         */
-        if (xv_size(s_ios.pull_mode_indices) > 0) {
-            min_timeout = UINT64_MAX;
-            for (i = 0; i < xv_size(s_ios.pull_mode_indices); ++i) {
-                ctx = &xv_A(s_ios.ctx, xv_A(s_ios.pull_mode_indices, i));
-                for (j = 0; j < xv_size(ctx->timings); ++j) {
-                    timing_entry = &xv_A(ctx->timings, j);
-                    min_timeout = min(
-                        min_timeout,
-                        timing_entry->current_timeout);
-                }
+        /* Find the timeout we need for the poll (if any). */
+        have_timeout = false;
+        min_timeout = UINT64_MAX;
+        for (i = 0; i < xv_size(s_ios.ctx); ++i) {
+            ctx = &xv_A(s_ios.ctx, i);
+            if (!ctx->timeout_enabled) {
+                continue;
             }
+            have_timeout = true;
+            min_timeout = min(min_timeout, ctx->timeout_ns);
+        }
+        if (have_timeout) {
             populate_timespec(min_timeout, &timeout_spec);
             timeout = &timeout_spec;
             s_ios.last_poll_ns = get_time_ns();
@@ -375,6 +477,9 @@ void *io_poll(UNUSED void *data)
          * need to care about signals.
          */
         fds = ppoll(xv_data(s_ios.fds), xv_size(s_ios.fds), timeout, NULL);
+        now = get_time_ns();
+        time_since_last_poll = now - s_ios.last_poll_ns;
+        s_ios.last_poll_ns = now;
         if (fds > 0 && need_to_pause()) {
             continue;
         }
@@ -396,55 +501,33 @@ void *io_poll(UNUSED void *data)
             }
         }
 
-        /* Adjust our timeout data and tell drivers to pull data if needed. */
-        if (xv_size(s_ios.pull_mode_indices) > 0) {
-            now = get_time_ns();
-            time_since_last_poll = now - s_ios.last_poll_ns;
-            for (i = 0; i < xv_size(s_ios.pull_mode_indices); ++i) {
-                ctx = &xv_A(s_ios.ctx, xv_A(s_ios.pull_mode_indices, i));
-                for (j = 0; j < xv_size(ctx->timings); ++j) {
-                    timing_entry = &xv_A(ctx->timings, j);
-                    if (time_since_last_poll >= timing_entry->current_timeout) {
-                        /* Driver is ready to pull data. */
-                        lateness =
-                            time_since_last_poll - timing_entry->current_timeout;
-                        err = drv_op_next(ctx->drv, timing_entry->id);
-                        if (err != HOUND_OK) {
-                            hound_log_err(
-                                err,
-                                "driver %p failed to pull data",
-                                (void *) ctx->drv);
-                        }
-                        if (lateness >= timing_entry->max_timeout) {
-                            /* We were so late that the driver is ready again. */
-                            timing_entry->current_timeout = 0;
-                        }
-                        else {
-                            timing_entry->current_timeout =
-                                timing_entry->max_timeout - lateness;
-                        }
-                    }
-                    else {
-                        timing_entry->current_timeout -= time_since_last_poll;
-                    }
+        /* Read all fds that have data, and adjust timeouts. */
+        for (i = DATA_FD_START; i < xv_size(s_ios.fds); ++i) {
+            ctx = get_fdctx_from_fd_index(i);
+            pfd = &xv_A(s_ios.fds, i);
+
+            if (ctx->timeout_enabled) {
+                if (time_since_last_poll >= ctx->timeout_ns) {
+                    ctx->timeout_enabled = false;
+                    fd_timeout = true;
+                }
+                else {
+                    ctx->timeout_ns -= time_since_last_poll;
                 }
             }
-        }
+            else {
+                fd_timeout = false;
+            }
 
-        /* Read all fds that have data. */
-        for (i = DATA_FD_START; fds > 0 && i < xv_size(s_ios.fds); ++i) {
-            pfd = &xv_A(s_ios.fds, i);
-            if (pfd->revents == 0) {
+            if (pfd->revents == 0 && !fd_timeout) {
                 continue;
             }
 
-            ctx = get_fdctx_from_fd_index(i);
             err = io_read(ctx, pfd->revents, &pfd->events);
             if (err == HOUND_INTR) {
                 /* Someone wants to pause polling; finish reading later. */
                 break;
             }
-            --fds;
             if (err != HOUND_OK) {
                 hound_log_err(err, "Failed to grab record from fd %d", pfd->fd);
                 continue;
@@ -524,8 +607,10 @@ hound_err io_add_fd(int fd, struct driver *drv)
     struct fdctx *ctx;
     hound_err err;
     int flags;
-    size_t *index;
+    struct pull_info *info;
+    xhiter_t iter;
     struct pollfd *pfd;
+    int ret;
 
     XASSERT_NOT_NULL(drv);
     XASSERT_NEQ(fd, 0);
@@ -552,16 +637,20 @@ hound_err io_add_fd(int fd, struct driver *drv)
         goto error_ctx_push;
     }
     ctx->drv = drv;
-    xv_init(ctx->timings);
+    ctx->timeout_enabled = false;
+    ctx->timeout_ns = UINT64_MAX;
     xv_init(ctx->queues);
 
-    if (drv->sched_mode == DRV_SCHED_PULL) {
-        index = xv_pushp(size_t, s_ios.pull_mode_indices);
-        if (index == NULL) {
+    if (driver_is_pull_mode(drv)) {
+        iter = xh_put(PULL_MAP, s_pull_map, fd, &ret);
+        if (ret == -1) {
             err = HOUND_OOM;
             goto error_pull_mode_indices_push;
         }
-        *index = xv_size(s_ios.ctx) - 1;
+        info = &xh_val(s_pull_map, iter);
+
+        info->last_pull = 0;
+        xv_init(info->timeout_info);
     }
 
     err = HOUND_OK;
@@ -584,7 +673,8 @@ void io_remove_fd(int fd)
     hound_err err;
     int fds;
     size_t fd_index;
-    size_t i;
+    struct pull_info *info;
+    xhiter_t iter;
     short next_events;
     struct pollfd pfd;
 
@@ -595,7 +685,7 @@ void io_remove_fd(int fd)
 
     io_pause_poll();
 
-    if (ctx->drv->sched_mode == DRV_SCHED_PULL) {
+    if (driver_is_pull_mode(ctx->drv)) {
         /*
          * Drain the fd of any buffered data. If we get interrupted, keep trying, as
          * we don't want to lose data. Note we don't do this for push-mode
@@ -637,11 +727,10 @@ void io_remove_fd(int fd)
          * If we have a pointer to this index in the pull mode indices list, remove
          * it.
          */
-        for (i = 0; i < xv_size(s_ios.pull_mode_indices); ++i) {
-            if (xv_A(s_ios.pull_mode_indices, i) == ctx_index) {
-                RM_VEC_INDEX(s_ios.pull_mode_indices, i);
-                break;
-            }
+        iter = xh_get(PULL_MAP, s_pull_map, fd);
+        if (iter != xh_end(s_pull_map)) {
+            info = &xh_val(s_pull_map, iter);
+            xv_destroy(info->timeout_info);
         }
     }
 
@@ -651,8 +740,40 @@ void io_remove_fd(int fd)
 
     io_resume_poll();
 
-    xv_destroy(ctx->timings);
     xv_destroy(ctx->queues);
+}
+
+static
+void set_fd_timeout(int fd, struct fdctx *ctx)
+{
+    size_t i;
+    struct pull_info *info;
+    xhiter_t iter;
+    hound_data_period min_timeout;
+    struct pull_timeout_info *timeout_info;
+
+    /*
+     * This function should be called only for pull-mode drivers, so we should
+     * always find our fd in the pull-mode map.
+     */
+    iter = xh_get(PULL_MAP, s_pull_map, fd);
+    XASSERT_NEQ(iter, xh_end(s_pull_map));
+    info = &xh_val(s_pull_map, iter);
+
+    if (xv_size(info->timeout_info) == 0) {
+        /* No timing entries; nothing to do here. */
+        ctx->timeout_enabled = false;
+        ctx->timeout_ns = UINT64_MAX;
+        return;
+    }
+
+    min_timeout = UINT64_MAX;
+    for (i = 0; i < xv_size(info->timeout_info); ++i) {
+        timeout_info = &xv_A(info->timeout_info, i);
+        min_timeout = min(min_timeout, timeout_info->current_timeout);
+    }
+    ctx->timeout_enabled = true;
+    ctx->timeout_ns = min_timeout;
 }
 
 hound_err io_add_queue(
@@ -664,10 +785,12 @@ hound_err io_add_queue(
     struct queue_entry *entry;
     hound_err err;
     size_t i;
+    struct pull_info *info;
+    xhiter_t iter;
     size_t j;
     size_t queue_count;
     struct hound_data_rq *rq;
-    struct pull_timing_entry *timing_entry;
+    struct pull_timeout_info *timeout_info;
 
     ctx = get_fdctx(fd);
     XASSERT_NOT_NULL(ctx);
@@ -704,28 +827,40 @@ hound_err io_add_queue(
             ++queue_count;
         }
 
-        if (ctx->drv->sched_mode == DRV_SCHED_PULL && rq->period_ns > 0) {
+        if (driver_is_pull_mode(ctx->drv) && rq->period_ns > 0) {
             /*
              * Push-mode doesn't need timeout data, as the driver manages the
              * data timing.
              *
-             * Further, A period of 0 has special meaning: data is "on-demand",
+             * Further, a period of 0 has special meaning: data is "on-demand",
              * meaning neither push nor pull (no data flows until requested with
              * hound_next(). Therefore, if the period is 0, we should not add
              * timing data for this request.
              */
-            timing_entry = xv_pushp(struct pull_timing_entry, ctx->timings);
-            if (timing_entry == NULL) {
+            iter = xh_get(PULL_MAP, s_pull_map, fd);
+            XASSERT_NEQ(iter, xh_end(s_pull_map));
+            info = &xh_val(s_pull_map, iter);
+            timeout_info = xv_pushp(struct pull_timeout_info, info->timeout_info);
+            if (timeout_info == NULL) {
                 err = HOUND_OOM;
                 for (j = 0; j < queue_count; ++j) {
                     (void) xv_pop(ctx->queues);
                     goto out;
                 }
             }
-            timing_entry->id = entry->id;
-            timing_entry->current_timeout = rq->period_ns;
-            timing_entry->max_timeout = rq->period_ns;
+
+            timeout_info->id = entry->id;
+            timeout_info->current_timeout = rq->period_ns;
+            timeout_info->max_timeout = rq->period_ns;
         }
+    }
+
+    /*
+     * For pull-mode drivers, adjust the new fd timeout, as some timing entries
+     * have been deleted.
+     */
+    if (driver_is_pull_mode(ctx->drv)) {
+        set_fd_timeout(fd, ctx);
     }
 
 out:
@@ -741,8 +876,11 @@ void io_remove_queue(
     struct fdctx *ctx;
     struct queue_entry *entry;
     size_t i;
+    struct pull_info *info;
+    xhiter_t iter;
     size_t j;
     struct hound_data_rq *rq;
+    struct pull_timeout_info *timeout_info;
 
     ctx = get_fdctx(fd);
     XASSERT_NOT_NULL(ctx);
@@ -750,6 +888,9 @@ void io_remove_queue(
     io_pause_poll();
 
     /* Remove all matching queue entries. */
+    iter = xh_get(PULL_MAP, s_pull_map, fd);
+    XASSERT_NEQ(iter, xh_end(s_pull_map));
+    info = &xh_val(s_pull_map, iter);
     for (i = 0; i < rq_list->len; ++i) {
         rq = &rq_list->data[i];
         for (j = 0; j < xv_size(ctx->queues); ++j) {
@@ -760,8 +901,33 @@ void io_remove_queue(
             /* Remove the queue. */
             RM_VEC_INDEX(ctx->queues, j);
         }
+        /* We should have removed at least one queue entry. */
         XASSERT_LT(j, xv_size(ctx->queues));
-        break;
+
+        if (driver_is_pull_mode(ctx->drv) && rq->period_ns > 0) {
+            /* Remove pull-mode timing info, if any. */
+            for (j = 0; j < xv_size(info->timeout_info); ++j) {
+                timeout_info = &xv_A(info->timeout_info, j);
+                if (timeout_info->id == rq->id &&
+                    timeout_info->max_timeout == rq->period_ns) {
+                    RM_VEC_INDEX(info->timeout_info, j);
+                    break;
+                }
+            }
+            /*
+             * We should have found a timing entry, as this is a pull-mode data
+             * ID.
+             */
+            XASSERT_LT(j, xv_size(info->timeout_info));
+        }
+    }
+
+    /*
+     * For pull-mode drivers, adjust the new fd timeout, as some timing entries
+     * have been deleted.
+     */
+    if (driver_is_pull_mode(ctx->drv)) {
+        set_fd_timeout(fd, ctx);
     }
 
     io_resume_poll();
@@ -775,8 +941,13 @@ void io_init(void)
 
     xv_init(s_ios.ctx);
     xv_init(s_ios.fds);
-    xv_init(s_ios.pull_mode_indices);
     s_ios.last_poll_ns = 0;
+
+    s_pull_map = xh_init(PULL_MAP);
+    if (s_pull_map == NULL) {
+        log_msg(LOG_ERR, "Failed to initialize pull-mode timing map");
+        return;
+    }
 
     /*
      * Create our self-pipe, which we use to interrupt the poll loop when
@@ -807,9 +978,9 @@ void io_init(void)
 void io_destroy(void)
 {
     io_stop_poll();
-    xv_destroy(s_ios.pull_mode_indices);
     xv_destroy(s_ios.ctx);
     xv_destroy(s_ios.fds);
+    xh_destroy(PULL_MAP, s_pull_map);
     close(s_self_pipe[READ_END]);
     close(s_self_pipe[WRITE_END]);
 }

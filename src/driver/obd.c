@@ -193,10 +193,7 @@ struct iter_helper {
 };
 
 static
-hound_err obd_datadesc(
-    size_t desc_count,
-    struct drv_datadesc *descs,
-    drv_sched_mode *mode)
+hound_err obd_datadesc(size_t desc_count, struct drv_datadesc *descs)
 {
     struct obd_ctx *ctx;
     struct drv_datadesc *desc;
@@ -206,8 +203,6 @@ hound_err obd_datadesc(
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
-
-    *mode = DRV_SCHED_PULL;
 
     /*
      * The PID count and Hound descriptor count should be the same, as the Hound
@@ -557,7 +552,7 @@ static struct driver_ops obd_driver = {
     .device_name = obd_device_name,
     .datadesc = obd_datadesc,
     .setdata = obd_setdata,
-    .poll = NULL,
+    .poll = drv_default_pull,
     .parse = obd_parse,
     .start = obd_start,
     .next = obd_next,

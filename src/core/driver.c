@@ -82,14 +82,7 @@ void driver_register(const char *name, struct driver_ops *ops)
     XASSERT_NOT_NULL(ops->start);
     XASSERT_NOT_NULL(ops->next);
     XASSERT_NOT_NULL(ops->stop);
-
-    /* poll or parse, but not both, must be filled in. */
-    XASSERT((ops->poll == NULL && ops->parse != NULL) ||
-            (ops->poll != NULL && ops->parse == NULL));
-
-    if (ops->poll == NULL) {
-        ops->poll = io_default_poll;
-    }
+    XASSERT_NOT_NULL(ops->poll);
 
     /*
      * If we can't initialize a driver this early on (this is called from
@@ -265,6 +258,16 @@ void destroy_drv_desc(struct drv_datadesc *desc)
     free(desc->avail_periods);
 }
 
+bool driver_is_pull_mode(const struct driver *drv)
+{
+    return drv->ops.poll == drv_default_pull;
+}
+
+bool driver_is_push_mode(const struct driver *drv)
+{
+    return drv->ops.poll == drv_default_push;
+}
+
 PUBLIC_API
 hound_err driver_init(
     const char *name,
@@ -412,11 +415,7 @@ hound_err driver_init(
     }
 
     /* Get all the supported data for the driver. */
-    err = drv_op_datadesc(
-        drv,
-        desc_count,
-        drv_descs,
-        &drv->sched_mode);
+    err = drv_op_datadesc(drv, desc_count, drv_descs);
     if (err != HOUND_OK) {
         goto error_drv_datadesc;
     }
@@ -930,17 +929,6 @@ hound_err driver_get(hound_data_id data_id, struct driver **drv)
 out:
     pthread_rwlock_unlock(&s_driver_rwlock);
     return err;
-}
-
-drv_sched_mode driver_get_sched_mode(const struct driver *drv)
-{
-    drv_sched_mode mode;
-
-    pthread_rwlock_rdlock(&s_driver_rwlock);
-    mode = drv->sched_mode;
-    pthread_rwlock_unlock(&s_driver_rwlock);
-
-    return mode;
 }
 
 bool driver_period_supported(

@@ -9,6 +9,7 @@
 #define HOUND_PRIVATE_DRIVER_H_
 
 #include <hound/hound.h>
+#include <hound-private/io.h>
 #include <hound-private/queue.h>
 #include <stdbool.h>
 
@@ -39,11 +40,6 @@ struct drv_datadesc {
     const struct schema_desc *schema_desc;
 };
 
-typedef enum {
-    DRV_SCHED_PULL,
-    DRV_SCHED_PUSH
-} drv_sched_mode;
-
 struct driver_ops {
     hound_err (*init)(
         const char *path,
@@ -73,14 +69,10 @@ struct driver_ops {
      *              of the struct to true if the descriptor is available and
      *              false otherwise, and fill in the frequnecies at which
      *              enabled data is available.
-     * @param mode the driver's scheduling mode
      *
      * @return an error code
      */
-    hound_err (*datadesc)(
-        size_t desc_count,
-        struct drv_datadesc *descs,
-        drv_sched_mode *mode);
+    hound_err (*datadesc)(size_t desc_count, struct drv_datadesc *descs);
 
     hound_err (*setdata)(const struct hound_data_rq_list *data);
 
@@ -104,12 +96,20 @@ struct driver_ops {
      *                it shall be owned by the driver core.
      * @param record_count the driver shall set this to the number of records
      *                     produced.
+     * @param timeout_enabled set to true if poll should be called again after a
+     *                        timeout even if no events have occurred. This will
+     *                        directly become an argument into the poll
+     *                        syscall in the Hound I/O core.
+     * @param timeout if timeout_enabled is set to true, the number of
+     *                nanoseconds to wait until calling poll again.
      */
     hound_err (*poll)(
         short events,
         short *next_events,
         struct hound_record *records,
-        size_t *record_count);
+        size_t *record_count,
+        bool *timeout_enabled,
+        hound_data_period *timeout);
 
     /**
      * Parse the raw data from the I/O layer and produce one or more records. A
@@ -117,7 +117,7 @@ struct driver_ops {
      * implements parse, then the I/O core will read any data available on the
      * driver's fd and pass it into parse, as a buffer.
      *
-     * @param data the raw data coming from the I/O layer
+     * @param buf the raw data coming from the I/O layer
      * @param bytes a pointer to the number of bytes in the buffer. The pointer
      *              should be filled in to indicate how many bytes are still
      *              left unconsumed by the driver. For example, if *bytes is 10
@@ -219,6 +219,8 @@ void driver_destroy_statics(void);
 struct driver;
 
 hound_err driver_get_dev_name(hound_dev_id id, const char **name);
+bool driver_is_pull_mode(const struct driver *drv);
+bool driver_is_push_mode(const struct driver *drv);
 
 hound_err driver_get_datadescs(struct hound_datadesc **descs, size_t *len);
 void driver_free_datadescs(struct hound_datadesc *descs);
@@ -248,11 +250,13 @@ hound_err driver_unref(
     const struct hound_data_rq_list *data_rq_list);
 
 hound_err driver_get(hound_data_id id, struct driver **drv);
-drv_sched_mode driver_get_sched_mode(const struct driver *drv);
 
 bool driver_period_supported(
     struct driver *drv,
     hound_data_id id,
     hound_data_period period);
+
+#define drv_default_pull io_default_pull
+#define drv_default_push io_default_push
 
 #endif /* HOUND_PRIVATE_DRIVER_H_ */

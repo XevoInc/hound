@@ -85,10 +85,7 @@ hound_err file_device_name(char *device_name)
 }
 
 static
-hound_err file_datadesc(
-    size_t desc_count,
-    struct drv_datadesc *descs,
-    drv_sched_mode *mode)
+hound_err file_datadesc(size_t desc_count, struct drv_datadesc *descs)
 {
     struct drv_datadesc *desc;
 
@@ -101,8 +98,6 @@ hound_err file_datadesc(
         return HOUND_OOM;
     }
     desc->avail_periods[0] = 0;
-
-    *mode = DRV_SCHED_PUSH;
 
     return HOUND_OK;
 }
@@ -246,7 +241,7 @@ static struct driver_ops file_driver = {
     .device_name = file_device_name,
     .datadesc = file_datadesc,
     .setdata = file_setdata,
-    .poll = NULL,
+    .poll = drv_default_push,
     .parse = file_parse,
     .start = file_start,
     .next = file_next,

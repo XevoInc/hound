@@ -746,10 +746,7 @@ bool iio_scan_readable(
 }
 
 static
-hound_err iio_datadesc(
-    size_t desc_count,
-    struct drv_datadesc *descs,
-    drv_sched_mode *mode)
+hound_err iio_datadesc(size_t desc_count, struct drv_datadesc *descs)
 {
     hound_data_period *avail_periods;
     const struct chan_desc *channels;
@@ -839,7 +836,6 @@ hound_err iio_datadesc(
     }
 
 
-    *mode = DRV_SCHED_PUSH;
     err = HOUND_OK;
     goto out;
 
@@ -1654,7 +1650,7 @@ static struct driver_ops iio_driver = {
     .device_name = iio_device_name,
     .datadesc = iio_datadesc,
     .setdata = iio_setdata,
-    .poll = NULL,
+    .poll = drv_default_push,
     .parse = iio_parse,
     .start = iio_start,
     .next = iio_next,

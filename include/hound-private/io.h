@@ -12,6 +12,10 @@
 #include <hound/hound.h>
 #include <hound-private/driver.h>
 #include <hound-private/queue.h>
+#include <hound-private/util.h>
+
+/* Forward declaration. */
+struct driver;
 
 void io_init(void);
 void io_destroy(void);
@@ -19,13 +23,23 @@ void io_destroy(void);
 hound_err io_add_fd(int fd, struct driver *drv);
 void io_remove_fd(int fd);
 
-void io_set_sched_mode(int fd, drv_sched_mode mode);
-
-hound_err io_default_poll(
+PUBLIC_API
+hound_err io_default_push(
     short events,
     short *next_events,
     struct hound_record *records,
-    size_t *record_count);
+    size_t *record_count,
+    bool *timeout_enabled,
+    hound_data_period *timeout);
+
+PUBLIC_API
+hound_err io_default_pull(
+    short events,
+    short *next_events,
+    struct hound_record *records,
+    size_t *record_count,
+    bool *timeout_enabled,
+    hound_data_period *timeout);
 
 hound_err io_add_queue(
     int fd,

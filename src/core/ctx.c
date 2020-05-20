@@ -92,7 +92,7 @@ hound_err validate_rq(const struct hound_rq *rq)
         for (j = 0; j < i; ++j) {
             if (data_rq->id == list->data[j].id) {
                 if (data_rq->period_ns == list->data[j].period_ns ||
-                    driver_get_sched_mode(drv) == DRV_SCHED_PUSH) {
+                    driver_is_push_mode(drv)) {
                     /*
                      * Push-mode drivers can push data at only one rate, so this is
                      * an error. Pull-mode drivers can handle the same data at

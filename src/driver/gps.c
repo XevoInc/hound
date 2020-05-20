@@ -139,10 +139,7 @@ hound_err gps_device_name(char *device_name)
 }
 
 static
-hound_err gps_datadesc(
-    size_t desc_count,
-    struct drv_datadesc *descs,
-    drv_sched_mode *mode)
+hound_err gps_datadesc(size_t desc_count, struct drv_datadesc *descs)
 {
     struct drv_datadesc *desc;
 
@@ -155,8 +152,6 @@ hound_err gps_datadesc(
         return HOUND_OOM;
     }
     desc->avail_periods[0] = NSEC_PER_SEC;
-
-    *mode = DRV_SCHED_PUSH;
 
     return HOUND_OK;
 }
@@ -357,7 +352,7 @@ static struct driver_ops gps_driver = {
     .device_name = gps_device_name,
     .datadesc = gps_datadesc,
     .setdata = gps_setdata,
-    .poll = NULL,
+    .poll = drv_default_push,
     .parse = gps_parse,
     .start = gps_start,
     .next = gps_next,

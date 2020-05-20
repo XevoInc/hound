@@ -86,10 +86,7 @@ hound_err nop_device_name(char *device_name)
 }
 
 static
-hound_err nop_datadesc(
-    size_t desc_count,
-    struct drv_datadesc *descs,
-    drv_sched_mode *mode)
+hound_err nop_datadesc(size_t desc_count, struct drv_datadesc *descs)
 {
     struct drv_datadesc *desc;
     const struct period_desc *p_desc;
@@ -113,8 +110,6 @@ hound_err nop_datadesc(
         }
         memcpy(desc->avail_periods, p_desc->avail_periods, size);
     }
-
-    *mode = DRV_SCHED_PUSH;
 
     return HOUND_OK;
 }
@@ -188,7 +183,7 @@ static struct driver_ops nop_driver = {
     .device_name = nop_device_name,
     .datadesc = nop_datadesc,
     .setdata = nop_setdata,
-    .poll = NULL,
+    .poll = drv_default_push,
     .parse = nop_parse,
     .start = nop_start,
     .next = nop_next,

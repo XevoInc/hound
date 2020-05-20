@@ -51,7 +51,6 @@ struct driver {
     char device_name[HOUND_DEVICE_NAME_MAX];
     size_t datacount;
     struct hound_datadesc *data;
-    drv_sched_mode sched_mode;
 
     xvec_t(struct data) active_data;
 
@@ -93,9 +92,8 @@ DEFINE_DRV_OP(
     datadesc,
     TOKENIZE(
         size_t desc_count,
-        struct drv_datadesc *descs,
-        drv_sched_mode *mode),
-    TOKENIZE(desc_count, descs, mode))
+        struct drv_datadesc *descs),
+    TOKENIZE(desc_count, descs))
 DEFINE_DRV_OP(setdata, const struct hound_data_rq_list *data, data)
 DEFINE_DRV_OP(
     poll,
@@ -103,8 +101,16 @@ DEFINE_DRV_OP(
         short events,
         short *next_events,
         struct hound_record *records,
-        size_t *record_count),
-    TOKENIZE(events, next_events, records, record_count))
+        size_t *record_count,
+        bool *timeout_enabled,
+        hound_data_period *timeout),
+    TOKENIZE(
+        events,
+        next_events,
+        records,
+        record_count,
+        timeout_enabled,
+        timeout))
 DEFINE_DRV_OP(
     parse,
     TOKENIZE(

@@ -71,10 +71,7 @@ hound_err counter_device_name(char *device_name)
 }
 
 static
-hound_err counter_datadesc(
-    size_t desc_count,
-    struct drv_datadesc *descs,
-    drv_sched_mode *mode)
+hound_err counter_datadesc(size_t desc_count, struct drv_datadesc *descs)
 {
     struct drv_datadesc *desc;
 
@@ -83,8 +80,6 @@ hound_err counter_datadesc(
     desc->enabled = true;
     desc->period_count = 0;
     desc->avail_periods = NULL;
-
-    *mode = DRV_SCHED_PULL;
 
     return HOUND_OK;
 }
@@ -231,7 +226,7 @@ static struct driver_ops counter_driver = {
     .device_name = counter_device_name,
     .datadesc = counter_datadesc,
     .setdata = counter_setdata,
-    .poll = NULL,
+    .poll = drv_default_pull,
     .parse = counter_parse,
     .start = counter_start,
     .next = counter_next,

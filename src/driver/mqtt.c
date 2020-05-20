@@ -835,10 +835,7 @@ bool topic_has_wildcards(const char *topic)
 }
 
 static
-hound_err mqtt_datadesc(
-    size_t desc_count,
-    struct drv_datadesc *descs,
-    drv_sched_mode *mode)
+hound_err mqtt_datadesc(size_t desc_count, struct drv_datadesc *descs)
 {
     struct mqtt_ctx *ctx;
     struct drv_datadesc *desc;
@@ -905,8 +902,6 @@ hound_err mqtt_datadesc(
         }
         xh_val(ctx->topic_map, iter) = schema;
     }
-
-    *mode = DRV_SCHED_PUSH;
 
     return HOUND_OK;
 
@@ -1196,7 +1191,9 @@ hound_err mqtt_poll(
     short events,
     short *out_events,
     struct hound_record *records,
-    size_t *record_count)
+    size_t *record_count,
+    UNUSED bool *timeout_enabled,
+    UNUSED hound_data_period *timeout)
 {
     struct mqtt_ctx *ctx;
     short next_events;
