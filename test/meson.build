@@ -72,12 +72,14 @@ if get_option('obd')
     }
 endif
 if get_option('mqtt')
+    mosq_conf = join_paths(meson.current_source_dir(), 'data', 'mosquitto.conf')
+    broker_exe = find_program('mosquitto', required: true)
     tests += {
         'mqtt': {
-            'deps': ['libmosquitto', 'msgpack'],
+            'deps': ['libmosquitto', 'msgpack', 'valgrind'],
             'src': ['mqtt.c'],
             'unit-test': {
-                'args': [example_schema_dir],
+                'args': [example_schema_dir, broker_exe.path(), mosq_conf],
                 'is-parallel': false
             }
         }

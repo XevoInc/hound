@@ -13,13 +13,19 @@
 #include <limits.h>
 #include <mosquitto.h>
 #include <msgpack.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
+#include <valgrind.h>
 #include <xlib/xassert.h>
 
 #define MQTT_HOST "127.0.0.1"
-#define MQTT_PORT 1883
-#define MQTT_PORT_STRING "1883"
+#define MQTT_PORT 42000
+#define MQTT_PORT_STRING "42000"
 #define MQTT_LOCATION (MQTT_HOST ":" MQTT_PORT_STRING)
 
 /*
@@ -283,8 +289,100 @@ void publish_messages(const struct test_ctx *ctx, const char *host, int port)
     mosquitto_destroy(mosq);
 }
 
+static pid_t child_pid = -1;
+
+static
+void sig_handler(int sig)
+{
+    /* Propagate the signal to the child process. */
+    kill(child_pid, sig);
+}
+
+static
+uint64_t get_time_ns(void)
+{
+    struct timespec ts;
+
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+
+    return ts.tv_sec*NSEC_PER_SEC  + ts.tv_nsec;
+}
+
+static
+pid_t start_broker(const char *broker_exe, const char *config, uint64_t timeout_ns)
+{
+    struct sockaddr_in addr;
+    int err;
+    int fd;
+    pid_t pid;
+    int rc;
+    struct sigaction sigact;
+    struct timespec sleep_time;
+    uint64_t start;
+
+    /*
+     * Propagate kill signals to the children so we don't leave zombie processes
+     * if we crash.
+     */
+    memset(&sigact, 0, sizeof(sigact));
+    sigact.sa_handler = sig_handler;
+    sigact.sa_flags = 0;
+    sigaction(SIGABRT, &sigact, NULL);
+    sigaction(SIGTERM, &sigact, NULL);
+
+    child_pid = pid = fork();
+    XASSERT_NEQ(pid, -1);
+    if (pid == 0) {
+        /* Child. */
+        err = execl(
+            broker_exe,
+            broker_exe,
+            "-c", config,
+            "-p",
+            MQTT_PORT_STRING,
+            NULL);
+        XASSERT_NEQ(err, -1);
+    }
+
+    /* Wait until the server is ready to accept a connection. */
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+    XASSERT_NEQ(fd, -1);
+
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(MQTT_HOST);
+    addr.sin_port = htons(MQTT_PORT);
+
+    /* Wait up to a second for a connection .*/
+    sleep_time.tv_sec = 0;
+    sleep_time.tv_nsec = NSEC_PER_SEC / 100;
+    start = get_time_ns();
+    do {
+        rc = connect(fd, (struct sockaddr *) &addr, sizeof(addr));
+        nanosleep(&sleep_time, NULL);
+    } while (rc != 0 && (get_time_ns() - start) < timeout_ns);
+    close(fd);
+
+    return pid;
+}
+
+static
+void stop_broker(pid_t pid)
+{
+    int err;
+    int status;
+
+    err = kill(pid, SIGTERM);
+    XASSERT_EQ(err, 0);
+
+    err = waitpid(pid, &status, 0);
+    XASSERT_EQ(err, pid);
+    XASSERT(WIFEXITED(status));
+}
+
 int main(int argc, const char **argv)
 {
+    const char *broker_exe;
     struct hound_ctx *ctx;
     hound_err err;
     struct hound_init_arg init[] = {
@@ -300,6 +398,8 @@ int main(int argc, const char **argv)
         }
     };
     struct hound_data_rq *data_rq;
+    const char *mosq_conf;
+    pid_t pid;
     struct test_ctx test_ctx = {
         .count = ARRAYLEN(s_topic_info),
         .info = s_topic_info
@@ -315,9 +415,13 @@ int main(int argc, const char **argv)
         .rq_list.data = data_rqs
     };
     const char *schema_base;
+    uint64_t timeout_ns;
 
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s SCHEMA-BASE-PATH\n", argv[0]);
+    if (argc != 4) {
+        fprintf(
+            stderr,
+            "Usage: %s SCHEMA-BASE-PATH MOSQUITTO-BROKER-EXE MOSQUITTO-CONF-FILE\n",
+            argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -326,6 +430,15 @@ int main(int argc, const char **argv)
         exit(EXIT_FAILURE);
     }
     schema_base = argv[1];
+    broker_exe = argv[2];
+
+    if (strnlen(argv[3], PATH_MAX) == PATH_MAX) {
+        fprintf(
+            stderr,
+            "Mosquitto configuration file is longer than PATH_MAX\n");
+        exit(EXIT_FAILURE);
+    }
+    mosq_conf = argv[3];
 
     for (i = 0; i < test_ctx.count; ++i) {
         data_rq = &data_rqs[i];
@@ -348,6 +461,16 @@ int main(int argc, const char **argv)
     err = hound_alloc_ctx(&rq, &ctx);
     XASSERT_OK(err);
 
+    /* Everything is slower on Valgrind. */
+    if (RUNNING_ON_VALGRIND) {
+        timeout_ns = 30*NSEC_PER_SEC;
+    }
+    else {
+        timeout_ns = NSEC_PER_SEC;
+    }
+
+    pid = start_broker(broker_exe, mosq_conf, timeout_ns);
+
     err = hound_start(ctx);
     XASSERT_OK(err);
 
@@ -358,6 +481,8 @@ int main(int argc, const char **argv)
 
     err = hound_stop(ctx);
     XASSERT_OK(err);
+
+    stop_broker(pid);
 
     err = hound_free_ctx(ctx);
     XASSERT_OK(err);
