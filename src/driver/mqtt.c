@@ -1192,8 +1192,8 @@ hound_err mqtt_poll(
     short *out_events,
     struct hound_record *records,
     size_t *record_count,
-    UNUSED bool *timeout_enabled,
-    UNUSED hound_data_period *timeout)
+    bool *timeout_enabled,
+    hound_data_period *timeout)
 {
     struct mqtt_ctx *ctx;
     short next_events;
@@ -1220,10 +1220,17 @@ hound_err mqtt_poll(
         next_events |= POLLOUT;
     }
 
-    /* TODO: need to do a proper heartbeat. */
     do_misc(ctx);
 
     *out_events = next_events;
+
+    /*
+     * Make sure we get called at least once a second in order to perform
+     * miscellaneous operations, as recommended by mosquitto's
+     * mosquitto_loop_misc documentation.
+     */
+    *timeout_enabled = true;
+    *timeout = NSEC_PER_SEC;
 
     return HOUND_OK;
 }
