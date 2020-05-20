@@ -18,8 +18,6 @@
 #include <valgrind.h>
 #include <xlib/xassert.h>
 
-#define _STRINGIFY(x) #x
-
 #define MQTT_HOST "127.0.0.1"
 #define MQTT_PORT 1883
 #define MQTT_PORT_STRING "1883"
