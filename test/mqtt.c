@@ -15,7 +15,6 @@
 #include <msgpack.h>
 #include <stdlib.h>
 #include <string.h>
-#include <valgrind.h>
 #include <xlib/xassert.h>
 
 #define MQTT_HOST "127.0.0.1"

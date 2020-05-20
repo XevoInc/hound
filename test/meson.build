@@ -74,7 +74,7 @@ endif
 if get_option('mqtt')
     tests += {
         'mqtt': {
-            'deps': ['libmosquitto', 'msgpack', 'valgrind'],
+            'deps': ['libmosquitto', 'msgpack'],
             'src': ['mqtt.c'],
             'unit-test': {
                 'args': [example_schema_dir],
