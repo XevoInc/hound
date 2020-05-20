@@ -277,6 +277,9 @@ void publish_messages(const struct test_ctx *ctx, const char *host, int port)
     }
     msgpack_sbuffer_destroy(&sbuf);
 
+    rc = mosquitto_disconnect(mosq);
+    XASSERT_EQ(rc, MOSQ_ERR_SUCCESS);
+
     mosquitto_destroy(mosq);
 }
 
