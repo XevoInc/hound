@@ -22,6 +22,10 @@
 #define MQTT_PORT_STRING "1883"
 #define MQTT_LOCATION (MQTT_HOST ":" MQTT_PORT_STRING)
 
+/*
+ * Use a large keepalive so we don't break the connection if we drop into the
+ * debugger.
+ */
 #define KEEPALIVE_SEC 1000
 #define LOOP_TIMEOUT_MSEC 5000
 
