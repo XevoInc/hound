@@ -74,10 +74,6 @@ struct mqtt_ctx {
 
     /* Set of active data IDs (which map to schema). */
     xhash_t(ACTIVE_IDS) *active_ids;
-
-    /* Record output list for on_message to write to. */
-    size_t *record_count;
-    struct hound_record *records;
 };
 
 static
@@ -378,17 +374,18 @@ out:
 }
 
 static
-bool make_record(
+void make_record(
     const struct mosquitto_message *msg,
     const struct timespec *ts,
-    const struct schema_desc *schema,
-    struct hound_record *record)
+    const struct schema_desc *schema)
 {
-    parse_payload(msg->payload, msg->payloadlen, schema, record);
-    record->data_id = schema->data_id;
-    record->timestamp = *ts;
+    struct hound_record record;
 
-    return true;
+    parse_payload(msg->payload, msg->payloadlen, schema, &record);
+    record.data_id = schema->data_id;
+    record.timestamp = *ts;
+
+    drv_push_records(&record, 1);
 }
 
 static
@@ -401,7 +398,6 @@ void on_message(
     xhiter_t iter;
     int rc;
     const struct schema_desc *schema;
-    bool success;
     struct timespec ts;
 
     rc = clock_gettime(CLOCK_REALTIME, &ts);
@@ -423,10 +419,7 @@ void on_message(
     }
     schema = xh_val(ctx->topic_map, iter);
 
-    success = make_record(msg, &ts, schema, &ctx->records[*ctx->record_count]);
-    if (success) {
-        ++(*ctx->record_count);
-    }
+    make_record(msg, &ts, schema);
 }
 
 static
@@ -1190,8 +1183,6 @@ static
 hound_err mqtt_poll(
     short events,
     short *out_events,
-    struct hound_record *records,
-    size_t *record_count,
     bool *timeout_enabled,
     hound_data_period *timeout)
 {
@@ -1204,9 +1195,6 @@ hound_err mqtt_poll(
     next_events = POLLIN;
 
     if (events & POLLIN) {
-        *record_count = 0;
-        ctx->records = records;
-        ctx->record_count = record_count;
         do_read(ctx);
     }
 

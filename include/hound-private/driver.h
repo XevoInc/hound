@@ -16,9 +16,6 @@
 #define HOUND_DRIVER_REGISTER_PRIO 102
 #define HOUND_DRIVER_REGISTER_FUNC __attribute__((constructor(HOUND_DRIVER_REGISTER_PRIO)))
 
-/** Maximum number of records a driver can produce from a single parse call. */
-#define HOUND_DRIVER_MAX_RECORDS 1000
-
 struct schema_desc {
     hound_data_id data_id;
     const char *name;
@@ -87,15 +84,6 @@ struct driver_ops {
      *                    monitored. For more details, see the manpage for
      *                    poll(). If this is not set, the value will be
      *                    unchanged from the last time poll() was called.
-     * @param records a pointer to a block of records that the driver may use,
-     *                up to a maximum of HOUND_DRIVER_MAX_RECORDS. Each record
-     *                data should be allocated via drv_alloc. driver via
-     *                drv_alloc.  All record fields -- except the sequence
-     *                number -- shall be filled in by the driver. Each record
-     *                data should be allocated via drv_alloc, and the memory for
-     *                it shall be owned by the driver core.
-     * @param record_count the driver shall set this to the number of records
-     *                     produced.
      * @param timeout_enabled set to true if poll should be called again after a
      *                        timeout even if no events have occurred. This will
      *                        directly become an argument into the poll
@@ -106,8 +94,6 @@ struct driver_ops {
     hound_err (*poll)(
         short events,
         short *next_events,
-        struct hound_record *records,
-        size_t *record_count,
         bool *timeout_enabled,
         hound_data_period *timeout);
 
@@ -118,34 +104,11 @@ struct driver_ops {
      * driver's fd and pass it into parse, as a buffer.
      *
      * @param buf the raw data coming from the I/O layer
-     * @param bytes a pointer to the number of bytes in the buffer. The pointer
-     *              should be filled in to indicate how many bytes are still
-     *              left unconsumed by the driver. For example, if *bytes is 10
-     *              and the driver consumes 8 bytes, the driver should set
-     *              *bytes to 2 before returning. If the driver does not change
-     *              the value of bytes (no bytes were consumed), then it is
-     *              assumed that the driver has no more records to produce at
-     *              this time, so parse will not be called again until new data
-     *              is available. Note that the next time parse is called, the
-     *              unconsumed data will *not* be in the buffer, so if the
-     *              driver needs to reference the unconsumed bytes, it must
-     *              store them itself.
-     * @param records a pointer to a block of records that the driver may use,
-     *                up to a maximum of HOUND_DRIVER_MAX_RECORDS. All record
-     *                fields -- except the sequence number -- shall be filled in
-     *                by the driver. Each record data should be allocated via
-     *                drv_alloc, and the memory for it shall be owned by the
-     *                driver core.
-     * @param record_count the driver shall set this to the number of records
-     *                     produced.
+     * @param bytes the number of bytes in the buffer
      *
      * @return an error code
      */
-    hound_err (*parse)(
-        unsigned char *buf,
-        size_t *bytes,
-        struct hound_record *records,
-        size_t *record_count);
+    hound_err (*parse)(unsigned char *buf, size_t bytes);
 
     hound_err (*start)(int *fd);
     hound_err (*next)(hound_data_id id);
@@ -256,6 +219,8 @@ bool driver_period_supported(
     hound_data_id id,
     hound_data_period period);
 
+/* #defines so drivers don't have to peek into the I/O subsystem. */
+#define drv_push_records io_push_records
 #define drv_default_pull io_default_pull
 #define drv_default_push io_default_push
 

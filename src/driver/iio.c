@@ -1521,7 +1521,8 @@ static
 hound_err iio_make_record(
     const struct device_parse_entry *entry,
     const unsigned char *buf,
-    struct hound_record *record)
+    struct hound_record *record,
+    const struct timespec *ts)
 {
     const struct chan_parse_desc *desc;
     float *data;
@@ -1536,6 +1537,7 @@ hound_err iio_make_record(
 
     record->size = entry->data_size;
     record->data_id = entry->id;
+    record->timestamp = *ts;
 
     for (i = 0; i < entry->num_channels; ++i) {
         desc = &entry->channels[i];
@@ -1550,15 +1552,13 @@ hound_err iio_make_record(
         data[i] = f * desc->scale;
     }
 
+    drv_push_records(record, 1);
+
     return HOUND_OK;
 }
 
 static
-hound_err iio_parse(
-    unsigned char *buf,
-    size_t *bytes,
-    struct hound_record *records,
-    size_t *out_record_count)
+hound_err iio_parse(unsigned char *buf, size_t bytes)
 {
     const struct iio_ctx *ctx;
     uint_fast64_t epoch_ns;
@@ -1566,31 +1566,22 @@ hound_err iio_parse(
     size_t i;
     size_t j;
     const unsigned char *pos;
-    struct hound_record *record;
-    size_t record_count;
+    struct hound_record record;
     const struct chan_parse_desc *timestamp_desc;
     struct timespec ts;
     size_t scan_count;
 
     XASSERT_NOT_NULL(buf);
-    XASSERT_NOT_NULL(bytes);
-    XASSERT_GT(*bytes, 0);
-    XASSERT_NOT_NULL(records);
+    XASSERT_GT(bytes, 0);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
 
-    scan_count = *bytes / ctx->scan_size;
-    record_count = scan_count * ctx->num_entries;
-    if (record_count > HOUND_DRIVER_MAX_RECORDS) {
-        record_count = HOUND_DRIVER_MAX_RECORDS;
-        scan_count = record_count / ctx->num_entries;
-    }
+    scan_count = bytes / ctx->scan_size;
 
     /* IIO should not provide partial scans. */
-    XASSERT_EQ(*bytes % ctx->scan_size, 0);
+    XASSERT_EQ(bytes % ctx->scan_size, 0);
 
-    record = records;
     pos = buf;
     err = HOUND_OK;
     timestamp_desc = &ctx->timestamp_channel;
@@ -1609,30 +1600,15 @@ hound_err iio_parse(
             err = iio_make_record(
                 &ctx->entries[j],
                 pos,
-                record);
+                &record,
+                &ts);
             if (err != HOUND_OK) {
-                if (record == records) {
-                    err = HOUND_OOM;
-                }
-                else {
-                    /*
-                     * Although this means the system is in trouble, the records we
-                     * produced are still OK. The next call will likely fail though.
-                     */
-                    err = HOUND_OK;
-                }
                 break;
             };
-
-            record->timestamp = ts;
-            ++record;
         }
 
         pos += ctx->scan_size;
-        *bytes -= ctx->scan_size;
     }
-
-    *out_record_count = record - records;
 
     return err;
 }

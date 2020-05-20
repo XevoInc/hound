@@ -214,21 +214,14 @@ void populate_gps_data(struct gps_data *data, struct gps_fix_t *fix)
 }
 
 static
-hound_err gps_parse(
-    unsigned char *buf,
-    size_t *bytes,
-    struct hound_record *records,
-    size_t *record_count)
+hound_err gps_parse(unsigned char *buf, size_t bytes)
 {
     struct gps_ctx *ctx;
-    struct hound_record *record;
+    struct hound_record record;
     int status;
 
     XASSERT_NOT_NULL(buf);
-    XASSERT_NOT_NULL(bytes);
-    XASSERT_GT(*bytes, 0);
-    XASSERT_NOT_NULL(records);
-    XASSERT_NOT_NULL(record_count);
+    XASSERT_GT(bytes, 0);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
@@ -243,19 +236,17 @@ hound_err gps_parse(
         return HOUND_OK;
     }
 
-    record = records;
-    record->data = drv_alloc(sizeof(struct gps_data));
-    if (record->data == NULL) {
+    record.data = drv_alloc(sizeof(struct gps_data));
+    if (record.data == NULL) {
         return HOUND_OOM;
     }
-    populate_gps_data((struct gps_data *) record->data, &ctx->gps.fix);
-    record->size = sizeof(ctx->gps.fix);
+    populate_gps_data((struct gps_data *) record.data, &ctx->gps.fix);
+    record.size = sizeof(ctx->gps.fix);
 
-    record->data_id = HOUND_DATA_GPS;
-    convert_time(ctx->gps.fix.time, &record->timestamp);
+    record.data_id = HOUND_DATA_GPS;
+    convert_time(ctx->gps.fix.time, &record.timestamp);
 
-    *record_count = 1;
-    *bytes = 0;
+    drv_push_records(&record, 1);
 
     return HOUND_OK;
 }

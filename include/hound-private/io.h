@@ -27,8 +27,6 @@ PUBLIC_API
 hound_err io_default_push(
     short events,
     short *next_events,
-    struct hound_record *records,
-    size_t *record_count,
     bool *timeout_enabled,
     hound_data_period *timeout);
 
@@ -36,10 +34,11 @@ PUBLIC_API
 hound_err io_default_pull(
     short events,
     short *next_events,
-    struct hound_record *records,
-    size_t *record_count,
     bool *timeout_enabled,
     hound_data_period *timeout);
+
+PUBLIC_API
+void io_push_records(struct hound_record *records, size_t count);
 
 hound_err io_add_queue(
     int fd,

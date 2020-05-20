@@ -119,36 +119,29 @@ hound_err file_setdata(const struct hound_data_rq_list *data)
 }
 
 static
-hound_err file_parse(
-    unsigned char *buf,
-    size_t *bytes,
-    struct hound_record *records,
-    size_t *record_count)
+hound_err file_parse(unsigned char *buf, size_t bytes)
 {
     hound_err err;
     struct timespec timestamp;
-    struct hound_record *record;
+    struct hound_record record;
 
     err = clock_gettime(CLOCK_REALTIME, &timestamp);
     XASSERT_EQ(err, 0);
 
     XASSERT_NOT_NULL(buf);
-    XASSERT_NOT_NULL(bytes);
-    XASSERT_GT(*bytes, 0);
+    XASSERT_GT(bytes, 0);
 
-    record = records;
-    record->data = drv_alloc(*bytes * sizeof(*buf));
-    if (record->data == NULL) {
+    record.data = drv_alloc(bytes * sizeof(*buf));
+    if (record.data == NULL) {
         return HOUND_OOM;
     }
 
-    memcpy(record->data, buf, *bytes);
-    record->data_id = s_datadesc.data_id;
-    record->timestamp = timestamp;
-    record->size = *bytes;
+    memcpy(record.data, buf, bytes);
+    record.data_id = s_datadesc.data_id;
+    record.timestamp = timestamp;
+    record.size = bytes;
 
-    *record_count = 1;
-    *bytes = 0;
+    drv_push_records(&record, 1);
 
     return HOUND_OK;
 }

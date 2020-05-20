@@ -80,7 +80,6 @@ static volatile bool s_poll_active_target = false;
 static volatile bool s_poll_active_current = false;
 
 static unsigned char s_read_buf[POLL_BUF_SIZE];
-static struct hound_record s_records[HOUND_DRIVER_MAX_RECORDS];
 
 static
 size_t get_fd_index(int fd)
@@ -131,14 +130,18 @@ struct fdctx *get_fdctx_from_fd_index(size_t fd_index)
     return &xv_A(s_ios.ctx, fdctx_index);
 }
 
-static
-void push_records(struct fdctx *ctx, struct hound_record *records, size_t count)
+void io_push_records(struct hound_record *records, size_t count)
 {
     const struct hound_record *end;
+    struct driver *drv;
     struct queue_entry *entry;
+    struct fdctx *fdctx;
     size_t i;
     struct hound_record *record;
     struct record_info *rec_info;
+
+    drv = get_active_drv();
+    fdctx = get_fdctx(drv->fd);
 
     /* Add to all user queues. */
     end = records + count;
@@ -150,12 +153,12 @@ void push_records(struct fdctx *ctx, struct hound_record *records, size_t count)
                     "Failed to allocate a rec_info; can't add record to user queue");
             continue;
         }
-        record->dev_id = ctx->drv->id;
+        record->dev_id = drv->id;
         memcpy(&rec_info->record, record, sizeof(*record));
         atomic_ref_init(&rec_info->refcount, 0);
 
-        for (i = 0; i < xv_size(ctx->queues); ++i) {
-            entry = &xv_A(ctx->queues, i);
+        for (i = 0; i < xv_size(fdctx->queues); ++i) {
+            entry = &xv_A(fdctx->queues, i);
             if (record->data_id == entry->id) {
                 atomic_ref_inc(&rec_info->refcount);
                 queue_push(entry->queue, rec_info);
@@ -179,18 +182,11 @@ hound_data_period get_time_ns(void)
 }
 
 static
-hound_err make_records(
-    struct driver *drv,
-    unsigned char *buf,
-    size_t size,
-    struct hound_record *records,
-    size_t *record_count)
+hound_err make_records(struct driver *drv, unsigned char *buf, size_t size)
 {
-    size_t bytes_left;
     ssize_t bytes_read;
     hound_err err;
     int fd;
-    unsigned char *pos;
 
     fd = drv_fd();
     bytes_read = read(fd, buf, size);
@@ -214,38 +210,19 @@ hound_err make_records(
         }
     }
 
-    /* Ask the driver to make records from the buffer. */
-    pos = buf;
-    bytes_left = bytes_read;
-    while (bytes_left > 0) {
-        *record_count = 0;
-        /*
-         * NOTE: We don't use drv_ops_parse here, which would set the active
-         * driver and take the driver ops mutex. This is because we are already
-         * inside a driver ops callback, so re-taking the mutex will cause a
-         * deadlock!
-         */
-        err = drv->ops.parse(
-                pos,
-                &bytes_left,
-                records,
-                record_count);
-        if (err != HOUND_OK) {
-            hound_log_err(
-                    err,
-                    "Driver failed to parse records (size = %zu, drv = 0x%p)",
-                    bytes_left, drv);
-            return err;
-        }
-        XASSERT_LTE(bytes_left, size);
-
-        if (bytes_left == size) {
-            /* Driver can't make more records from this buffer. We're done. */
-            break;
-        }
-
-        XASSERT_GT(*record_count, 0);
-        pos += bytes_read - bytes_left;
+    /*
+     * NOTE: We don't use drv_ops_parse here, which would set the active
+     * driver and take the driver ops mutex. This is because we are already
+     * inside a driver ops callback, so re-taking the mutex will cause a
+     * deadlock!
+     */
+    err = drv->ops.parse(buf, bytes_read);
+    if (err != HOUND_OK) {
+        hound_log_err(
+                err,
+                "Driver failed to parse records (size = %zu, drv = 0x%p)",
+                bytes_read, drv);
+        return err;
     }
 
     return HOUND_OK;
@@ -254,8 +231,6 @@ hound_err make_records(
 hound_err io_default_pull(
     short events,
     short *next_events,
-    struct hound_record *records,
-    size_t *record_count,
     bool *timeout_enabled,
     hound_data_period *timeout)
 {
@@ -317,15 +292,9 @@ hound_err io_default_pull(
     }
 
     if (events & POLLIN) {
-        err = make_records(
-            drv,
-            s_read_buf,
-            ARRAYLEN(s_read_buf),
-            records,
-            record_count);
+        err = make_records(drv, s_read_buf, ARRAYLEN(s_read_buf));
     }
     else {
-        *record_count = 0;
         err = HOUND_OK;
     }
 
@@ -341,8 +310,6 @@ hound_err io_default_pull(
 hound_err io_default_push(
     short events,
     short *next_events,
-    struct hound_record *records,
-    size_t *record_count,
     bool *timeout_enabled,
     UNUSED hound_data_period *timeout)
 {
@@ -350,40 +317,28 @@ hound_err io_default_push(
     *timeout_enabled = false;
 
     if (!(events & POLLIN)) {
-        *record_count = 0;
         return HOUND_OK;
     }
 
-    return make_records(
-        get_active_drv(),
-        s_read_buf,
-        ARRAYLEN(s_read_buf),
-        records,
-        record_count);
+    return make_records(get_active_drv(), s_read_buf, ARRAYLEN(s_read_buf));
 }
 
 static
 hound_err io_read(struct fdctx *ctx, short events, short *next_events)
 {
     hound_err err;
-    size_t record_count;
 
-    record_count = 0;
     ctx->timeout_enabled = false;
     ctx->timeout_ns = UINT64_MAX;
     err = drv_op_poll(
         ctx->drv,
         events,
         next_events,
-        s_records,
-        &record_count,
         &ctx->timeout_enabled,
         &ctx->timeout_ns);
     if (err != HOUND_OK) {
         return err;
     }
-
-    push_records(ctx, s_records, record_count);
 
     return HOUND_OK;
 }

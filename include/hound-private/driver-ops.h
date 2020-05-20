@@ -100,25 +100,13 @@ DEFINE_DRV_OP(
     TOKENIZE(
         short events,
         short *next_events,
-        struct hound_record *records,
-        size_t *record_count,
         bool *timeout_enabled,
         hound_data_period *timeout),
-    TOKENIZE(
-        events,
-        next_events,
-        records,
-        record_count,
-        timeout_enabled,
-        timeout))
+    TOKENIZE(events, next_events, timeout_enabled, timeout))
 DEFINE_DRV_OP(
     parse,
-    TOKENIZE(
-        unsigned char *buf,
-        size_t *bytes,
-        struct hound_record *records,
-        size_t *record_count),
-    TOKENIZE(buf, bytes, records, record_count))
+    TOKENIZE(unsigned char *buf, size_t bytes),
+    TOKENIZE(buf, bytes))
 DEFINE_DRV_OP(start, int *fd, fd)
 DEFINE_DRV_OP(next, hound_data_id id, id)
 DEFINE_DRV_OP(

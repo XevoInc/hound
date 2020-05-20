@@ -91,65 +91,47 @@ hound_err counter_setdata(UNUSED const struct hound_data_rq_list *rq_list)
 }
 
 static
-hound_err counter_parse(
-    unsigned char *buf,
-    size_t *bytes,
-    struct hound_record *records,
-    size_t *record_count)
+hound_err counter_parse(unsigned char *buf, size_t bytes)
 {
     size_t count;
     struct counter_ctx *ctx;
     hound_err err;
     size_t i;
-    struct hound_record *record;
+    struct hound_record record;
     const unsigned char *pos;
 
     XASSERT_NOT_NULL(buf);
-    XASSERT_NOT_NULL(bytes);
-    XASSERT_GT(*bytes, 0);
-    XASSERT_NOT_NULL(records);
+    XASSERT_GT(bytes, 0);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
 
     /* We write full counts, so we should not get partial reads. */
-    if (*bytes % sizeof(ctx->count) != 0) {
+    if (bytes % sizeof(ctx->count) != 0) {
         return HOUND_DRIVER_FAIL;
     }
 
-    count = *bytes / sizeof(ctx->count);
-    if (count > HOUND_DRIVER_MAX_RECORDS) {
-        count = HOUND_DRIVER_MAX_RECORDS;
-    }
-
+    count = bytes / sizeof(ctx->count);
     pos = buf;
     for (i = 0; i < count; ++i) {
-        record = &records[i];
-        record->data = drv_alloc(sizeof(ctx->count));
-        if (record->data == NULL) {
-            err = HOUND_OOM;
-            goto error_drv_alloc;
+        record.data = drv_alloc(sizeof(ctx->count));
+        if (record.data == NULL) {
+            return HOUND_OOM;
         }
 
         /* We have at least a full record. */
-        err = clock_gettime(CLOCK_REALTIME, &record->timestamp);
+        err = clock_gettime(CLOCK_REALTIME, &record.timestamp);
         XASSERT_EQ(err, 0);
-        record->data_id = HOUND_DATA_COUNTER;
-        record->size = sizeof(ctx->count);
-        memcpy(record->data, pos, sizeof(ctx->count));
+        record.data_id = HOUND_DATA_COUNTER;
+        record.size = sizeof(ctx->count);
+        memcpy(record.data, pos, sizeof(ctx->count));
+
+        drv_push_records(&record, 1);
+
         pos += sizeof(ctx->count);
     }
 
-    *record_count = count;
-    *bytes -= count * sizeof(ctx->count);
-
     return HOUND_OK;
-
-error_drv_alloc:
-    for (--i; i < count; --i) {
-        drv_free(record[i].data);
-    }
-    return err;
 }
 
 static

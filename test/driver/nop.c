@@ -121,19 +121,10 @@ hound_err nop_setdata(UNUSED const struct hound_data_rq_list *data)
 }
 
 static
-hound_err nop_parse(
-    unsigned char *buf,
-    size_t *bytes,
-    struct hound_record *records,
-    size_t *record_count)
+hound_err nop_parse(unsigned char *buf, size_t bytes)
 {
     XASSERT_NOT_NULL(buf);
-    XASSERT_NOT_NULL(bytes);
-    XASSERT_EQ(*bytes, 0);
-    XASSERT_NOT_NULL(records);
-    XASSERT_NOT_NULL(record_count);
-
-    *record_count = 0;
+    XASSERT_EQ(bytes, 0);
 
     return HOUND_OK;
 }

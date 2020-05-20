@@ -325,11 +325,7 @@ hound_err obd_setdata(const struct hound_data_rq_list *rq_list)
 }
 
 static
-hound_err obd_parse(
-    unsigned char *buf,
-    size_t *bytes,
-    struct hound_record *records,
-    size_t *record_count)
+hound_err obd_parse(unsigned char *buf, size_t bytes)
 {
     size_t count;
     const struct obd_ctx *ctx;
@@ -338,40 +334,31 @@ hound_err obd_parse(
     yobd_mode mode;
     yobd_pid pid;
     const unsigned char *pos;
-    struct hound_record *record;
+    struct hound_record record;
     struct timeval tv;
     yobd_err yerr;
 
     XASSERT_NOT_NULL(buf);
-    XASSERT_NOT_NULL(bytes);
-    XASSERT_GT(*bytes, 0);
-    XASSERT_NOT_NULL(records);
-    XASSERT_NOT_NULL(record_count);
+    XASSERT_GT(bytes, 0);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
+    XASSERT_EQ(bytes % sizeof(struct can_frame), 0);
 
-    count = *bytes / sizeof(struct can_frame);
-    if (count > HOUND_DRIVER_MAX_RECORDS) {
-        count = HOUND_DRIVER_MAX_RECORDS;
-    }
-    XASSERT_EQ(*bytes % sizeof(struct can_frame), 0);
-
+    count = bytes / sizeof(struct can_frame);
     pos = buf;
     for (i = 0; i < count; ++i) {
-        record = &records[i];
-        record->size = sizeof(float);
-        record->data = drv_alloc(record->size);
-        if (record->data == NULL) {
-            err = HOUND_OOM;
-            goto error_drv_alloc;
+        record.size = sizeof(float);
+        record.data = drv_alloc(record.size);
+        if (record.data == NULL) {
+            return HOUND_OOM;
         }
 
         /* Get the kernel-provided timestamp for our last message. */
         err = ioctl(ctx->rx_fd, SIOCGSTAMP, &tv);
         XASSERT_NEQ(err, -1);
-        record->timestamp.tv_sec = tv.tv_sec;
-        record->timestamp.tv_nsec = tv.tv_usec * (NSEC_PER_SEC/USEC_PER_SEC);
+        record.timestamp.tv_sec = tv.tv_sec;
+        record.timestamp.tv_nsec = tv.tv_usec * (NSEC_PER_SEC/USEC_PER_SEC);
 
         yerr = yobd_parse_can_headers(
             ctx->yobd_ctx,
@@ -379,27 +366,20 @@ hound_err obd_parse(
             &mode,
             &pid);
         XASSERT_EQ(yerr, YOBD_OK);
-        hound_obd_get_data_id(mode, pid, &record->data_id);
+        hound_obd_get_data_id(mode, pid, &record.data_id);
 
         yerr = yobd_parse_can_response(
             ctx->yobd_ctx,
             (struct can_frame *) buf,
-            (float *) record->data);
+            (float *) record.data);
         XASSERT_EQ(yerr, YOBD_OK);
+
+        drv_push_records(&record, 1);
 
         pos += sizeof(struct can_frame);
     }
 
-    *record_count = count;
-    *bytes -= count * sizeof(struct can_frame);
-
     return HOUND_OK;
-
-error_drv_alloc:
-    for (--i; i < count; --i) {
-        drv_free(records[i].data);
-    }
-    return err;
 }
 
 static
