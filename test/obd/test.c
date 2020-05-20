@@ -205,7 +205,6 @@ pid_t start_sim(const char *iface, const char *schema_file, const char *sim_path
     sigact.sa_handler = sig_handler;
     sigact.sa_flags = 0;
     sigaction(SIGABRT, &sigact, NULL);
-    sigaction(SIGSTOP, &sigact, NULL);
     sigaction(SIGTERM, &sigact, NULL);
 
     sem_name = "/hound-obd-sim";
