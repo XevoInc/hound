@@ -288,7 +288,10 @@ out:
 }
 
 static
-hound_err ref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
+hound_err ref_driver_map(
+    struct hound_ctx *ctx,
+    xhash_t(DRIVER_DATA_MAP) *map,
+    bool modify)
 {
     struct driver *drv;
     const struct hound_data_rq_list *rq_list;
@@ -300,7 +303,7 @@ hound_err ref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
     xh_iter(map, ref_iter,
         drv = xh_key(map, ref_iter);
         rq_list = &xh_val(map, ref_iter);
-        ref_err = driver_ref(drv, ctx->queue, rq_list);
+        ref_err = driver_ref(drv, ctx->queue, rq_list, modify);
         if (ref_err != HOUND_OK) {
             goto error;
         }
@@ -319,7 +322,7 @@ error:
 
         drv = xh_key(map, unref_iter);
         rq_list = &xh_val(map, unref_iter);
-        unref_err = driver_unref(drv, ctx->queue, rq_list);
+        unref_err = driver_unref(drv, ctx->queue, rq_list, modify);
         if (unref_err != HOUND_OK) {
             hound_log_err(
                 unref_err,
@@ -331,7 +334,10 @@ out:
 }
 
 static
-void unref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
+void unref_driver_map(
+    struct hound_ctx *ctx,
+    xhash_t(DRIVER_DATA_MAP) *map,
+    bool modify)
 {
     struct driver *drv;
     hound_err err;
@@ -341,7 +347,7 @@ void unref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
     xh_iter(map, iter,
         drv = xh_key(map, iter);
         rq_list = &xh_val(map, iter);
-        err = driver_unref(drv, ctx->queue, rq_list);
+        err = driver_unref(drv, ctx->queue, rq_list, modify);
         if (err != HOUND_OK) {
             hound_log_err(
                 err,
@@ -351,16 +357,16 @@ void unref_driver_map(struct hound_ctx *ctx, xhash_t(DRIVER_DATA_MAP) *map)
 }
 
 static
-hound_err ref_drivers(struct hound_ctx *ctx)
+hound_err ref_drivers(struct hound_ctx *ctx, bool modify)
 {
     hound_err err;
 
-    err = ref_driver_map(ctx, ctx->periodic_data_map);
+    err = ref_driver_map(ctx, ctx->periodic_data_map, modify);
     if (err != HOUND_OK) {
         goto error_periodic;
     }
 
-    err = ref_driver_map(ctx, ctx->on_demand_data_map);
+    err = ref_driver_map(ctx, ctx->on_demand_data_map, modify);
     if (err != HOUND_OK) {
         goto error_on_demand;
     }
@@ -368,20 +374,20 @@ hound_err ref_drivers(struct hound_ctx *ctx)
     return HOUND_OK;
 
 error_on_demand:
-    unref_driver_map(ctx, ctx->periodic_data_map);
+    unref_driver_map(ctx, ctx->periodic_data_map, modify);
 error_periodic:
     return err;
 }
 
 static
-void unref_drivers(struct hound_ctx *ctx)
+void unref_drivers(struct hound_ctx *ctx, bool modify)
 {
-    unref_driver_map(ctx, ctx->periodic_data_map);
-    unref_driver_map(ctx, ctx->on_demand_data_map);
+    unref_driver_map(ctx, ctx->periodic_data_map, modify);
+    unref_driver_map(ctx, ctx->on_demand_data_map, modify);
 }
 
 static
-hound_err ctx_start_nolock(struct hound_ctx *ctx)
+hound_err ctx_start_nolock(struct hound_ctx *ctx, bool modify)
 {
     hound_err err;
 
@@ -390,7 +396,7 @@ hound_err ctx_start_nolock(struct hound_ctx *ctx)
         return HOUND_CTX_ACTIVE;
     }
 
-    err = ref_drivers(ctx);
+    err = ref_drivers(ctx, modify);
     if (err != HOUND_OK) {
         return err;
     }
@@ -407,14 +413,14 @@ hound_err ctx_start(struct hound_ctx *ctx)
     NULL_CHECK(ctx);
 
     pthread_rwlock_wrlock(&ctx->rwlock);
-    err = ctx_start_nolock(ctx);
+    err = ctx_start_nolock(ctx, false);
     pthread_rwlock_unlock(&ctx->rwlock);
 
     return err;
 }
 
 static
-hound_err ctx_stop_nolock(struct hound_ctx *ctx)
+hound_err ctx_stop_nolock(struct hound_ctx *ctx, bool modify)
 {
     /* We must not double-ref the drivers. */
     if (!ctx->active) {
@@ -422,7 +428,7 @@ hound_err ctx_stop_nolock(struct hound_ctx *ctx)
     }
 
     queue_interrupt(ctx->queue);
-    unref_drivers(ctx);
+    unref_drivers(ctx, modify);
     ctx->active = false;
 
     return HOUND_OK;
@@ -435,7 +441,7 @@ hound_err ctx_stop(struct hound_ctx *ctx)
     NULL_CHECK(ctx);
 
     pthread_rwlock_wrlock(&ctx->rwlock);
-    err = ctx_stop_nolock(ctx);
+    err = ctx_stop_nolock(ctx, false);
     pthread_rwlock_unlock(&ctx->rwlock);
 
     return err;
@@ -484,7 +490,7 @@ hound_err ctx_modify(
     pthread_rwlock_wrlock(&ctx->rwlock);
 
     if (ctx->active) {
-        err = ctx_stop_nolock(ctx);
+        err = ctx_stop_nolock(ctx, true);
         if (err != HOUND_OK) {
             goto error_stop;
         }
@@ -508,7 +514,7 @@ hound_err ctx_modify(
     ctx->cb_ctx = rq->cb_ctx;
 
     if (stopped) {
-        err = ctx_start_nolock(ctx);
+        err = ctx_start_nolock(ctx, true);
         if (err != HOUND_OK) {
             goto out;
         }
@@ -521,7 +527,7 @@ error_start:
 error_replace_maps:
 error_queue_resize:
     if (stopped) {
-        err = ctx_start_nolock(ctx);
+        err = ctx_start_nolock(ctx, true);
         if (err != HOUND_OK) {
             hound_log_err_nofmt(err, "Failed to restart ctx");
             goto error_start;

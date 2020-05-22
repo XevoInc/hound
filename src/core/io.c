@@ -139,6 +139,7 @@ void io_push_records(struct hound_record *records, size_t count)
     size_t i;
     struct hound_record *record;
     struct record_info *rec_info;
+    bool pushed;
 
     drv = get_active_drv();
     fdctx = get_fdctx(drv->fd);
@@ -493,7 +494,6 @@ void *io_poll(UNUSED void *data)
     return NULL;
 }
 
-static
 void io_pause_poll(void)
 {
     ssize_t bytes;
@@ -516,7 +516,6 @@ void io_pause_poll(void)
     pthread_mutex_unlock(&s_poll_mutex);
 }
 
-static
 void io_resume_poll(void)
 {
     pthread_mutex_lock(&s_poll_mutex);
@@ -576,8 +575,6 @@ hound_err io_add_fd(int fd, struct driver *drv)
     err = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     XASSERT_NEQ(err, -1);
 
-    io_pause_poll();
-
     pfd = xv_pushp(struct pollfd, s_ios.fds);
     if (pfd == NULL) {
         err = HOUND_OOM;
@@ -617,7 +614,6 @@ error_ctx_push:
     (void) xv_pop(s_ios.fds);
 error_fds_push:
 out:
-    io_resume_poll();
     return err;
 }
 
@@ -625,59 +621,16 @@ void io_remove_fd(int fd)
 {
     struct fdctx *ctx;
     size_t ctx_index;
-    hound_err err;
-    int fds;
     size_t fd_index;
     struct pull_info *info;
     xhiter_t iter;
-    short next_events;
-    struct pollfd pfd;
 
     fd_index = get_fd_index(fd);
     ctx_index = get_fdctx_index(fd_index);
     ctx = get_fdctx_from_fd_index(fd_index);
     XASSERT_NOT_NULL(ctx);
 
-    io_pause_poll();
-
     if (driver_is_pull_mode(ctx->drv)) {
-        /*
-         * Drain the fd of any buffered data. If we get interrupted, keep trying, as
-         * we don't want to lose data. Note we don't do this for push-mode
-         * drivers, as that could make this an infinite loop as the drivers
-         * continually push more data into the fd. This is safe for pull-mode
-         * drivers because we've already paused polling, so no more data should
-         * be going into the fd.
-         */
-        pfd.fd = fd;
-        pfd.events = POLLIN;
-        while (true) {
-            /*
-             * Since we are returning immediately and don't need to care about
-             * signals, we can safely use poll here instead of ppoll.
-             */
-            fds = poll(&pfd, 1, 0);
-            if (fds == -1) {
-                if (errno == EINTR) {
-                    /* Interrupted; try again. */
-                    continue;
-                }
-                else {
-                    hound_log_err(errno, "failed to drain fd %d", fd);
-                    break;
-                }
-            }
-
-            break;
-        }
-
-        if (fds == 1) {
-            err = io_read(ctx, pfd.revents, &next_events);
-            if (err != HOUND_OK) {
-                hound_log_err(err, "failed to read from fd %d", fd);
-            }
-        }
-
         /* If we have a pointer to this index in the pull mode map, remove it. */
         iter = xh_get(PULL_MAP, s_pull_map, fd);
         if (iter != xh_end(s_pull_map)) {
@@ -690,8 +643,6 @@ void io_remove_fd(int fd)
     /* Remove fd and ctx. */
     RM_VEC_INDEX(s_ios.fds, fd_index);
     RM_VEC_INDEX(s_ios.ctx, ctx_index);
-
-    io_resume_poll();
 
     xv_destroy(ctx->queues);
 }
@@ -747,8 +698,6 @@ hound_err io_add_queue(
 
     ctx = get_fdctx(fd);
     XASSERT_NOT_NULL(ctx);
-
-    io_pause_poll();
 
     err = HOUND_OK;
     queue_count = 0;
@@ -817,7 +766,6 @@ hound_err io_add_queue(
     }
 
 out:
-    io_resume_poll();
     return err;
 }
 
@@ -837,8 +785,6 @@ void io_remove_queue(
 
     ctx = get_fdctx(fd);
     XASSERT_NOT_NULL(ctx);
-
-    io_pause_poll();
 
     /* Remove all matching queue entries. */
     iter = xh_get(PULL_MAP, s_pull_map, fd);
@@ -882,8 +828,6 @@ void io_remove_queue(
     if (driver_is_pull_mode(ctx->drv)) {
         set_fd_timeout(fd, ctx);
     }
-
-    io_resume_poll();
 }
 
 void io_init(void)

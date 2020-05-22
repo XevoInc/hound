@@ -206,11 +206,13 @@ hound_err driver_next(struct driver *drv, hound_data_id id, size_t n);
 hound_err driver_ref(
     struct driver *drv,
     struct queue *queue,
-    const struct hound_data_rq_list *data_rq_list);
+    const struct hound_data_rq_list *data_rq_list,
+    bool modify);
 hound_err driver_unref(
     struct driver *drv,
     struct queue *queue,
-    const struct hound_data_rq_list *data_rq_list);
+    const struct hound_data_rq_list *data_rq_list,
+    bool modify);
 
 hound_err driver_get(hound_data_id id, struct driver **drv);
 

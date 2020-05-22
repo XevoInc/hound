@@ -707,7 +707,8 @@ out:
 hound_err driver_ref(
     struct driver *drv,
     struct queue *queue,
-    const struct hound_data_rq_list *rq_list)
+    const struct hound_data_rq_list *rq_list,
+    bool modify)
 {
     bool changed;
     struct data *data;
@@ -754,12 +755,23 @@ hound_err driver_ref(
         }
     }
 
+    /* If we're doing a modify operation, polling should already be paused. */
+    if (!modify) {
+        io_pause_poll();
+    }
+
     /* Start the driver if needed, and tell the I/O layer what we need. */
     ++drv->refcount;
     if (drv->refcount == 1) {
-        err = drv_op_start(drv, &drv->fd);
-        if (err != HOUND_OK) {
-            goto error_driver_start;
+        /*
+         * If we are doing a modify operation, then we never stopped the driver,
+         * so we shouldn't start it again.
+         */
+        if (!modify) {
+            err = drv_op_start(drv, &drv->fd);
+            if (err != HOUND_OK) {
+                goto error_driver_start;
+            }
         }
 
         err = io_add_fd(drv->fd, drv);
@@ -772,6 +784,8 @@ hound_err driver_ref(
     if (err != HOUND_OK) {
         goto error_io_add_queue;
     }
+
+    io_resume_poll();
 
     err = HOUND_OK;
     goto out;
@@ -838,7 +852,8 @@ void cleanup_drv_data(
 hound_err driver_unref(
     struct driver *drv,
     struct queue *queue,
-    const struct hound_data_rq_list *rq_list)
+    const struct hound_data_rq_list *rq_list,
+    bool modify)
 {
     bool changed;
     struct data *data;
@@ -872,16 +887,24 @@ hound_err driver_unref(
         }
     }
 
+    io_pause_poll();
+
     /* Stop the driver if needed. */
     --drv->refcount;
     if (drv->refcount == 0) {
         io_remove_fd(drv->fd);
 
-        err = drv_op_stop(drv);
-        if (err != HOUND_OK) {
-            goto error_driver_stop;
+        /*
+         * If we're doing a modify operation, don't stop the driver, as we would
+         * lose its fd and thus lose data.
+         */
+        if (!modify) {
+            err = drv_op_stop(drv);
+            if (err != HOUND_OK) {
+                goto error_driver_stop;
+            }
+            drv->fd = FD_INVALID;
         }
-        drv->fd = FD_INVALID;
     }
     else {
         /*
@@ -896,6 +919,17 @@ hound_err driver_unref(
                 goto error_driver_setdata;
             }
         }
+    }
+
+    /*
+     * If we're doing a modify operation, don't resume polling, as we want to do
+     * that only once the entire operation is finished. Without this safe-guard,
+     * we will drop data between this call and the corresponding driver_ref
+     * call, since data will continue to be generated but have no backing queue
+     * associated with it.
+     */
+    if (!modify) {
+        io_resume_poll();
     }
 
     err = HOUND_OK;

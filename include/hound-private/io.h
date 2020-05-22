@@ -40,6 +40,9 @@ hound_err io_default_pull(
 PUBLIC_API
 void io_push_records(struct hound_record *records, size_t count);
 
+void io_pause_poll(void);
+void io_resume_poll(void);
+
 hound_err io_add_queue(
     int fd,
     const struct hound_data_rq_list *drv_data_list,
