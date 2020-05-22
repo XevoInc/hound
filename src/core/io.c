@@ -67,11 +67,12 @@ struct fdctx {
 };
 
 static struct {
+    pthread_rwlock_t lock;
     xvec_t(struct fdctx) ctx;
     xvec_t(struct pollfd) fds;
-    uint_fast64_t last_poll_ns;
 } s_ios;
 
+/* Polling. */
 static pthread_t s_poll_thread;
 static int s_self_pipe[2];
 static pthread_mutex_t s_poll_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -141,8 +142,13 @@ void io_push_records(struct hound_record *records, size_t count)
     struct record_info *rec_info;
     bool pushed;
 
+    pthread_rwlock_rdlock(&s_ios.lock);
+
     drv = get_active_drv();
+    XASSERT_NOT_NULL(drv);
+
     fdctx = get_fdctx(drv->fd);
+    XASSERT_NOT_NULL(fdctx);
 
     /* Add to all user queues. */
     end = records + count;
@@ -177,6 +183,8 @@ void io_push_records(struct hound_record *records, size_t count)
             drv_free(rec_info);
         }
     }
+
+    pthread_rwlock_unlock(&s_ios.lock);
 }
 
 static
@@ -407,6 +415,7 @@ void *io_poll(UNUSED void *data)
     size_t i;
     int fds;
     bool have_timeout;
+    uint_fast64_t last_poll_ns;
     hound_data_period min_timeout;
     hound_data_period now;
     struct pollfd *pfd;
@@ -414,7 +423,7 @@ void *io_poll(UNUSED void *data)
     struct timespec timeout_spec;
     hound_data_period time_since_last_poll;
 
-    s_ios.last_poll_ns = get_time_ns();
+    last_poll_ns = get_time_ns();
 
     while (true) {
         io_wait_for_ready();
@@ -433,7 +442,7 @@ void *io_poll(UNUSED void *data)
         if (have_timeout) {
             populate_timespec(min_timeout, &timeout_spec);
             timeout = &timeout_spec;
-            s_ios.last_poll_ns = get_time_ns();
+            last_poll_ns = get_time_ns();
         }
         else {
             timeout = NULL;
@@ -445,8 +454,8 @@ void *io_poll(UNUSED void *data)
          */
         fds = ppoll(xv_data(s_ios.fds), xv_size(s_ios.fds), timeout, NULL);
         now = get_time_ns();
-        time_since_last_poll = now - s_ios.last_poll_ns;
-        s_ios.last_poll_ns = now;
+        time_since_last_poll = now - last_poll_ns;
+        last_poll_ns = now;
         if (fds > 0 && need_to_pause()) {
             continue;
         }
@@ -469,6 +478,7 @@ void *io_poll(UNUSED void *data)
         }
 
         /* Read all fds that have data, and adjust timeouts. */
+        pthread_rwlock_rdlock(&s_ios.lock);
         for (i = DATA_FD_START; i < xv_size(s_ios.fds); ++i) {
             ctx = get_fdctx_from_fd_index(i);
             pfd = &xv_A(s_ios.fds, i);
@@ -500,6 +510,7 @@ void *io_poll(UNUSED void *data)
                 continue;
             }
         }
+        pthread_rwlock_unlock(&s_ios.lock);
     }
 
     return NULL;
@@ -586,6 +597,8 @@ hound_err io_add_fd(int fd, struct driver *drv)
     err = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     XASSERT_NEQ(err, -1);
 
+    pthread_rwlock_wrlock(&s_ios.lock);
+
     pfd = xv_pushp(struct pollfd, s_ios.fds);
     if (pfd == NULL) {
         err = HOUND_OOM;
@@ -625,6 +638,7 @@ error_ctx_push:
     (void) xv_pop(s_ios.fds);
 error_fds_push:
 out:
+    pthread_rwlock_unlock(&s_ios.lock);
     return err;
 }
 
@@ -635,6 +649,8 @@ void io_remove_fd(int fd)
     size_t fd_index;
     struct pull_info *info;
     xhiter_t iter;
+
+    pthread_rwlock_wrlock(&s_ios.lock);
 
     fd_index = get_fd_index(fd);
     ctx_index = get_fdctx_index(fd_index);
@@ -656,6 +672,8 @@ void io_remove_fd(int fd)
     RM_VEC_INDEX(s_ios.ctx, ctx_index);
 
     xv_destroy(ctx->queues);
+
+    pthread_rwlock_unlock(&s_ios.lock);
 }
 
 static
@@ -706,6 +724,8 @@ hound_err io_add_queue(
     size_t queue_count;
     struct hound_data_rq *rq;
     struct pull_timeout_info *timeout_info;
+
+    pthread_rwlock_wrlock(&s_ios.lock);
 
     ctx = get_fdctx(fd);
     XASSERT_NOT_NULL(ctx);
@@ -777,6 +797,7 @@ hound_err io_add_queue(
     }
 
 out:
+    pthread_rwlock_unlock(&s_ios.lock);
     return err;
 }
 
@@ -793,6 +814,8 @@ void io_remove_queue(
     size_t j;
     struct hound_data_rq *rq;
     struct pull_timeout_info *timeout_info;
+
+    pthread_rwlock_wrlock(&s_ios.lock);
 
     ctx = get_fdctx(fd);
     XASSERT_NOT_NULL(ctx);
@@ -839,6 +862,8 @@ void io_remove_queue(
     if (driver_is_pull_mode(ctx->drv)) {
         set_fd_timeout(fd, ctx);
     }
+
+    pthread_rwlock_unlock(&s_ios.lock);
 }
 
 void io_init(void)
@@ -847,9 +872,9 @@ void io_init(void)
     struct pollfd *pfd;
     int ret;
 
+    pthread_rwlock_init(&s_ios.lock, NULL);
     xv_init(s_ios.ctx);
     xv_init(s_ios.fds);
-    s_ios.last_poll_ns = 0;
 
     s_pull_map = xh_init(PULL_MAP);
     if (s_pull_map == NULL) {
@@ -888,6 +913,7 @@ void io_destroy(void)
     io_stop_poll();
     xv_destroy(s_ios.ctx);
     xv_destroy(s_ios.fds);
+    pthread_rwlock_destroy(&s_ios.lock);
     xh_destroy(PULL_MAP, s_pull_map);
     close(s_self_pipe[READ_END]);
     close(s_self_pipe[WRITE_END]);
