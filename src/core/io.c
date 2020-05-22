@@ -158,12 +158,23 @@ void io_push_records(struct hound_record *records, size_t count)
         memcpy(&rec_info->record, record, sizeof(*record));
         atomic_ref_init(&rec_info->refcount, 0);
 
+        pushed = false;
         for (i = 0; i < xv_size(fdctx->queues); ++i) {
             entry = &xv_A(fdctx->queues, i);
             if (record->data_id == entry->id) {
                 atomic_ref_inc(&rec_info->refcount);
                 queue_push(entry->queue, rec_info);
+                pushed = true;
             }
+        }
+        if (!pushed) {
+            /*
+             * This is unlikely, but if there's no queue associated with this
+             * data, make sure we don't leak the record info. This should happen
+             * only if a driver pushes data from outside the poll loop and its
+             * context is being modified at the same time.
+             */
+            drv_free(rec_info);
         }
     }
 }
