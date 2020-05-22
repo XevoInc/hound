@@ -678,14 +678,12 @@ void io_remove_fd(int fd)
             }
         }
 
-        /*
-         * If we have a pointer to this index in the pull mode indices list, remove
-         * it.
-         */
+        /* If we have a pointer to this index in the pull mode map, remove it. */
         iter = xh_get(PULL_MAP, s_pull_map, fd);
         if (iter != xh_end(s_pull_map)) {
             info = &xh_val(s_pull_map, iter);
             xv_destroy(info->timeout_info);
+            xh_del(PULL_MAP, s_pull_map, iter);
         }
     }
 
