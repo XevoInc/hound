@@ -596,6 +596,11 @@ hound_err io_add_fd(int fd, struct driver *drv)
     struct pollfd *pfd;
     int ret;
 
+    /*
+     * Polling *must* have been paused before calling this function, as we
+     * modify the poll structures here.
+     */
+
     XASSERT_NOT_NULL(drv);
     XASSERT_NEQ(fd, 0);
 
@@ -657,6 +662,11 @@ void io_remove_fd(int fd)
     size_t fd_index;
     struct pull_info *info;
     xhiter_t iter;
+
+    /*
+     * Polling *must* have been paused before calling this function, as we
+     * modify the poll structures here.
+     */
 
     pthread_rwlock_wrlock(&s_ios.lock);
 
@@ -732,6 +742,11 @@ hound_err io_add_queue(
     size_t queue_count;
     struct hound_data_rq *rq;
     struct pull_timeout_info *timeout_info;
+
+    /*
+     * Polling *must* have been paused before calling this function, as we
+     * modify the poll structures here.
+     */
 
     pthread_rwlock_wrlock(&s_ios.lock);
 
@@ -822,6 +837,11 @@ void io_remove_queue(
     size_t j;
     struct hound_data_rq *rq;
     struct pull_timeout_info *timeout_info;
+
+    /*
+     * Polling *must* have been paused before calling this function, as we
+     * modify the poll structures here.
+     */
 
     pthread_rwlock_wrlock(&s_ios.lock);
 
