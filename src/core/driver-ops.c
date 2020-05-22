@@ -31,7 +31,12 @@ void set_active_drv(const struct driver *drv)
 
 struct driver *get_active_drv(void)
 {
-    return pthread_getspecific(active_drv);
+    struct driver *drv;
+
+    drv = pthread_getspecific(active_drv);
+    XASSERT_NOT_NULL(drv);
+
+    return drv;
 }
 
 

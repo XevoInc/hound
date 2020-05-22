@@ -71,6 +71,7 @@ struct driver {
         pthread_mutex_lock(&drv->op_lock); \
         err = drv->ops.name(args); \
         pthread_mutex_unlock(&drv->op_lock); \
+        set_active_drv(NULL); \
         return err; \
     }
 
