@@ -391,10 +391,14 @@ bool need_to_pause(void)
     char buf;
     ssize_t bytes;
     struct pollfd *pfd;
+    bool result;
+
+    pthread_rwlock_rdlock(&s_ios.lock);
 
     pfd = &xv_A(s_ios.fds, PAUSE_FD_INDEX);
     if (!(pfd->revents & POLLIN)) {
-        return false;
+        result = false;
+        goto out;
     }
 
     /* Read the self-pipe so it can be used again. */
@@ -403,7 +407,11 @@ bool need_to_pause(void)
         XASSERT_NEQ(bytes, -1);
     } while (bytes != sizeof(buf));
 
-    return true;
+    result = true;
+
+out:
+    pthread_rwlock_unlock(&s_ios.lock);
+    return result;
 }
 
 static
