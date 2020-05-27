@@ -8,7 +8,9 @@
 #ifndef HOUND_PRIVATE_UTIL_H_
 #define HOUND_PRIVATE_UTIL_H_
 
+#include <hound/hound.h>
 #include <stddef.h>
+#include <xlib/xassert.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
 #define NSEC_PER_SEC ((hound_data_period) 1e9)
@@ -46,5 +48,7 @@ size_t min(size_t a, size_t b);
 size_t max(size_t a, size_t b);
 
 void norm_path(const char *base, const char *path, size_t len, char *out);
+
+void destroy_rq_list(struct hound_data_rq_list *rq_list);
 
 #endif /* HOUND_PRIVATE_UTIL_H_ */

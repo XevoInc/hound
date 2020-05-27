@@ -44,12 +44,10 @@ struct hound_ctx {
 static
 void destroy_driver_data_map(xhash_t(DRIVER_DATA_MAP) *map)
 {
-    struct hound_data_rq_list *rq_list;
     xhiter_t iter;
 
     xh_iter(map, iter,
-        rq_list = &xh_val(map, iter);
-        free(rq_list->data);
+        destroy_rq_list(&xh_val(map, iter));
     );
     xh_destroy(DRIVER_DATA_MAP, map);
 }

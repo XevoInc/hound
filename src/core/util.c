@@ -47,3 +47,9 @@ void norm_path(const char *base, const char *path, size_t len, char *out)
         }
     }
 }
+
+void destroy_rq_list(struct hound_data_rq_list *rq_list)
+{
+    XASSERT_NOT_NULL(rq_list);
+    free(rq_list->data);
+}
