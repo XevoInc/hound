@@ -59,7 +59,7 @@ To get your build requirements, you just need to run:
 sudo apt-get -y install meson ninja-build
 ```
 
-### Fedora 24 and 25 packages
+### Fedora packages
 
 To get your build requirements, you just need to run:
 
