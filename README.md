@@ -20,12 +20,19 @@ issues, like queueing samples, minimizing latency, etc.
 
 - libYAML: `sudo apt install libyaml-dev`
 
+- libmosquitto: `sudo apt install libmosquitto-dev`. Also a mosquitto broker for
+  the unit tests: `sudo apt install mosquitto`.
+
+- libmsgpack: `sudo apt install libmsgpack-dev`.
+
 - xlib: compile from source: https://github.com/XevoInc/xlib
 
 - yobd: compile from source: https://github.com/XevoInc/yobd
 
 - (optional, for developers) `clang-tidy`. This is used for static analysis and
   is thus a build but not runtime requirement.
+
+- (optional, for developers) `valgrind`. This is used in unit tests.
 
 - (optional, for developers) Python requirements, as documented in
   `dev-requirements.txt`. These are some build-time tools that are not required
