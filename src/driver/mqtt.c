@@ -637,7 +637,7 @@ static
 bool mosq_init_is_safe(void)
 {
     /*
-     * In mosquitto versions 1.6.10 and higher, init/cleanup becomes refcounted
+     * In mosquitto versions 1.6.10 and higher, init/cleanup became refcounted
      * and can be safely called multiple times. Prior to this version, we need
      * to assume that the application initializes mosquitto prior to
      * initializing this MQTT driver, as if we call init/cleanup ourselves, we
