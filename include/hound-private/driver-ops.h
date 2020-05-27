@@ -25,17 +25,7 @@ struct driver *get_active_drv(void);
  * Sets the active driver.
  * @param drv a driver struct
  */
-void set_active_drv(const struct driver *drv);
-
-/**
- * Initialize driver ops resources.
- */
-void driver_ops_init(void);
-
-/**
- * Destroy driver ops resources.
- */
-void driver_ops_destroy(void);
+void set_active_drv(struct driver *drv);
 
 struct data {
     refcount_val refcount;

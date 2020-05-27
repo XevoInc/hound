@@ -44,8 +44,6 @@ static pthread_rwlock_t s_driver_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
 void driver_init_statics(void)
 {
-    driver_ops_init();
-
     s_data_map = xh_init(DATA_MAP);
     XASSERT_NOT_NULL(s_data_map);
     s_device_map = xh_init(DEVICE_MAP);
@@ -64,7 +62,6 @@ void driver_destroy_statics(void)
     );
     xh_destroy(DEVICE_MAP, s_device_map);
     xh_destroy(DATA_MAP, s_data_map);
-    driver_ops_destroy();
 }
 
 PUBLIC_API

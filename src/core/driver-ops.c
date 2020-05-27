@@ -10,7 +10,6 @@
 #include <hound-private/driver.h>
 #include <hound-private/driver-ops.h>
 #include <hound-private/error.h>
-#include <pthread.h>
 
 /**
  * This thread-local key points to the driver struct for whatever driver is
@@ -19,39 +18,14 @@
  * callback. Thus it is very important to reset this pointer prior to calling
  * any driver callback, which should be done using the DRV_OP macro.
  */
-static pthread_key_t active_drv;
+static _Thread_local struct driver *s_active_drv;
 
-void set_active_drv(const struct driver *drv)
+void set_active_drv(struct driver *drv)
 {
-    int ret;
-
-    ret = pthread_setspecific(active_drv, drv);
-    XASSERT_EQ(ret, 0);
+    s_active_drv = drv;
 }
 
 struct driver *get_active_drv(void)
 {
-    struct driver *drv;
-
-    drv = pthread_getspecific(active_drv);
-    XASSERT_NOT_NULL(drv);
-
-    return drv;
-}
-
-
-void driver_ops_init(void)
-{
-    int ret;
-
-    ret = pthread_key_create(&active_drv, NULL);
-    XASSERT_EQ(ret, 0);
-}
-
-void driver_ops_destroy(void)
-{
-    int ret;
-
-    ret = pthread_key_delete(active_drv);
-    XASSERT_EQ(ret, 0);
+    return s_active_drv;
 }
