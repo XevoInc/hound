@@ -16,8 +16,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DEQUEUE_BUF_SIZE (4096 / sizeof(struct hound_record_info *))
-
 /*
  * Push to back, pop from front. Back is calculated implicitly as front + len
  * with wraparound.
