@@ -16,6 +16,10 @@
 #include <xlib/xhash.h>
 #include <xlib/xvec.h>
 
+/*
+ * The larger the buffer, the more efficient we can be (fewer dequeue
+ * operations), as long as we don't overflow the stack.
+ */
 #define DEQUEUE_BUF_SIZE (4096 / sizeof(struct hound_record_info *))
 
 /* driver --> list of data needed from that driver */
