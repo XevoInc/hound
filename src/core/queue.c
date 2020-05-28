@@ -563,8 +563,8 @@ size_t queue_pop_records_sync(
 
     count = 0;
     *interrupt = false;
+    pthread_mutex_lock(&queue->mutex);
     do {
-        pthread_mutex_lock(&queue->mutex);
         /* TODO: Possible optimization: wake up only when n records/bytes are
          * ready, rather than when 1 is ready. Probably would need to use a heap
          * structure for this, to always wait for the smallest next wakeup
