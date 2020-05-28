@@ -88,6 +88,13 @@ void driver_register(const char *name, struct driver_ops *ops)
      */
     iter = xh_put(OPS_MAP, s_ops_map, name, &ret);
     XASSERT_NEQ(ret, -1);
+
+    /*
+     * Driver names are determined at compile-time, so we shouldn't try to
+     * register the same driver name twice.
+     */
+    XASSERT_NEQ(ret, 0);
+
     xh_val(s_ops_map, iter) = ops;
     xh_trim(OPS_MAP, s_ops_map);
 }
