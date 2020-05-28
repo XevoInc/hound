@@ -522,6 +522,10 @@ error_alloc_drv_descs:
     free(schema_descs);
 error_schema_parse:
 error_device_name:
+    err = drv_op_destroy(drv);
+    if (err != HOUND_OK) {
+        hound_log_err(err, "driver %p failed to destroy", (void *) drv);
+    }
 error_init:
     free(drv);
 out:
