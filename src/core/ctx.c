@@ -180,6 +180,7 @@ hound_err make_driver_data_maps(
             goto error_loop;
         }
         rq_list = &xh_val(map, iter);
+        rq_list->data = NULL;
 
         /* Look ahead to count how many requests match this driver. */
         matches = 1;
