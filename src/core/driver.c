@@ -541,6 +541,7 @@ void drv_destroy_desc(struct hound_datadesc *desc)
     destroy_desc_fmts(desc->fmt_count, desc->fmts);
 }
 
+static
 hound_err driver_destroy_helper(const char *path, pthread_rwlock_t *lock)
 {
     struct driver *drv;
