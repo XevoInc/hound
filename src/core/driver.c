@@ -137,7 +137,7 @@ hound_err driver_get_datadescs(struct hound_datadesc **descs, size_t *len)
     /* Find the required data size. */
     size = 0;
     xh_foreach_value(s_device_map, drv,
-        size += drv->datacount;
+        size += drv->desc_count;
     );
 
     *len = size;
@@ -161,8 +161,8 @@ hound_err driver_get_datadescs(struct hound_datadesc **descs, size_t *len)
 
     pos = *descs;
     xh_foreach_value(s_device_map, drv,
-        memcpy((void *) pos, drv->data, drv->datacount*sizeof(*drv->data));
-        pos += drv->datacount;
+        memcpy((void *) pos, drv->descs, drv->desc_count*sizeof(*drv->descs));
+        pos += drv->desc_count;
     );
 
     err = HOUND_OK;
@@ -451,19 +451,19 @@ hound_err driver_init(
     }
 
     /* Copy driver descriptors into user-facing data descriptors. */
-    drv->data = malloc(enabled_count * sizeof(*drv->data));
-    if (drv->data == NULL) {
+    drv->descs = malloc(enabled_count * sizeof(*drv->descs));
+    if (drv->descs == NULL) {
         err = HOUND_OOM;
         goto error_drv_datadesc;
     }
 
-    drv->datacount = enabled_count;
+    drv->desc_count = enabled_count;
     next_index = 0;
     for (i = 0; i < desc_count; ++i) {
         if (!drv_descs[i].enabled) {
             continue;
         }
-        copy_desc(&drv->data[next_index], &drv_descs[i], drv->id);
+        copy_desc(&drv->descs[next_index], &drv_descs[i], drv->id);
         ++next_index;
     }
 
@@ -490,8 +490,8 @@ hound_err driver_init(
     }
     xh_val(s_device_map, iter) = drv;
 
-    for (i = 0; i < drv->datacount; ++i ) {
-        iter = xh_put(DATA_MAP, s_data_map, drv->data[i].data_id, &ret);
+    for (i = 0; i < drv->desc_count; ++i ) {
+        iter = xh_put(DATA_MAP, s_data_map, drv->descs[i].data_id, &ret);
         if (ret == -1) {
             err = HOUND_OOM;
             goto error_data_map_put;
@@ -509,7 +509,7 @@ error_data_map_put:
 error_device_map_put:
     free(drv_path);
 error_alloc_drv_path:
-    free(drv->data);
+    free(drv->descs);
 error_drv_datadesc:
     for (i = 0; i < desc_count; ++i) {
         destroy_drv_desc(&drv_descs[i]);
@@ -594,10 +594,10 @@ hound_err driver_destroy_helper(const char *path, pthread_rwlock_t *lock)
     }
 
     /* Free the driver-allocated data descriptor. */
-    for (i = 0; i < drv->datacount; ++i) {
-        drv_destroy_desc(&drv->data[i]);
+    for (i = 0; i < drv->desc_count; ++i) {
+        drv_destroy_desc(&drv->descs[i]);
     }
-    free(drv->data);
+    free(drv->descs);
 
     err = pthread_mutex_destroy(&drv->state_lock);
     XASSERT_EQ(err, 0);
@@ -983,13 +983,13 @@ bool driver_period_supported(
 
     pthread_rwlock_rdlock(&s_driver_rwlock);
 
-    for (i = 0; i < drv->datacount; ++i) {
-        desc = &drv->data[i];
+    for (i = 0; i < drv->desc_count; ++i) {
+        desc = &drv->descs[i];
         if (desc->data_id == id) {
             break;
         }
     }
-    if (i == drv->datacount) {
+    if (i == drv->desc_count) {
         found = false;
         goto out;
     }

@@ -39,8 +39,8 @@ struct driver {
 
     hound_dev_id id;
     char device_name[HOUND_DEVICE_NAME_MAX];
-    size_t datacount;
-    struct hound_datadesc *data;
+    size_t desc_count;
+    struct hound_datadesc *descs;
 
     xvec_t(struct data) active_data;
 
