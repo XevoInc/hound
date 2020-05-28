@@ -425,7 +425,7 @@ hound_err ctx_start(struct hound_ctx *ctx)
 static
 hound_err ctx_stop_nolock(struct hound_ctx *ctx, bool modify)
 {
-    /* We must not double-ref the drivers. */
+    /* We must not double-unref the drivers. */
     if (!ctx->active) {
         return HOUND_CTX_NOT_ACTIVE;
     }
