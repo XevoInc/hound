@@ -549,7 +549,7 @@ void queue_push(struct queue *queue, struct record_info *rec)
     }
 }
 
-size_t queue_pop_records_sync(
+size_t queue_pop_records(
     struct queue *queue,
     struct record_info **buf,
     size_t records,

@@ -683,7 +683,7 @@ hound_err ctx_read(struct hound_ctx *ctx, size_t records, size_t *read)
     total = 0;
     do {
         target = min(records - total, ARRAYLEN(buf));
-        pop_count = queue_pop_records_sync(
+        pop_count = queue_pop_records(
             queue,
             buf,
             target,
@@ -716,13 +716,13 @@ out:
  * how large the record for a given data ID will be. Thus there is no good way
  * to call driver_next for a given number of bytes.
  *
- * That said, it would be possible to implement a queue_pop_bytes_sync function.
- * You could do something like this:
+ * That said, it would be possible to implement a blocking queue_pop_bytes
+ * function.  You could do something like this:
  *  - add a new property to each context indicating a guess of how many bytes
  *    per sample. initially set this property to something reasonably small but
  *    arbitrary. call this property "guess".
  *  - when doing ctx_read_bytes:
- *      - sync read target bytes / "guess" number of samples.
+ *      - read target bytes / "guess" number of samples.
  *      - block waiting for that read to finish
  *      - check how many bytes you got. adjust "guess" according to this, erring
  *        on the low side because you don't want to read more bytes than
