@@ -438,6 +438,9 @@ void pop_helper(
         /*
          * Records wrap around, so we need records from both [front, end] and
          * [start, back].
+         *
+         * Note that if records == right_records, then the second memcpy will be
+         * a no-op and the front pointer will be correctly wrapped.
          */
         memcpy(buf, queue->data + queue->front, right_records * sizeof(*buf));
         memcpy(
