@@ -291,7 +291,9 @@ struct hound_ctx;
  * Gets the name of a given device.
  *
  * @param[in] id a device ID
- * @param[out] a device name. Must not be modified or freed by the user.
+ * @param[out] filled in with a device name, if not NULL. Must not be modified
+ *             or freed by the user. Setting name to NULL can be used to check
+ *             for the existence of a driver with the given device ID.
  *
  * @return an error code
  */
