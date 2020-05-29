@@ -542,34 +542,26 @@ void drv_destroy_desc(struct hound_datadesc *desc)
 }
 
 static
-hound_err driver_destroy_helper(const char *path, pthread_rwlock_t *lock)
+hound_err driver_remove_from_maps(const char *path, struct driver **out_drv)
 {
     struct driver *drv;
     const char *drv_path;
     struct driver *drv_iter;
-    hound_err err;
-    size_t i;
     xhiter_t iter;
 
     NULL_CHECK(path);
 
-    if (lock != NULL) {
-        pthread_rwlock_wrlock(lock);
-    }
-
     /* Make sure the driver is actually registered. */
     iter = xh_get(DEVICE_MAP, s_device_map, path);
     if (iter == xh_end(s_device_map)) {
-        err = HOUND_DRIVER_NOT_REGISTERED;
-        goto out;
+        return HOUND_DRIVER_NOT_REGISTERED;
     }
     drv_path = xh_key(s_device_map, iter);
     drv = xh_val(s_device_map, iter);
 
     /* Make sure the driver is not in-use. */
     if (drv->refcount != 0) {
-        err = HOUND_DRIVER_IN_USE;
-        goto out;
+        return HOUND_DRIVER_IN_USE;
     }
 
     /* Remove the driver from all the maps so no one can access it. */
@@ -588,9 +580,16 @@ hound_err driver_destroy_helper(const char *path, pthread_rwlock_t *lock)
 
     free((char *) drv_path);
 
-    if (lock != NULL) {
-        pthread_rwlock_unlock(lock);
-    }
+    *out_drv = drv;
+
+    return HOUND_OK;
+}
+
+static
+void driver_destroy_obj(struct driver *drv)
+{
+    hound_err err;
+    size_t i;
 
     /* Finally, stop and free the driver. */
     err = drv_op_destroy(drv);
@@ -610,21 +609,37 @@ hound_err driver_destroy_helper(const char *path, pthread_rwlock_t *lock)
     XASSERT_EQ(err, 0);
     xv_destroy(drv->active_data);
     free(drv);
-
-    err = HOUND_OK;
-
-out:
-    return err;
 }
 
 hound_err driver_destroy_nolock(const char *path)
 {
-    return driver_destroy_helper(path, NULL);
+    struct driver *drv;
+    hound_err err;
+
+    err = driver_remove_from_maps(path, &drv);
+    if (err != HOUND_OK) {
+        return err;
+    }
+    driver_destroy_obj(drv);
+
+    return HOUND_OK;
 }
 
 hound_err driver_destroy(const char *path)
 {
-    return driver_destroy_helper(path, &s_driver_rwlock);
+    struct driver *drv;
+    hound_err err;
+
+    pthread_rwlock_wrlock(&s_driver_rwlock);
+    err = driver_remove_from_maps(path, &drv);
+    pthread_rwlock_unlock(&s_driver_rwlock);
+    if (err != HOUND_OK) {
+        return err;
+    }
+
+    driver_destroy_obj(drv);
+
+    return HOUND_OK;
 }
 
 hound_err driver_destroy_all(void)
