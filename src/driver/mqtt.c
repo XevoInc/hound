@@ -1036,6 +1036,10 @@ hound_err do_subscribe(
     hound_err err;
     int rc;
 
+    if (len == 0) {
+        return HOUND_OK;
+    }
+
     reset_cb(&ctx->subscribe_state);
     rc = mosquitto_subscribe_multiple(
         ctx->mosq,
@@ -1065,6 +1069,10 @@ hound_err do_unsubscribe(
 {
     hound_err err;
     int rc;
+
+    if (len == 0) {
+        return HOUND_OK;
+    }
 
     reset_cb(&ctx->unsubscribe_state);
     rc = mosquitto_unsubscribe_multiple(
