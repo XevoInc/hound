@@ -91,6 +91,10 @@ hound_err validate_rq(const struct hound_rq *rq)
             return err;
         }
 
+        if (!driver_period_supported(drv, data_rq->id, data_rq->period_ns)) {
+            return HOUND_PERIOD_UNSUPPORTED;
+        }
+
         for (j = 0; j < i; ++j) {
             if (data_rq->id == list->data[j].id) {
                 if (data_rq->period_ns == list->data[j].period_ns ||
@@ -104,10 +108,6 @@ hound_err validate_rq(const struct hound_rq *rq)
                     return HOUND_DUPLICATE_DATA_REQUESTED;
                 }
             }
-        }
-
-        if (!driver_period_supported(drv, data_rq->id, data_rq->period_ns)) {
-            return HOUND_PERIOD_UNSUPPORTED;
         }
     }
 
