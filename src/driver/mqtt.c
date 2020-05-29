@@ -74,6 +74,9 @@ struct mqtt_ctx {
 
     /* Set of active data IDs (which map to schema). */
     xhash_t(ACTIVE_IDS) *active_ids;
+
+    /* Count of pending subscribe requests. */
+    size_t pending_subscribe_count;
 };
 
 static
@@ -182,7 +185,7 @@ void on_subscribe(
     struct mqtt_ctx *ctx;
 
     ctx = data;
-    XASSERT_EQ(qos_count, (int) xh_size(ctx->active_ids));
+    XASSERT_EQ(qos_count, (int) ctx->pending_subscribe_count);
 
     ctx->subscribe_state = CB_SUCCESS;
 }
@@ -762,6 +765,7 @@ hound_err mqtt_init(
     ctx->id_map = id_map;
     ctx->topic_map = topic_map;
     ctx->active_ids = active_ids;
+    ctx->pending_subscribe_count = 0;
 
     drv_set_ctx(ctx);
 
@@ -1041,6 +1045,7 @@ hound_err do_subscribe(
     }
 
     reset_cb(&ctx->subscribe_state);
+    ctx->pending_subscribe_count = len;
     rc = mosquitto_subscribe_multiple(
         ctx->mosq,
         NULL,
@@ -1057,6 +1062,8 @@ hound_err do_subscribe(
     if (err != 0) {
         return HOUND_IO_ERROR;
     }
+
+    ctx->pending_subscribe_count = 0;
 
     return HOUND_OK;
 }
