@@ -277,8 +277,7 @@ hound_err ctx_alloc(const struct hound_rq *rq, struct hound_ctx **ctx_out)
     }
 
     *ctx_out = ctx;
-    err = HOUND_OK;
-    goto out;
+    return HOUND_OK;
 
 error_make_data_maps:
     queue_destroy(ctx->queue);
