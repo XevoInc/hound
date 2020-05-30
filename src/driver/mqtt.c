@@ -474,10 +474,6 @@ hound_err do_read(struct mqtt_ctx *ctx)
     hound_err err;
     int rc;
 
-    struct timespec ts;
-    ts.tv_sec = 0;
-    ts.tv_nsec = 1000 * 1000 * 10;
-    nanosleep(&ts, NULL);
     rc = mosquitto_loop_read(ctx->mosq, 1);
     if (rc != MOSQ_ERR_SUCCESS) {
         log_msg(LOG_ERR, "MQTT failed to read: %d", rc);
