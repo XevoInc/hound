@@ -20,8 +20,6 @@
 #include <xlib/xhash.h>
 #include <xlib/xvec.h>
 
-#define MQTT_PREFIX 0xfe000000
-
 #define SET_DATA(data, obj, out_size, type, field) \
     do { \
         static_assert( \
