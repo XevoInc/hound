@@ -380,8 +380,16 @@ void make_record(
     const struct schema_desc *schema)
 {
     struct hound_record record;
+    bool success;
 
-    parse_payload(msg->payload, msg->payloadlen, schema, &record);
+    success = parse_payload(msg->payload, msg->payloadlen, schema, &record);
+    if (!success) {
+        log_msg(
+            LOG_WARNING,
+            "failed to parse payload for data ID 0x%x\n",
+            schema->data_id);
+        return;
+    }
     record.data_id = schema->data_id;
     record.timestamp = *ts;
 
