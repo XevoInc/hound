@@ -16,7 +16,6 @@
 #include <msgpack.h>
 #include <mosquitto.h>
 #include <poll.h>
-#include <semaphore.h>
 #include <xlib/xassert.h>
 #include <xlib/xhash.h>
 #include <xlib/xvec.h>
