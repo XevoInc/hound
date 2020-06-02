@@ -138,7 +138,7 @@ typedef enum {
     HOUND_UNIT_PERCENT,
     HOUND_UNIT_RAD,
     HOUND_UNIT_RAD_PER_S,
-    HOUND_UNIT_NANOSECOND,
+    HOUND_UNIT_NANOSECOND
 } hound_unit;
 
 /**
