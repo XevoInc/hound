@@ -849,10 +849,10 @@ error_driver_start:
 error_driver_setdata:
     for (i = 0; i < rq_list->len; ++i) {
         rq = &rq_list->data[i];
-        data = get_active_data(drv, rq);
         index = get_active_data_index(drv, rq, &found);
         /* We previously added this data, so it should be found. */
         XASSERT(found);
+        data = &xv_A(drv->active_data, i);
         --data->refcount;
         if (data->refcount == 0) {
             RM_VEC_INDEX(drv->active_data, index);
