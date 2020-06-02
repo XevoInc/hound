@@ -372,6 +372,9 @@ pid_t start_broker(const char *broker_exe, const char *config, uint64_t timeout_
     } while (rc != 0 && (get_time_ns() - start) < timeout_ns);
     close(fd);
 
+    /* We should have successfully connected. */
+    XASSERT_EQ(rc, 0);
+
     return pid;
 }
 
