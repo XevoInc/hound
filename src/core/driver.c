@@ -749,28 +749,18 @@ out:
     return err;
 }
 
-hound_err driver_ref(
+static
+hound_err ref_data_list(
     struct driver *drv,
-    struct queue *queue,
     const struct hound_data_rq_list *rq_list,
-    bool modify)
+    bool *out_changed)
 {
     bool changed;
     struct data *data;
-    bool found;
-    struct hound_data_rq *rq;
     hound_err err;
-    hound_err err2;
     size_t i;
-    size_t index;
+    struct hound_data_rq *rq;
 
-    XASSERT_NOT_NULL(drv);
-    XASSERT_NOT_NULL(queue);
-    XASSERT_NOT_NULL(rq_list);
-
-    pthread_mutex_lock(&drv->state_lock);
-
-    /* Update the active data list. */
     changed = false;
     for (i = 0; i < rq_list->len; ++i) {
         rq = &rq_list->data[i];
@@ -781,10 +771,69 @@ hound_err driver_ref(
         else {
             err = push_drv_data(drv, rq);
             if (err != HOUND_OK) {
-                goto out;
+                /* We have run out of memory! */
+                return err;
             }
             changed = true;
         }
+    }
+
+    if (out_changed != NULL) {
+        *out_changed = changed;
+    }
+
+    return HOUND_OK;
+}
+
+static
+bool unref_data_list(
+    struct driver *drv,
+    const struct hound_data_rq_list *rq_list)
+{
+    bool changed;
+    struct data *data;
+    bool found;
+    size_t i;
+    size_t index;
+    struct hound_data_rq *rq;
+
+    changed = false;
+    for (i = 0; i < rq_list->len; ++i) {
+        rq = &rq_list->data[i];
+        index = get_active_data_index(drv, rq, &found);
+        /* We previously added this data, so it should be found. */
+        XASSERT(found);
+        data = &xv_A(drv->active_data, i);
+        --data->refcount;
+        if (data->refcount == 0) {
+            RM_VEC_INDEX(drv->active_data, index);
+            changed = true;
+        }
+    }
+
+    return changed;
+}
+
+hound_err driver_ref(
+    struct driver *drv,
+    struct queue *queue,
+    const struct hound_data_rq_list *rq_list,
+    bool modify)
+{
+    bool changed;
+    hound_err err;
+    hound_err err2;
+
+    XASSERT_NOT_NULL(drv);
+    XASSERT_NOT_NULL(queue);
+    XASSERT_NOT_NULL(rq_list);
+
+    pthread_mutex_lock(&drv->state_lock);
+
+    /* Update the active data list. */
+    err = ref_data_list(drv, rq_list, &changed);
+    if (err != HOUND_OK) {
+        goto out;
     }
 
     /* Tell the driver to change what data it generates. */
@@ -847,46 +896,10 @@ error_driver_start:
         io_resume_poll();
     }
 error_driver_setdata:
-    for (i = 0; i < rq_list->len; ++i) {
-        rq = &rq_list->data[i];
-        index = get_active_data_index(drv, rq, &found);
-        /* We previously added this data, so it should be found. */
-        XASSERT(found);
-        data = &xv_A(drv->active_data, i);
-        --data->refcount;
-        if (data->refcount == 0) {
-            RM_VEC_INDEX(drv->active_data, index);
-        }
-    }
+    (void) unref_data_list(drv, rq_list);
 out:
     pthread_mutex_unlock(&drv->state_lock);
     return err;
-}
-
-static
-void cleanup_drv_data(
-    struct driver *drv,
-    const struct hound_data_rq_list *rq_list)
-{
-    struct data *data;
-    struct hound_data_rq *rq;
-    hound_err err;
-    size_t i;
-
-    for (i = 0; i < rq_list->len; ++i) {
-        rq = &rq_list->data[i];
-        data = get_active_data(drv, rq);
-        if (data != NULL) {
-            ++data->refcount;
-        }
-        else {
-            err = push_drv_data(drv, rq);
-            if (err != HOUND_OK) {
-                /* We have run out of memory! */
-                return;
-            }
-        }
-    }
 }
 
 hound_err driver_unref(
@@ -896,12 +909,8 @@ hound_err driver_unref(
     bool modify)
 {
     bool changed;
-    struct data *data;
     hound_err err;
-    bool found;
-    size_t i;
-    size_t index;
-    struct hound_data_rq *rq;
+    hound_err err2;
 
     XASSERT_NOT_NULL(drv);
     XASSERT_NOT_NULL(queue);
@@ -910,22 +919,7 @@ hound_err driver_unref(
     pthread_mutex_lock(&drv->state_lock);
 
     /* Update the active data list. */
-    changed = false;
-    for (i = 0; i < rq_list->len; ++i) {
-        rq = &rq_list->data[i];
-        index = get_active_data_index(drv, rq, &found);
-        /*
-         * We should never unref a driver unless it was already reffed, so our
-         * data should be in this last.
-         */
-        XASSERT(found);
-        data = &xv_A(drv->active_data, index);
-        --data->refcount;
-        if (data->refcount == 0) {
-            RM_VEC_INDEX(drv->active_data, index);
-            changed = true;
-        }
-    }
+    changed = unref_data_list(drv, rq_list);
 
     io_pause_poll();
 
@@ -979,7 +973,10 @@ error_driver_stop:
     ++drv->refcount;
     io_resume_poll();
 error_driver_setdata:
-    cleanup_drv_data(drv, rq_list);
+    err2 = ref_data_list(drv, rq_list, NULL);
+    if (err2 != HOUND_OK) {
+        hound_log_err(err2, "driver %p failed to ref data list", (void *) drv);
+    }
 out:
     pthread_mutex_unlock(&drv->state_lock);
     return err;
