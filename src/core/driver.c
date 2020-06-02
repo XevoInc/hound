@@ -694,6 +694,7 @@ hound_err push_drv_data(struct driver *drv, struct hound_data_rq *rq)
 
     data = xv_pushp(struct data, drv->active_data);
     if (data == NULL) {
+        /* We are out of memory, so the entire active_data list is invalid! */
         hound_log_err(
             HOUND_OOM,
             "Failed to push drv data onto active data list",
@@ -761,10 +762,6 @@ hound_err driver_ref(
         else {
             err = push_drv_data(drv, rq);
             if (err != HOUND_OK) {
-                /*
-                 * If this fails, we are out of memory, so the entire
-                 * active_data list is invalid!
-                 */
                 goto out;
             }
             changed = true;
