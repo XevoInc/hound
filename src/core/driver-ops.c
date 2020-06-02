@@ -22,10 +22,17 @@ static _Thread_local struct driver *s_active_drv;
 
 void set_active_drv(struct driver *drv)
 {
+    XASSERT_NULL(s_active_drv);
     s_active_drv = drv;
+}
+
+void clear_active_drv(void)
+{
+    s_active_drv = NULL;
 }
 
 struct driver *get_active_drv(void)
 {
+    XASSERT_NOT_NULL(s_active_drv);
     return s_active_drv;
 }

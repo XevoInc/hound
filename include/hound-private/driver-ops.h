@@ -27,6 +27,12 @@ struct driver *get_active_drv(void);
  */
 void set_active_drv(struct driver *drv);
 
+/**
+ * Clears the active driver. Must be called after set_active_drv when done using
+ * the driver.
+ */
+void clear_active_drv(void);
+
 struct data {
     refcount_val refcount;
     struct hound_data_rq *rq;
@@ -61,7 +67,7 @@ struct driver {
         pthread_mutex_lock(&drv->op_lock); \
         err = drv->ops.name(args); \
         pthread_mutex_unlock(&drv->op_lock); \
-        set_active_drv(NULL); \
+        clear_active_drv(); \
         return err; \
     }
 
