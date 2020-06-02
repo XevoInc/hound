@@ -110,8 +110,31 @@ struct driver_ops {
      */
     hound_err (*parse)(unsigned char *buf, size_t bytes);
 
+    /**
+     * Start the driver producing data.
+     *
+     * @param fd to be filled in with an fd on which the Hound core will poll
+     *
+     * @return an error code
+     */
     hound_err (*start)(int *fd);
+
+    /**
+     * Ask the driver to generate a value of the given ID. This will be called
+     * only if the driver advertises data values with period 0 (on-demand data).
+     *
+     * @param id a data ID
+     *
+     * @return an error code
+     */
     hound_err (*next)(hound_data_id id);
+
+    /**
+     * Stop the driver from producing data and frees resources associated with
+     * the driver's open fd.
+     *
+     * @return an error code
+     */
     hound_err (*stop)(void);
 };
 
