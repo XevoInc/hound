@@ -145,6 +145,7 @@ hound_err gps_datadesc(size_t desc_count, struct drv_datadesc *descs)
 
     XASSERT_EQ(desc_count, 1);
     desc = &descs[0];
+    XASSERT_EQ(desc->schema_desc->data_id, HOUND_DATA_GPS);
     desc->enabled = true;
     desc->period_count = 1;
     desc->avail_periods = malloc(sizeof(*desc->avail_periods));
@@ -162,6 +163,7 @@ hound_err gps_setdata(const struct hound_data_rq_list *data_list)
     XASSERT_NOT_NULL(data_list);
     XASSERT_EQ(data_list->len, 1);
     XASSERT_NOT_NULL(data_list->data);
+    XASSERT_EQ(data_list->data[0].id, HOUND_DATA_GPS);
 
     /* We always yield the same type of data, so there's nothing to do here. */
 
