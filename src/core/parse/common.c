@@ -6,49 +6,37 @@
  */
 
 #include <hound/hound.h>
+#include <hound-private/util.h>
 #include <string.h>
 #include <xlib/xassert.h>
 
 hound_type parse_type(const char *val)
 {
-    if (strcmp(val, "int8") == 0) {
-        return HOUND_TYPE_INT8;
+    size_t i;
+    static const char *type_strs[] = {
+        [HOUND_TYPE_BOOL] = "bool",
+        [HOUND_TYPE_BYTES] = "bytes",
+        [HOUND_TYPE_DOUBLE] = "double",
+        [HOUND_TYPE_FLOAT] = "float",
+        [HOUND_TYPE_INT16] = "int16",
+        [HOUND_TYPE_INT32] = "int32",
+        [HOUND_TYPE_INT64] = "int64",
+        [HOUND_TYPE_INT8] = "int8",
+        [HOUND_TYPE_UINT16] = "uint16",
+        [HOUND_TYPE_UINT32] = "uint32",
+        [HOUND_TYPE_UINT64] = "uint64",
+        [HOUND_TYPE_UINT8] = "uint8",
+    };
+
+    for (i = 0; i < ARRAYLEN(type_strs); ++i) {
+        if (strcmp(val, type_strs[i]) == 0) {
+            return i;
+        }
     }
-    else if (strcmp(val, "uint8") == 0) {
-        return HOUND_TYPE_UINT8;
-    }
-    else if (strcmp(val, "int16") == 0) {
-        return HOUND_TYPE_INT16;
-    }
-    else if (strcmp(val, "uint16") == 0) {
-        return HOUND_TYPE_UINT16;
-    }
-    else if (strcmp(val, "int32") == 0) {
-        return HOUND_TYPE_INT32;
-    }
-    else if (strcmp(val, "uint32") == 0) {
-        return HOUND_TYPE_UINT32;
-    }
-    else if (strcmp(val, "int64") == 0) {
-        return HOUND_TYPE_INT64;
-    }
-    else if (strcmp(val, "uint64") == 0) {
-        return HOUND_TYPE_UINT64;
-    }
-    else if (strcmp(val, "float") == 0) {
-        return HOUND_TYPE_FLOAT;
-    }
-    else if (strcmp(val, "double") == 0) {
-        return HOUND_TYPE_DOUBLE;
-    }
-    else if (strcmp(val, "bytes") == 0) {
-        return HOUND_TYPE_BYTES;
-    }
-    else {
-        /*
-         * An unknown type was encountered. Either the schema validator failed, or
-         * we need to add a new enum to hound_type and to the cases list here.
-         */
-        XASSERT_ERROR;
-    }
+
+    /*
+     * An unknown type was encountered. Either the schema validator failed, or
+     * we need to add a new enum to hound_unit and to the cases list here.
+     */
+    XASSERT_ERROR;
 }
