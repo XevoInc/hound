@@ -386,7 +386,7 @@ void make_record(
     if (!success) {
         log_msg(
             LOG_WARNING,
-            "failed to parse payload for data ID 0x%x\n",
+            "failed to parse payload for data ID 0x%x",
             schema->data_id);
         return;
     }
