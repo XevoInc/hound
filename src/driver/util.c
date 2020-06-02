@@ -20,6 +20,8 @@ void *drv_realloc(void *p, size_t bytes)
 PUBLIC_API
 char *drv_strdup(const char *s)
 {
+    XASSERT_NOT_NULL(s);
+
     return strdup(s);
 }
 
