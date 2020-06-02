@@ -142,55 +142,35 @@ uint32_t parse_num(const char *s)
 static
 hound_unit find_unit(const char *val)
 {
-    if (strcmp(val, "degree") == 0) {
-        return HOUND_UNIT_DEGREE;
+    size_t i;
+    static const char *unit_strs[] = {
+        [HOUND_UNIT_DEGREE] = "degree",
+        [HOUND_UNIT_KELVIN] = "K",
+        [HOUND_UNIT_KG_PER_S] = "kg/s",
+        [HOUND_UNIT_LATITUDE] = "lat",
+        [HOUND_UNIT_LONGITUDE] = "lng",
+        [HOUND_UNIT_METER] = "m",
+        [HOUND_UNIT_METERS_PER_S] = "m/s",
+        [HOUND_UNIT_METERS_PER_S_SQUARED] = "m/s^2",
+        [HOUND_UNIT_NONE] = "none",
+        [HOUND_UNIT_PASCAL] = "Pa",
+        [HOUND_UNIT_PERCENT] = "percent",
+        [HOUND_UNIT_RAD] = "rad",
+        [HOUND_UNIT_RAD_PER_S] = "rad/s",
+        [HOUND_UNIT_NANOSECOND] = "ns"
+    };
+
+    for (i = 0; i < ARRAYLEN(unit_strs); ++i) {
+        if (strcmp(val, unit_strs[i]) == 0) {
+            return i;
+        }
     }
-    else if (strcmp(val, "K") == 0) {
-        return HOUND_UNIT_KELVIN;
-    }
-    else if (strcmp(val, "kg/s") == 0) {
-        return HOUND_UNIT_KG_PER_S;
-    }
-    else if (strcmp(val, "lat") == 0) {
-        return HOUND_UNIT_LATITUDE;
-    }
-    else if (strcmp(val, "lng") == 0) {
-        return HOUND_UNIT_LONGITUDE;
-    }
-    else if (strcmp(val, "m") == 0) {
-        return HOUND_UNIT_METER;
-    }
-    else if (strcmp(val, "m/s") == 0) {
-        return HOUND_UNIT_METERS_PER_S;
-    }
-    else if (strcmp(val, "m/s^2") == 0) {
-        return HOUND_UNIT_METERS_PER_S_SQUARED;
-    }
-    else if (strcmp(val, "none") == 0) {
-        return HOUND_UNIT_NONE;
-    }
-    else if (strcmp(val, "Pa") == 0) {
-        return HOUND_UNIT_PASCAL;
-    }
-    else if (strcmp(val, "percent") == 0) {
-        return HOUND_UNIT_PERCENT;
-    }
-    else if (strcmp(val, "rad") == 0) {
-        return HOUND_UNIT_RAD;
-    }
-    else if (strcmp(val, "rad/s") == 0) {
-        return HOUND_UNIT_RAD_PER_S;
-    }
-    else if (strcmp(val, "ns") == 0) {
-        return HOUND_UNIT_NANOSECOND;
-    }
-    else {
-        /*
-         * An unknown type was encountered. Either the schema validator failed, or
-         * we need to add a new enum to hound_unit and to the cases list here.
-         */
-        XASSERT_ERROR;
-    }
+
+    /*
+     * An unknown unit was encountered. Either the schema validator failed, or
+     * we need to add a new enum to hound_unit and to the cases list here.
+     */
+    XASSERT_ERROR;
 }
 
 static
