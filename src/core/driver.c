@@ -688,6 +688,26 @@ size_t get_active_data_index(
 }
 
 static
+struct data *get_active_data(
+    const struct driver *drv,
+    const struct hound_data_rq *drv_data)
+{
+    struct data *active_data;
+    bool found;
+    size_t index;
+
+    index = get_active_data_index(drv, drv_data, &found);
+    if (found) {
+        active_data = &xv_A(drv->active_data, index);
+    }
+    else {
+        active_data = NULL;
+    }
+
+    return active_data;
+}
+
+static
 hound_err push_drv_data(struct driver *drv, struct hound_data_rq *rq)
 {
     struct data *data;
@@ -737,10 +757,10 @@ hound_err driver_ref(
 {
     bool changed;
     struct data *data;
+    bool found;
     struct hound_data_rq *rq;
     hound_err err;
     hound_err err2;
-    bool found;
     size_t i;
     size_t index;
 
@@ -754,9 +774,8 @@ hound_err driver_ref(
     changed = false;
     for (i = 0; i < rq_list->len; ++i) {
         rq = &rq_list->data[i];
-        index = get_active_data_index(drv, rq, &found);
-        if (found) {
-            data = &xv_A(drv->active_data, index);
+        data = get_active_data(drv, rq);
+        if (data != NULL) {
             ++data->refcount;
         }
         else {
@@ -827,10 +846,10 @@ error_driver_start:
 error_driver_setdata:
     for (i = 0; i < rq_list->len; ++i) {
         rq = &rq_list->data[i];
+        data = get_active_data(drv, rq);
         index = get_active_data_index(drv, rq, &found);
         /* We previously added this data, so it should be found. */
         XASSERT(found);
-        data = &xv_A(drv->active_data, index);
         --data->refcount;
         if (data->refcount == 0) {
             RM_VEC_INDEX(drv->active_data, index);
@@ -849,15 +868,12 @@ void cleanup_drv_data(
     struct data *data;
     struct hound_data_rq *rq;
     hound_err err;
-    bool found;
     size_t i;
-    size_t index;
 
     for (i = 0; i < rq_list->len; ++i) {
         rq = &rq_list->data[i];
-        index = get_active_data_index(drv, rq, &found);
-        if (found) {
-            data = &xv_A(drv->active_data, index);
+        data = get_active_data(drv, rq);
+        if (data != NULL) {
             ++data->refcount;
         }
         else {
