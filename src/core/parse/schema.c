@@ -122,21 +122,21 @@ error_name:
 }
 
 static
-hound_data_id parse_num(const char *s)
+uint32_t parse_num(const char *s)
 {
-    hound_data_id id;
+    unsigned long num;
 
     errno = 0;
-    id = strtoul(s, NULL, 0);
+    num = strtoul(s, NULL, 0);
     XASSERT_OK(errno);
 
     /*
      * Make sure we are within UINT32_MAX, to guard against 32/64 bit issues
      * with sizeof(long).
      */
-    XASSERT_LTE(id, UINT32_MAX);
+    XASSERT_LTE(num, UINT32_MAX);
 
-    return id;
+    return (uint32_t) num;
 }
 
 static
