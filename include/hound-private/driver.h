@@ -112,7 +112,6 @@ struct driver_ops {
 
     hound_err (*start)(int *fd);
     hound_err (*next)(hound_data_id id);
-    hound_err (*next_bytes)(hound_data_id id, size_t bytes);
     hound_err (*stop)(void);
 };
 

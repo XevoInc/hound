@@ -100,10 +100,6 @@ DEFINE_DRV_OP(
     TOKENIZE(buf, bytes))
 DEFINE_DRV_OP(start, int *fd, fd)
 DEFINE_DRV_OP(next, hound_data_id id, id)
-DEFINE_DRV_OP(
-    next_bytes,
-    TOKENIZE(hound_data_id id, size_t bytes),
-    TOKENIZE(id, bytes))
 DEFINE_DRV_OP_VOID(stop)
 
 #endif /* HOUND_PRIVATE_DRIVER_OPS_H_ */
