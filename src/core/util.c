@@ -30,22 +30,26 @@ size_t max(size_t a, size_t b)
     }
 }
 
-void norm_path(const char *base, const char *path, size_t len, char *out)
+hound_err norm_path(const char *base, const char *path, size_t len, char *out)
 {
     int count;
 
     /* Return absolute paths as-is, and make relative paths relative to base. */
     if (path[0] == '/') {
-        strcpy(out, path);
+        count = snprintf(out, len, "%s", path);
     }
     else {
         count = snprintf(out, len, "%s/%s", base, path);
-        if (count == (int) len) {
-            log_msg(
-                LOG_ERR,
-                "Path is too long when joined with configuration directory");
-        }
     }
+
+    if (count == (int) len) {
+        log_msg(
+            LOG_ERR,
+            "Path is too long when joined with configuration directory");
+        return HOUND_PATH_TOO_LONG;
+    }
+
+    return HOUND_OK;
 }
 
 void destroy_rq_list(struct hound_data_rq_list *rq_list)

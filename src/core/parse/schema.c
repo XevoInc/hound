@@ -439,7 +439,11 @@ hound_err schema_parse(
 
     XASSERT_NOT_NULL(schema);
 
-    norm_path(schema_base, schema, ARRAYLEN(path), path);
+    err = norm_path(schema_base, schema, ARRAYLEN(path), path);
+    if (err != HOUND_OK) {
+        return HOUND_PATH_TOO_LONG;
+    }
+
     f = fopen(path, "r");
     if (f == NULL) {
         err = HOUND_IO_ERROR;

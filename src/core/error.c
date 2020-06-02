@@ -77,6 +77,8 @@ const char *error_strerror(hound_err err)
             return "context has stopped during a blocking read";
         case HOUND_NO_DESCS_ENABLED:
             return "driver didn't enabled any data descriptors";
+        case HOUND_PATH_TOO_LONG:
+            return "path is longer than PATH_MAX";
     }
 
     /*

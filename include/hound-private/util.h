@@ -47,7 +47,7 @@
 size_t min(size_t a, size_t b);
 size_t max(size_t a, size_t b);
 
-void norm_path(const char *base, const char *path, size_t len, char *out);
+hound_err norm_path(const char *base, const char *path, size_t len, char *out);
 
 void destroy_rq_list(struct hound_data_rq_list *rq_list);
 
