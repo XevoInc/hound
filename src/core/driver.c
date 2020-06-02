@@ -843,6 +843,9 @@ error_io_add_fd:
     }
 error_driver_start:
     --drv->refcount;
+    if (!modify) {
+        io_resume_poll();
+    }
 error_driver_setdata:
     for (i = 0; i < rq_list->len; ++i) {
         rq = &rq_list->data[i];
@@ -974,6 +977,7 @@ hound_err driver_unref(
 
 error_driver_stop:
     ++drv->refcount;
+    io_resume_poll();
 error_driver_setdata:
     cleanup_drv_data(drv, rq_list);
 out:
