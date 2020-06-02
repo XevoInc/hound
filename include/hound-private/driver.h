@@ -71,6 +71,14 @@ struct driver_ops {
      */
     hound_err (*datadesc)(size_t desc_count, struct drv_datadesc *descs);
 
+    /**
+     * Sets the data the driver should be prepared to generate when start() is
+     * called.
+     *
+     * @param data the data to be generated
+     *
+     * @return an error code
+     */
     hound_err (*setdata)(const struct hound_data_rq_list *data);
 
     /**
@@ -225,11 +233,20 @@ hound_err driver_destroy_all(void);
 
 hound_err driver_next(struct driver *drv, hound_data_id id, size_t n);
 
+/*
+ * Take a reference on this driver, causing the driver to start if it's the
+ * first reference.
+ */
 hound_err driver_ref(
     struct driver *drv,
     struct queue *queue,
     const struct hound_data_rq_list *data_rq_list,
     bool modify);
+
+/*
+ * Drop a reference on this driver, causing the driver to stop if it's the last
+ * reference.
+ */
 hound_err driver_unref(
     struct driver *drv,
     struct queue *queue,
