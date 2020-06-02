@@ -935,7 +935,15 @@ hound_err driver_unref(
         if (!modify) {
             err = drv_op_stop(drv);
             if (err != HOUND_OK) {
-                goto error_driver_stop;
+                err2 = io_add_fd(drv->fd, drv);
+                if (err2 != HOUND_OK) {
+                    hound_log_err(
+                        err2,
+                        "driver %p failed to add fd %d",
+                        (void *) drv,
+                        drv->fd);
+                }
+                goto error_driver_op;
             }
             drv->fd = FD_INVALID;
         }
@@ -950,7 +958,9 @@ hound_err driver_unref(
         if (changed) {
             err = drv_op_setdata(drv, rq_list);
             if (err != HOUND_OK) {
-                goto error_driver_setdata;
+                err2 = io_add_queue(drv->fd, rq_list, queue);
+                hound_log_err(err2, "driver %p failed to queue", (void *) drv);
+                goto error_driver_op;
             }
         }
     }
@@ -969,10 +979,9 @@ hound_err driver_unref(
     err = HOUND_OK;
     goto out;
 
-error_driver_stop:
+error_driver_op:
     ++drv->refcount;
     io_resume_poll();
-error_driver_setdata:
     err2 = ref_data_list(drv, rq_list, NULL);
     if (err2 != HOUND_OK) {
         hound_log_err(err2, "driver %p failed to ref data list", (void *) drv);
