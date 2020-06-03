@@ -217,14 +217,14 @@ void contract_queue(struct queue *queue, size_t new_max_len)
              * wrap-around.
              *
              *   b  f
-             * |3___1-2____|
+             * |3______1-2|
              * -->
              *    b f
              * |23__1|
              *
              */
             start = new_max_len;
-            count = queue->len - back - (new_max_len - queue->front);
+            count = queue->len - new_max_len;
         }
 
         /*
