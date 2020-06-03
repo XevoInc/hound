@@ -110,10 +110,6 @@ void drain_nolock(struct queue *queue)
 static
 bool is_contiguous(struct queue *queue)
 {
-    if (queue->len == queue->max_len) {
-        return false;
-    }
-
     return (queue->front + queue->len) <= queue->max_len;
 }
 
