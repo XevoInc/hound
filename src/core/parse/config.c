@@ -337,7 +337,7 @@ hound_err register_drivers(
         if (err != HOUND_OK) {
             for (--i; i < init_count; --i) {
                 err2 = hound_destroy_driver(init->path);
-                if (err != HOUND_OK) {
+                if (err2 != HOUND_OK) {
                     hound_log_err(
                         err2,
                         "failed to unregister driver %s at path %s",
