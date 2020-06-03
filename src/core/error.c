@@ -11,7 +11,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <syslog.h>
 
 const char *error_strerror(hound_err err)
 {
