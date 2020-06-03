@@ -57,6 +57,7 @@ hound_err queue_alloc(
     size_t max_len)
 {
     struct queue *queue;
+    int rc;
 
     XASSERT_NOT_NULL(out_queue);
 
@@ -65,8 +66,10 @@ hound_err queue_alloc(
         return HOUND_OOM;
     }
 
-    pthread_mutex_init(&queue->mutex, NULL);
-    pthread_cond_init(&queue->ready_cond, NULL);
+    rc = pthread_mutex_init(&queue->mutex, NULL);
+    XASSERT_EQ(rc, 0);
+    rc = pthread_cond_init(&queue->ready_cond, NULL);
+    XASSERT_EQ(rc, 0);
     queue->interrupt = false;
     queue->max_len = max_len;
     queue->len = 0;
