@@ -553,6 +553,18 @@ void io_resume_poll(void)
 }
 
 static
+bool io_is_paused(void)
+{
+    bool paused;
+
+    pthread_mutex_lock(&s_poll_mutex);
+    paused = !s_poll_active_current;
+    pthread_mutex_unlock(&s_poll_mutex);
+
+    return paused;
+}
+
+static
 hound_err io_start_poll(void)
 {
     hound_err err;
@@ -598,6 +610,7 @@ hound_err io_add_fd(int fd, struct driver *drv)
      * Polling *must* have been paused before calling this function, as we
      * modify the poll structures here.
      */
+    XASSERT(io_is_paused());
 
     XASSERT_NOT_NULL(drv);
     XASSERT_NEQ(fd, 0);
@@ -665,6 +678,7 @@ void io_remove_fd(int fd)
      * Polling *must* have been paused before calling this function, as we
      * modify the poll structures here.
      */
+    XASSERT(io_is_paused());
 
     pthread_rwlock_wrlock(&s_ios.lock);
 
@@ -745,6 +759,7 @@ hound_err io_add_queue(
      * Polling *must* have been paused before calling this function, as we
      * modify the poll structures here.
      */
+    XASSERT(io_is_paused());
 
     pthread_rwlock_wrlock(&s_ios.lock);
 
@@ -840,6 +855,7 @@ void io_remove_queue(
      * Polling *must* have been paused before calling this function, as we
      * modify the poll structures here.
      */
+    XASSERT(io_is_paused());
 
     pthread_rwlock_wrlock(&s_ios.lock);
 
