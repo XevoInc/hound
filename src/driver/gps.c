@@ -148,7 +148,7 @@ hound_err gps_datadesc(size_t desc_count, struct drv_datadesc *descs)
     XASSERT_EQ(desc->schema_desc->data_id, HOUND_DATA_GPS);
     desc->enabled = true;
     desc->period_count = 1;
-    desc->avail_periods = malloc(sizeof(*desc->avail_periods));
+    desc->avail_periods = drv_alloc(sizeof(*desc->avail_periods));
     if (desc->avail_periods == NULL) {
         return HOUND_OOM;
     }
