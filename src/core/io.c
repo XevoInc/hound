@@ -368,7 +368,7 @@ hound_err io_read(struct fdctx *ctx, short events, short *next_events)
 static
 void io_wait_for_ready(void) {
     pthread_mutex_lock(&s_poll_mutex);
-    while (!s_poll_active_target || xv_size(s_ios.fds) == 0) {
+    while (!s_poll_active_target) {
         s_poll_active_current = false;
         pthread_cond_signal(&s_poll_cond);
         pthread_cond_wait(&s_poll_cond, &s_poll_mutex);
