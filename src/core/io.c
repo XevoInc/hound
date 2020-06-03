@@ -209,7 +209,7 @@ hound_err make_records(struct driver *drv, unsigned char *buf, size_t size)
 
     fd = drv_fd();
     bytes_read = read(fd, buf, size);
-    if (bytes_read < 0) {
+    if (bytes_read <= 0) {
         if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
             /* No more data to read, so we're done. */
             return HOUND_OK;
