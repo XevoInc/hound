@@ -532,8 +532,8 @@ void io_pause_poll(void)
      * on the condition variable when it is run.
      */
     pthread_mutex_lock(&s_poll_mutex);
+    s_poll_active_target = false;
     while (s_poll_active_current) {
-        s_poll_active_target = false;
         do {
             bytes = write(s_self_pipe[WRITE_END], &payload, sizeof(payload));
             XASSERT_NEQ(bytes, -1);
