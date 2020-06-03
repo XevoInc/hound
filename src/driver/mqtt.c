@@ -876,7 +876,7 @@ hound_err mqtt_datadesc(size_t desc_count, struct drv_datadesc *descs)
     /*
      * Enable everything in the schema, as we can subscribe to any topics
      * listed. All periods are 0, MQTT is pub/sub and thus event-based. Also,
-     * make a map from data ID to topic topic so we can efficiently handle
+     * make a map from data ID to topic so we can efficiently handle
      * setdata() calls.
      */
     for (i = 0; i < desc_count; ++i) {
