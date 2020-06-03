@@ -806,7 +806,7 @@ bool unref_data_list(
         index = get_active_data_index(drv, rq, &found);
         /* We previously added this data, so it should be found. */
         XASSERT(found);
-        data = &xv_A(drv->active_data, i);
+        data = &xv_A(drv->active_data, index);
         --data->refcount;
         if (data->refcount == 0) {
             RM_VEC_INDEX(drv->active_data, index);
