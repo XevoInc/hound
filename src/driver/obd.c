@@ -188,11 +188,6 @@ hound_err obd_device_name(char *device_name)
     return HOUND_OK;
 }
 
-struct iter_helper {
-    size_t i;
-    struct hound_datadesc *descs;
-};
-
 static
 hound_err obd_datadesc(size_t desc_count, struct drv_datadesc *descs)
 {
