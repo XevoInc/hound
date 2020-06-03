@@ -924,6 +924,7 @@ void io_init(void)
         hound_log_nofmt(XLOG_ERR, "Failed to setup pfd for self pipe");
         return;
     }
+    XASSERT_EQ((void *) pfd, &xv_A(s_ios.fds, PAUSE_FD_INDEX));
     pfd->fd = s_self_pipe[READ_END];
     pfd->events = POLLIN;
 
