@@ -182,6 +182,7 @@ hound_err obd_device_name(char *device_name)
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
 
+    XASSERT_GTE(HOUND_DEVICE_NAME_MAX, IFNAMSIZ);
     strcpy(device_name, ctx->iface);
 
     return HOUND_OK;
