@@ -799,8 +799,8 @@ hound_err io_add_queue(
                 err = HOUND_OOM;
                 for (j = 0; j < queue_count; ++j) {
                     (void) xv_pop(ctx->queues);
-                    goto out;
                 }
+                goto out;
             }
 
             timeout_info->id = entry->id;
