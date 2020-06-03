@@ -220,8 +220,6 @@ hound_err parse_fmt(
             fmt->unit = find_unit(value_str);
         }
         else if (strcmp(key_str, "type") == 0) {
-            XASSERT_EQ(value->type, YAML_SCALAR_NODE);
-            XASSERT_GT(value->data.scalar.length, 0);
             fmt->type = parse_type(value_str);
 
         }
