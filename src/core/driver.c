@@ -772,17 +772,20 @@ hound_err ref_data_list(
             err = push_drv_data(drv, rq);
             if (err != HOUND_OK) {
                 /* We have run out of memory! */
-                return err;
+                goto out;
             }
             changed = true;
         }
     }
 
+    err = HOUND_OK;
+
+out:
     if (out_changed != NULL) {
         *out_changed = changed;
     }
 
-    return HOUND_OK;
+    return err;
 }
 
 static
