@@ -413,7 +413,11 @@ hound_err parse_config(const char *config_path, const char *schema_base)
     FILE *f;
     char path[PATH_MAX];
 
-    norm_path(CONFIG_HOUND_CONFDIR, config_path, ARRAYLEN(path), path);
+    err = norm_path(CONFIG_HOUND_CONFDIR, config_path, ARRAYLEN(path), path);
+    if (err != HOUND_OK) {
+        return HOUND_PATH_TOO_LONG;
+    }
+
     f = fopen(path, "r");
     if (f == NULL) {
         err = HOUND_IO_ERROR;
