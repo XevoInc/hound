@@ -84,10 +84,7 @@ hound_err queue_alloc(
 static
 void drain_until(struct queue *queue, size_t new_len)
 {
-    size_t back;
     size_t drain_count;
-    size_t end;
-    size_t end_records;
     size_t i;
 
     if (new_len >= queue->len) {
@@ -95,39 +92,11 @@ void drain_until(struct queue *queue, size_t new_len)
     }
 
     drain_count = queue->len - new_len;
-
-    back = (queue->front + queue->len) % queue->max_len;
-    if (back > queue->front) {
-        /* Queue data is contiguous. */
-        end = queue->front + drain_count;
-        for (i = queue->front; i < end; ++i) {
-            record_ref_dec(queue->data[i]);
-        }
-    }
-    else {
-        /* Queue data wraps around. */
-        end_records = queue->max_len - queue->front;
-        if (drain_count <= end_records) {
-            end = queue->front + drain_count;
-        }
-        else {
-            end = queue->max_len;
-        }
-
-        for (i = queue->front; i < end; ++i) {
-            record_ref_dec(queue->data[i]);
-        }
-
-        if (drain_count > end_records) {
-            /* More to drain at the start of the array. */
-            end = drain_count - end_records;
-            for (i = 0; i < end; ++i) {
-                record_ref_dec(queue->data[i]);
-            }
-        }
+    for (i = 0; i < drain_count; i++) {
+        record_ref_dec(queue->data[queue->front]);
+        queue->front = (queue->front + 1) % queue->max_len;
     }
 
-    queue->front = end % queue->max_len;
     queue->front_seqno += drain_count;
     queue->len = new_len;
 }
