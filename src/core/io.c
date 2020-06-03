@@ -321,7 +321,7 @@ hound_err io_default_pull(
     *next_events = POLLIN;
     *timeout_enabled = true;
     *timeout = min_timeout;
-    info->last_pull = get_time_ns();
+    info->last_pull = now;
 
     return err;
 }
