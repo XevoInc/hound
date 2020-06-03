@@ -449,7 +449,6 @@ void *io_poll(UNUSED void *data)
         if (have_timeout) {
             populate_timespec(min_timeout, &timeout_spec);
             timeout = &timeout_spec;
-            last_poll_ns = get_time_ns();
         }
         else {
             timeout = NULL;
