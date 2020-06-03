@@ -1100,7 +1100,7 @@ hound_err do_unsubscribe(
     }
 
     err = wait_for_reply_cb(ctx, &ctx->unsubscribe_state);
-    if (err != 0) {
+    if (err != HOUND_OK) {
         return HOUND_IO_ERROR;
     }
 
