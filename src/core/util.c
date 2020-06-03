@@ -43,8 +43,8 @@ hound_err norm_path(const char *base, const char *path, size_t len, char *out)
     }
 
     if (count == (int) len) {
-        log_msg(
-            LOG_ERR,
+        hound_log_nofmt(
+            XLOG_ERR,
             "Path is too long when joined with configuration directory");
         return HOUND_PATH_TOO_LONG;
     }

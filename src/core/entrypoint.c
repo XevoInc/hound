@@ -15,7 +15,6 @@
 __attribute__((constructor(CORE_PRIO)))
 static void lib_init(void)
 {
-    log_init();
     io_init();
     driver_init_statics();
 }
@@ -23,7 +22,6 @@ static void lib_init(void)
 __attribute__((destructor))
 static void lib_destroy(void)
 {
-    log_destroy();
     io_destroy();
     driver_destroy_statics();
 }

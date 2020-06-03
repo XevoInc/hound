@@ -99,7 +99,7 @@ void on_connect(UNUSED struct mosquitto *mosq, void *data, int rc)
         else {
             msg = "unknown error";
         }
-        log_msg(
+        hound_log(
             LOG_ERR,
             "failed to connect to MQTT broker at %s:%d: %d (%s)\n",
             ctx->host,
@@ -125,7 +125,7 @@ void on_disconnect(UNUSED struct mosquitto *mosq, void *data, int rc)
 
     if (rc != 0) {
         state = CB_FAIL;
-        log_msg(
+        hound_log(
             LOG_ERR,
             "unexpected disconnect from MQTT broker at %s:%d: %d",
             ctx->host,
@@ -168,7 +168,7 @@ void on_log(
         XASSERT_ERROR;
     }
 
-    log_msg(syslog_level, msg);
+    hound_log_nofmt(syslog_level, msg);
 }
 
 static
@@ -384,7 +384,7 @@ void make_record(
 
     success = parse_payload(msg->payload, msg->payloadlen, schema, &record);
     if (!success) {
-        log_msg(
+        hound_log(
             LOG_WARNING,
             "failed to parse payload for data ID 0x%x",
             schema->data_id);
@@ -419,7 +419,7 @@ void on_message(
          * We don't know anything about this topic, so we shouldn't have
          * received this message!
          */
-        log_msg(
+        hound_log(
             LOG_WARNING,
             "received topic we didn't subscribe to: %s",
             msg->topic);
@@ -442,7 +442,7 @@ hound_err do_write(struct mqtt_ctx *ctx)
 
     rc = mosquitto_loop_write(ctx->mosq, 1);
     if (rc != MOSQ_ERR_SUCCESS) {
-        log_msg(LOG_ERR, "MQTT failed to write: %d", rc);
+        hound_log(LOG_ERR, "MQTT failed to write: %d", rc);
         err = HOUND_IO_ERROR;
     }
     else {
@@ -459,7 +459,7 @@ void do_misc(struct mqtt_ctx *ctx)
 
     rc = mosquitto_loop_misc(ctx->mosq);
     if (rc != MOSQ_ERR_SUCCESS) {
-        log_msg(LOG_ERR, "MQTT failed to do misc ops: %d", rc);
+        hound_log(LOG_ERR, "MQTT failed to do misc ops: %d", rc);
     }
 }
 
@@ -481,7 +481,7 @@ hound_err do_read(struct mqtt_ctx *ctx)
 
     rc = mosquitto_loop_read(ctx->mosq, 1);
     if (rc != MOSQ_ERR_SUCCESS) {
-        log_msg(LOG_ERR, "MQTT failed to read: %d", rc);
+        hound_log(LOG_ERR, "MQTT failed to read: %d", rc);
         err = HOUND_IO_ERROR;
     }
     else {
@@ -1017,7 +1017,7 @@ hound_err do_disconnect(struct mqtt_ctx *ctx)
     reset_cb(&ctx->disconnect_state);
     rc = mosquitto_disconnect(ctx->mosq);
     if (rc != MOSQ_ERR_SUCCESS) {
-        log_msg(
+        hound_log(
             LOG_ERR,
             "failed to disconnect from MQTT broker at %s:%d (error %d)",
             ctx->host,

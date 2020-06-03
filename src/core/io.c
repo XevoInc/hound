@@ -19,7 +19,6 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <string.h>
-#include <syslog.h>
 #include <unistd.h>
 #include <xlib/xhash.h>
 #include <xlib/xvec.h>
@@ -906,7 +905,7 @@ void io_init(void)
 
     s_pull_map = xh_init(PULL_MAP);
     if (s_pull_map == NULL) {
-        log_msg(LOG_ERR, "Failed to initialize pull-mode timing map");
+        hound_log_nofmt(XLOG_ERR, "Failed to initialize pull-mode timing map");
         return;
     }
 
@@ -917,13 +916,13 @@ void io_init(void)
      */
     ret = pipe2(s_self_pipe, O_NONBLOCK);
     if (ret != 0) {
-        log_msg(LOG_ERR, "Failed to create self pipe");
+        hound_log_nofmt(XLOG_ERR, "Failed to create self pipe");
         return;
     }
 
     pfd = xv_pushp(struct pollfd, s_ios.fds);
     if (pfd == NULL) {
-        log_msg(LOG_ERR, "Failed to setup pfd for self pipe");
+        hound_log_nofmt(XLOG_ERR, "Failed to setup pfd for self pipe");
         return;
     }
     pfd->fd = s_self_pipe[READ_END];

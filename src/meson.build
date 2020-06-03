@@ -47,7 +47,6 @@ src = [
     'core/error.c',
     'core/hound.c',
     'core/io.c',
-    'core/log.c',
     'core/queue.c',
     'core/parse/common.c',
     'core/parse/config.c',
