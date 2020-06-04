@@ -10,3 +10,7 @@ Things to do:
 - Optimize drv_alloc, since both record data and struct record_info are
   short-lived.
 - Audit logging to make it consistent throughout the code.
+- Add a statistics API that would surface information about driver record
+  allocations failing, queues overflowing, etc. The theme is that the I/O and
+  queue code has no way to surface errors to the user, so they currently just
+  log that information and it's not programmatically discoverable.
