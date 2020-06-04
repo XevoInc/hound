@@ -92,6 +92,8 @@ struct driver_ops {
      *                    monitored. For more details, see the manpage for
      *                    poll(). If this is not set, the value will be
      *                    unchanged from the last time poll() was called.
+     * @param poll_time the monotonic time (in nanoseconds) at which the poll
+     *                  syscall finished
      * @param timeout_enabled set to true if poll should be called again after a
      *                        timeout even if no events have occurred. This will
      *                        directly become an argument into the poll
@@ -102,6 +104,7 @@ struct driver_ops {
     hound_err (*poll)(
         short events,
         short *next_events,
+        hound_data_period poll_time,
         bool *timeout_enabled,
         hound_data_period *timeout);
 

@@ -97,9 +97,10 @@ DEFINE_DRV_OP(
     TOKENIZE(
         short events,
         short *next_events,
+        hound_data_period poll_time,
         bool *timeout_enabled,
         hound_data_period *timeout),
-    TOKENIZE(events, next_events, timeout_enabled, timeout))
+    TOKENIZE(events, next_events, poll_time, timeout_enabled, timeout))
 DEFINE_DRV_OP(
     parse,
     TOKENIZE(unsigned char *buf, size_t bytes),

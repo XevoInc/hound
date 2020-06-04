@@ -1225,6 +1225,7 @@ static
 hound_err mqtt_poll(
     short events,
     short *out_events,
+    UNUSED hound_data_period poll_time,
     bool *timeout_enabled,
     hound_data_period *timeout)
 {

@@ -250,6 +250,7 @@ hound_err make_records(struct driver *drv, unsigned char *buf, size_t size)
 hound_err io_default_pull(
     short events,
     short *next_events,
+    hound_data_period poll_time,
     bool *timeout_enabled,
     hound_data_period *timeout)
 {
@@ -260,11 +261,9 @@ hound_err io_default_pull(
     xhiter_t iter;
     hound_data_period lateness;
     hound_data_period min_timeout;
-    hound_data_period now;
     struct pull_timeout_info *timeout_info;
     hound_data_period time_since_last_poll;
 
-    now = get_time_ns();
     drv = get_active_drv();
 
     iter = xh_get(PULL_MAP, s_pull_map, drv_fd());
@@ -272,7 +271,7 @@ hound_err io_default_pull(
     info = &xh_val(s_pull_map, iter);
 
     /* Adjust our timeout data and trigger a pull if a timeout expired. */
-    time_since_last_poll = now - info->last_pull;
+    time_since_last_poll = poll_time - info->last_pull;
     min_timeout = UINT64_MAX;
     for (i = 0; i < xv_size(info->timeout_info); ++i) {
         timeout_info = &xv_A(info->timeout_info, i);
@@ -321,7 +320,7 @@ hound_err io_default_pull(
     *next_events = POLLIN;
     *timeout_enabled = true;
     *timeout = min_timeout;
-    info->last_pull = now;
+    info->last_pull = poll_time;
 
     return err;
 }
@@ -329,6 +328,7 @@ hound_err io_default_pull(
 hound_err io_default_push(
     short events,
     short *next_events,
+    UNUSED hound_data_period pull_time,
     bool *timeout_enabled,
     UNUSED hound_data_period *timeout)
 {
@@ -343,7 +343,11 @@ hound_err io_default_push(
 }
 
 static
-hound_err io_read(struct fdctx *ctx, short events, short *next_events)
+hound_err io_read(
+    struct fdctx *ctx,
+    hound_data_period poll_time,
+    short events,
+    short *next_events)
 {
     hound_err err;
 
@@ -353,6 +357,7 @@ hound_err io_read(struct fdctx *ctx, short events, short *next_events)
         ctx->drv,
         events,
         next_events,
+        poll_time,
         &ctx->timeout_enabled,
         &ctx->timeout_ns);
     if (err != HOUND_OK) {
@@ -506,7 +511,7 @@ void *io_poll(UNUSED void *data)
                 continue;
             }
 
-            err = io_read(ctx, pfd->revents, &pfd->events);
+            err = io_read(ctx, now, pfd->revents, &pfd->events);
             if (err == HOUND_INTR) {
                 /* Someone wants to pause polling; finish reading later. */
                 break;

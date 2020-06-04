@@ -27,6 +27,7 @@ PUBLIC_API
 hound_err io_default_push(
     short events,
     short *next_events,
+    hound_data_period poll_time,
     bool *timeout_enabled,
     hound_data_period *timeout);
 
@@ -34,6 +35,7 @@ PUBLIC_API
 hound_err io_default_pull(
     short events,
     short *next_events,
+    hound_data_period poll_time,
     bool *timeout_enabled,
     hound_data_period *timeout);
 
