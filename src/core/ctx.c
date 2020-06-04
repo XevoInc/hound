@@ -612,6 +612,8 @@ hound_err ctx_next(struct hound_ctx *ctx, size_t n)
 
     NULL_CHECK(ctx);
 
+    err = HOUND_OK;
+
     pthread_rwlock_rdlock(&ctx->rwlock);
     xh_iter(ctx->on_demand_data_map, iter,
         drv = xh_key(ctx->on_demand_data_map, iter);
@@ -631,7 +633,7 @@ hound_err ctx_next(struct hound_ctx *ctx, size_t n)
     );
     pthread_rwlock_unlock(&ctx->rwlock);
 
-    return HOUND_OK;
+    return err;
 }
 
 static
