@@ -30,7 +30,6 @@
 #define MODE_MASK  0x00ff0000
 #define PID_MASK   0x0000ffff
 
-#define USEC_PER_SEC ((uint64_t) 1e6)
 #define FD_INVALID (-1)
 
 XHASH_MAP_INIT_INT(FRAME_MAP, struct can_frame)

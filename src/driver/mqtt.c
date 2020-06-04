@@ -29,8 +29,6 @@
         *out_size = sizeof(type); \
     } while (0);
 
-#define MSEC_PER_SEC 1000
-
 XHASH_MAP_INIT_INT(ID_MAP, const struct schema_desc *)
 XHASH_MAP_INIT_STR(TOPIC_MAP, const struct schema_desc *)
 XHASH_SET_INIT_INT(ACTIVE_IDS)

@@ -13,9 +13,12 @@
 #include <xlib/xassert.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
-#define NSEC_PER_SEC ((hound_data_period) 1e9)
 #define PUBLIC_API __attribute__ ((visibility ("default")))
 #define UNUSED __attribute__((unused))
+
+#define MSEC_PER_SEC ((hound_data_period) 1e3)
+#define NSEC_PER_SEC ((hound_data_period) 1e9)
+#define USEC_PER_SEC ((hound_data_period) 1e6)
 
 #define NULL_CHECK(x) \
     do { \
