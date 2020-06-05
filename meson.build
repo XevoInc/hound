@@ -28,9 +28,7 @@ if get_option('obd') and (get_option('install-tools') or get_option('build-tests
 endif
 
 if get_option('install-tools')
-    if get_option('obd')
-        install_data('scripts/yobd-to-hound', install_dir: get_option('bindir'))
-    endif
+    install_data('scripts/yobd-to-hound', install_dir: get_option('bindir'))
 endif
 
 if get_option('build-tests')
