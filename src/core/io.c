@@ -703,8 +703,8 @@ void io_remove_fd(int fd)
     }
 
     /* Remove fd and ctx. */
-    RM_VEC_INDEX(s_ios.fds, fd_index);
-    RM_VEC_INDEX(s_ios.ctx, ctx_index);
+    xv_quickdel(s_ios.fds, fd_index);
+    xv_quickdel(s_ios.ctx, ctx_index);
 
     xv_destroy(ctx->queues);
 
@@ -879,7 +879,7 @@ void io_remove_queue(
                 continue;
             }
             /* Remove the queue. */
-            RM_VEC_INDEX(ctx->queues, j);
+            xv_quickdel(ctx->queues, j);
         }
         /* We should have removed at least one queue entry. */
         XASSERT_LT(j, xv_size(ctx->queues));
@@ -890,7 +890,7 @@ void io_remove_queue(
                 timeout_info = &xv_A(info->timeout_info, j);
                 if (timeout_info->id == rq->id &&
                     timeout_info->max_timeout == rq->period_ns) {
-                    RM_VEC_INDEX(info->timeout_info, j);
+                    xv_quickdel(info->timeout_info, j);
                     break;
                 }
             }

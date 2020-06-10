@@ -27,26 +27,6 @@
         } \
     } while (0);
 
-/*
- * This macro must be used carefully to avoid side-effects. We could use an
- * inline function if we are willing to use void *, or declare separate versions
- * per type. None of these are great, so instead we just trust the caller to
- * behave.
- */
-#define SWAP(a, i, j) \
-    do { \
-        __typeof__(*(a)) __hound_util_tmp; \
-        __hound_util_tmp = (a)[(i)]; \
-        (a)[(i)] = a[(j)]; \
-        (a)[(j)] = __hound_util_tmp; \
-    } while (0);
-
-#define RM_VEC_INDEX(v, i) \
-    do { \
-        SWAP(xv_data(v), i, xv_size(v)-1); \
-        (void) xv_pop(v); \
-    } while (0);
-
 size_t min(size_t a, size_t b);
 size_t max(size_t a, size_t b);
 

@@ -809,7 +809,7 @@ bool unref_data_list(
         data = &xv_A(drv->active_data, index);
         --data->refcount;
         if (data->refcount == 0) {
-            RM_VEC_INDEX(drv->active_data, index);
+            xv_quickdel(drv->active_data, index);
             changed = true;
         }
     }
