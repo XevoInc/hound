@@ -353,7 +353,7 @@ hound_err obd_parse(unsigned char *buf, size_t bytes)
         err = ioctl(ctx->rx_fd, SIOCGSTAMP, &tv);
         XASSERT_NEQ(err, -1);
         record.timestamp.tv_sec = tv.tv_sec;
-        record.timestamp.tv_nsec = tv.tv_usec * (NSEC_PER_SEC/USEC_PER_SEC);
+        record.timestamp.tv_nsec = tv.tv_usec * NSEC_PER_USEC;
 
         yerr = yobd_parse_can_headers(
             ctx->yobd_ctx,

@@ -468,7 +468,7 @@ int get_time_ms(void)
 
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (ts.tv_sec * MSEC_PER_SEC) +
-           (ts.tv_nsec / (NSEC_PER_SEC/MSEC_PER_SEC));
+           (ts.tv_nsec / NSEC_PER_MSEC);
 }
 
 static

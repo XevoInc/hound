@@ -20,6 +20,9 @@
 #define NSEC_PER_SEC ((hound_data_period) 1e9)
 #define USEC_PER_SEC ((hound_data_period) 1e6)
 
+#define NSEC_PER_MSEC (NSEC_PER_SEC/MSEC_PER_SEC)
+#define NSEC_PER_USEC (NSEC_PER_SEC/USEC_PER_SEC)
+
 #define NULL_CHECK(x) \
     do { \
         if (x == NULL) { \
