@@ -65,6 +65,7 @@ struct driver {
         \
         set_active_drv(drv); \
         lock_mutex(&drv->op_lock); \
+        XASSERT_NOT_NULL(drv->ops.name); \
         err = drv->ops.name(args); \
         unlock_mutex(&drv->op_lock); \
         clear_active_drv(); \
