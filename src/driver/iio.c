@@ -279,10 +279,10 @@ hound_err iio_get_freq(hound_data_period period, hound_data_period *freq)
 
     hz = NSEC_PER_SEC / period;
     /*
-     * Currently we handle don't handle fractional frequencies, though IIO
-     * supports them. If we need to handle them, we need to convert to an
-     * exact fraction (with no extra zeroes), since the frequency is written
-     * into sysfs as a string.
+     * Currently we don't handle fractional frequencies, though IIO supports
+     * them. If we need to handle them, we need to convert to an exact fraction
+     * (with no extra zeroes), since the frequency is written into sysfs as a
+     * string.
      */
     if (hz*period != NSEC_PER_SEC) {
         return HOUND_DRIVER_UNSUPPORTED;
