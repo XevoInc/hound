@@ -57,7 +57,6 @@ hound_err queue_alloc(
     size_t max_len)
 {
     struct queue *queue;
-    int rc;
 
     XASSERT_NOT_NULL(out_queue);
 
@@ -66,10 +65,8 @@ hound_err queue_alloc(
         return HOUND_OOM;
     }
 
-    rc = pthread_mutex_init(&queue->mutex, NULL);
-    XASSERT_EQ(rc, 0);
-    rc = pthread_cond_init(&queue->ready_cond, NULL);
-    XASSERT_EQ(rc, 0);
+    init_mutex(&queue->mutex);
+    init_cond(&queue->ready_cond);
     queue->interrupt = false;
     queue->max_len = max_len;
     queue->len = 0;
@@ -327,7 +324,7 @@ hound_err queue_resize(struct queue **out_queue, size_t max_len, bool flush)
     queue = *out_queue;
     XASSERT_NOT_NULL(queue);
 
-    pthread_mutex_lock(&queue->mutex);
+    lock_mutex(&queue->mutex);
 
     if (flush) {
         drain_nolock(queue);
@@ -360,7 +357,7 @@ hound_err queue_resize(struct queue **out_queue, size_t max_len, bool flush)
     err = HOUND_OK;
 
 out:
-    pthread_mutex_unlock(&queue->mutex);
+    unlock_mutex(&queue->mutex);
     return err;
 }
 
@@ -369,20 +366,17 @@ void queue_destroy(struct queue *queue)
     XASSERT_NOT_NULL(queue);
 
     queue_drain(queue);
-    pthread_mutex_destroy(&queue->mutex);
-    pthread_cond_destroy(&queue->ready_cond);
+    destroy_mutex(&queue->mutex);
+    destroy_cond(&queue->ready_cond);
     free(queue);
 }
 
 void queue_interrupt(struct queue *queue)
 {
-    int err;
-
-    pthread_mutex_lock(&queue->mutex);
+    lock_mutex(&queue->mutex);
     queue->interrupt = true;
-    err = pthread_cond_signal(&queue->ready_cond);
-    XASSERT_EQ(err, 0);
-    pthread_mutex_unlock(&queue->mutex);
+    cond_signal(&queue->ready_cond);
+    unlock_mutex(&queue->mutex);
 }
 
 static
@@ -482,13 +476,12 @@ size_t pop_records(
 void queue_push(struct queue *queue, struct record_info *rec)
 {
     size_t back;
-    hound_err err;
     struct record_info *tmp;
 
     XASSERT_NOT_NULL(queue);
     XASSERT_NOT_NULL(rec);
 
-    pthread_mutex_lock(&queue->mutex);
+    lock_mutex(&queue->mutex);
     back = (queue->front + queue->len) % queue->max_len;
     if (queue->len < queue->max_len) {
         ++queue->len;
@@ -508,9 +501,8 @@ void queue_push(struct queue *queue, struct record_info *rec)
 
     queue->data[back] = rec;
 
-    err = pthread_cond_signal(&queue->ready_cond);
-    XASSERT_EQ(err, 0);
-    pthread_mutex_unlock(&queue->mutex);
+    cond_signal(&queue->ready_cond);
+    unlock_mutex(&queue->mutex);
 
     if (tmp != NULL) {
         record_ref_dec(tmp);
@@ -525,7 +517,6 @@ size_t queue_pop_records(
     bool *interrupt)
 {
     size_t count;
-    hound_err err;
     hound_seqno *seqno;
     hound_seqno tmp;
 
@@ -534,15 +525,14 @@ size_t queue_pop_records(
 
     count = 0;
     *interrupt = false;
-    pthread_mutex_lock(&queue->mutex);
+    lock_mutex(&queue->mutex);
     do {
         /* TODO: Possible optimization: wake up only when n records/bytes are
          * ready, rather than when 1 is ready. Probably would need to use a heap
          * structure for this, to always wait for the smallest next wakeup
          * target. */
         while (queue->len < records && !queue->interrupt) {
-            err = pthread_cond_wait(&queue->ready_cond, &queue->mutex);
-            XASSERT_EQ(err, 0);
+            cond_wait(&queue->ready_cond, &queue->mutex);
         }
         if (queue->interrupt) {
             *interrupt = true;
@@ -565,7 +555,7 @@ size_t queue_pop_records(
         count += pop_records(queue, buf + count, seqno, records - count);
     } while (count < records);
 
-    pthread_mutex_unlock(&queue->mutex);
+    unlock_mutex(&queue->mutex);
 
     return count;
 }
@@ -583,9 +573,9 @@ size_t queue_pop_bytes_nowait(
     XASSERT_NOT_NULL(buf);
     XASSERT_NOT_NULL(records);
 
-    pthread_mutex_lock(&queue->mutex);
+    lock_mutex(&queue->mutex);
     count = pop_bytes(queue, buf, bytes, first_seqno, records);
-    pthread_mutex_unlock(&queue->mutex);
+    unlock_mutex(&queue->mutex);
 
     return count;
 }
@@ -601,9 +591,9 @@ size_t queue_pop_records_nowait(
     XASSERT_NOT_NULL(queue);
     XASSERT_NOT_NULL(buf);
 
-    pthread_mutex_lock(&queue->mutex);
+    lock_mutex(&queue->mutex);
     count = pop_records(queue, buf, first_seqno, records);
-    pthread_mutex_unlock(&queue->mutex);
+    unlock_mutex(&queue->mutex);
 
     return count;
 }
@@ -612,9 +602,9 @@ void queue_drain(struct queue *queue)
 {
     XASSERT_NOT_NULL(queue);
 
-    pthread_mutex_lock(&queue->mutex);
+    lock_mutex(&queue->mutex);
     drain_nolock(queue);
-    pthread_mutex_unlock(&queue->mutex);
+    unlock_mutex(&queue->mutex);
 }
 
 size_t queue_len(struct queue *queue)
@@ -623,9 +613,9 @@ size_t queue_len(struct queue *queue)
 
     XASSERT_NOT_NULL(queue);
 
-    pthread_mutex_lock(&queue->mutex);
+    lock_mutex(&queue->mutex);
     len = queue->len;
-    pthread_mutex_unlock(&queue->mutex);
+    unlock_mutex(&queue->mutex);
 
     return len;
 }
@@ -636,9 +626,9 @@ size_t queue_max_len(struct queue *queue)
 
     XASSERT_NOT_NULL(queue);
 
-    pthread_mutex_lock(&queue->mutex);
+    lock_mutex(&queue->mutex);
     len = queue->max_len;
-    pthread_mutex_unlock(&queue->mutex);
+    unlock_mutex(&queue->mutex);
 
     return len;
 }

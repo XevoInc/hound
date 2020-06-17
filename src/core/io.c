@@ -372,14 +372,14 @@ hound_err io_read(
  */
 static
 void io_wait_for_ready(void) {
-    pthread_mutex_lock(&s_poll_mutex);
+    lock_mutex(&s_poll_mutex);
     while (!s_poll_active_target) {
         s_poll_active_current = false;
-        pthread_cond_signal(&s_poll_cond);
-        pthread_cond_wait(&s_poll_cond, &s_poll_mutex);
+        cond_signal(&s_poll_cond);
+        cond_wait(&s_poll_cond, &s_poll_mutex);
     }
     s_poll_active_current = true;
-    pthread_mutex_unlock(&s_poll_mutex);
+    unlock_mutex(&s_poll_mutex);
 }
 
 static
@@ -536,25 +536,25 @@ void io_pause_poll(void)
      * Wait until the poll has actually canceled. io_wait_for_ready will signal
      * on the condition variable when it is run.
      */
-    pthread_mutex_lock(&s_poll_mutex);
+    lock_mutex(&s_poll_mutex);
     s_poll_active_target = false;
     while (s_poll_active_current) {
         do {
             bytes = write(s_self_pipe[WRITE_END], &payload, sizeof(payload));
             XASSERT_NEQ(bytes, -1);
         } while (bytes != sizeof(payload));
-        pthread_cond_signal(&s_poll_cond);
-        pthread_cond_wait(&s_poll_cond, &s_poll_mutex);
+        cond_signal(&s_poll_cond);
+        cond_wait(&s_poll_cond, &s_poll_mutex);
     }
-    pthread_mutex_unlock(&s_poll_mutex);
+    unlock_mutex(&s_poll_mutex);
 }
 
 void io_resume_poll(void)
 {
-    pthread_mutex_lock(&s_poll_mutex);
+    lock_mutex(&s_poll_mutex);
     s_poll_active_target = true;
-    pthread_cond_signal(&s_poll_cond);
-    pthread_mutex_unlock(&s_poll_mutex);
+    cond_signal(&s_poll_cond);
+    unlock_mutex(&s_poll_mutex);
 }
 
 static
@@ -562,9 +562,9 @@ bool io_is_paused(void)
 {
     bool paused;
 
-    pthread_mutex_lock(&s_poll_mutex);
+    lock_mutex(&s_poll_mutex);
     paused = !s_poll_active_current;
-    pthread_mutex_unlock(&s_poll_mutex);
+    unlock_mutex(&s_poll_mutex);
 
     return paused;
 }

@@ -10,6 +10,7 @@
 
 #include <hound/hound.h>
 #include <stddef.h>
+#include <pthread.h>
 #include <xlib/xassert.h>
 
 #define ARRAYLEN(a) (sizeof(a) / sizeof(a[0]))
@@ -36,5 +37,18 @@ size_t max(size_t a, size_t b);
 hound_err norm_path(const char *base, const char *path, size_t len, char *out);
 
 void destroy_rq_list(struct hound_data_rq_list *rq_list);
+
+/* pthreads helper functions. */
+void init_mutex(pthread_mutex_t *mutex);
+void destroy_mutex(pthread_mutex_t *mutex);
+
+void lock_mutex(pthread_mutex_t *mutex);
+void unlock_mutex(pthread_mutex_t *mutex);
+
+void init_cond(pthread_cond_t *cond);
+void destroy_cond(pthread_cond_t *cond);
+
+void cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+void cond_signal(pthread_cond_t *cond);
 
 #endif /* HOUND_PRIVATE_UTIL_H_ */

@@ -64,9 +64,9 @@ struct driver {
         hound_err err; \
         \
         set_active_drv(drv); \
-        pthread_mutex_lock(&drv->op_lock); \
+        lock_mutex(&drv->op_lock); \
         err = drv->ops.name(args); \
-        pthread_mutex_unlock(&drv->op_lock); \
+        unlock_mutex(&drv->op_lock); \
         clear_active_drv(); \
         return err; \
     }
