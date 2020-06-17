@@ -336,7 +336,7 @@ out:
 }
 
 static
-void unref_driver_map(
+hound_err unref_driver_map(
     struct hound_ctx *ctx,
     xhash_t(DRIVER_DATA_MAP) *map,
     bool modify)
@@ -345,17 +345,22 @@ void unref_driver_map(
     hound_err err;
     const struct hound_data_rq_list *rq_list;
     xhiter_t iter;
+    hound_err tmp;
 
+    err = HOUND_OK;
     xh_iter(map, iter,
         drv = xh_key(map, iter);
         rq_list = &xh_val(map, iter);
-        err = driver_unref(drv, ctx->queue, rq_list, modify);
-        if (err != HOUND_OK) {
+        tmp = driver_unref(drv, ctx->queue, rq_list, modify);
+        if (tmp != HOUND_OK) {
+            err = tmp;
             hound_log_err(
                 err,
                 "ctx %p: failed to unref driver %p", (void *) ctx, (void *) drv);
         }
     );
+
+    return err;
 }
 
 static
@@ -382,10 +387,19 @@ error_periodic:
 }
 
 static
-void unref_drivers(struct hound_ctx *ctx, bool modify)
+hound_err unref_drivers(struct hound_ctx *ctx, bool modify)
 {
-    unref_driver_map(ctx, ctx->periodic_data_map, modify);
-    unref_driver_map(ctx, ctx->on_demand_data_map, modify);
+    hound_err err;
+    hound_err err2;
+
+    err = unref_driver_map(ctx, ctx->periodic_data_map, modify);
+    err2 = unref_driver_map(ctx, ctx->on_demand_data_map, modify);
+
+    if (err != HOUND_OK) {
+        return err;
+    }
+
+    return err2;
 }
 
 static
@@ -424,16 +438,18 @@ hound_err ctx_start(struct hound_ctx *ctx)
 static
 hound_err ctx_stop_nolock(struct hound_ctx *ctx, bool modify)
 {
+    hound_err err;
+
     /* We must not double-unref the drivers. */
     if (!ctx->active) {
         return HOUND_CTX_NOT_ACTIVE;
     }
 
     queue_interrupt(ctx->queue);
-    unref_drivers(ctx, modify);
+    err = unref_drivers(ctx, modify);
     ctx->active = false;
 
-    return HOUND_OK;
+    return err;
 }
 
 hound_err ctx_stop(struct hound_ctx *ctx)
