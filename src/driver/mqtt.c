@@ -1267,13 +1267,6 @@ hound_err mqtt_poll(
 }
 
 static
-hound_err mqtt_next(UNUSED hound_data_id id)
-{
-    /* MQTT is push-based, so we don't support one-shot data. */
-    return HOUND_DRIVER_UNSUPPORTED;
-}
-
-static
 hound_err mqtt_start(int *out_fd)
 {
     struct mqtt_ctx *ctx;
@@ -1379,7 +1372,7 @@ static struct driver_ops mqtt_driver = {
     .setdata = mqtt_setdata,
     .poll = mqtt_poll,
     .start = mqtt_start,
-    .next = mqtt_next,
+    .next = NULL,
     .stop = mqtt_stop
 };
 

@@ -77,7 +77,6 @@ void driver_register(const char *name, struct driver_ops *ops)
     XASSERT_NOT_NULL(ops->datadesc);
     XASSERT_NOT_NULL(ops->setdata);
     XASSERT_NOT_NULL(ops->start);
-    XASSERT_NOT_NULL(ops->next);
     XASSERT_NOT_NULL(ops->stop);
     XASSERT_NOT_NULL(ops->poll);
 

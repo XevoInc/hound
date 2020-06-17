@@ -254,23 +254,6 @@ hound_err gps_parse(unsigned char *buf, size_t bytes)
 }
 
 static
-hound_err gps_next(hound_data_id id)
-{
-    const struct gps_ctx *ctx;
-
-    XASSERT_EQ(id, HOUND_DATA_GPS);
-
-    ctx = drv_ctx();
-    XASSERT_NOT_NULL(ctx);
-
-    /*
-     * We don't support one-shot data, since we can't control when we get GPS
-     * samples.
-     */
-    return HOUND_DRIVER_UNSUPPORTED;
-}
-
-static
 hound_err gps_start(int *out_fd)
 {
     struct gps_ctx *ctx;
@@ -348,7 +331,7 @@ static struct driver_ops gps_driver = {
     .poll = drv_default_push,
     .parse = gps_parse,
     .start = gps_start,
-    .next = gps_next,
+    .next = NULL,
     .stop = gps_stop
 };
 
