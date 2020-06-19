@@ -705,7 +705,7 @@ struct data *get_active_data(
 }
 
 static
-hound_err push_drv_data(struct driver *drv, struct hound_data_rq *rq)
+hound_err push_drv_data(struct driver *drv, const struct hound_data_rq *rq)
 {
     struct data *data;
 
@@ -749,18 +749,19 @@ out:
 static
 hound_err ref_data_list(
     struct driver *drv,
-    const struct hound_data_rq_list *rq_list,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
     bool *out_changed)
 {
     bool changed;
     struct data *data;
     hound_err err;
     size_t i;
-    struct hound_data_rq *rq;
+    const struct hound_data_rq *rq;
 
     changed = false;
-    for (i = 0; i < rq_list->len; ++i) {
-        rq = &rq_list->data[i];
+    for (i = 0; i < rqs_len; ++i) {
+        rq = &rqs[i];
         data = get_active_data(drv, rq);
         if (data != NULL) {
             ++data->refcount;
@@ -788,18 +789,19 @@ out:
 static
 bool unref_data_list(
     struct driver *drv,
-    const struct hound_data_rq_list *rq_list)
+    const struct hound_data_rq *rqs,
+    size_t rqs_len)
 {
     bool changed;
     struct data *data;
     bool found;
     size_t i;
     size_t index;
-    struct hound_data_rq *rq;
+    const struct hound_data_rq *rq;
 
     changed = false;
-    for (i = 0; i < rq_list->len; ++i) {
-        rq = &rq_list->data[i];
+    for (i = 0; i < rqs_len; ++i) {
+        rq = &rqs[i];
         index = get_active_data_index(drv, rq, &found);
         /* We previously added this data, so it should be found. */
         XASSERT(found);
@@ -817,7 +819,8 @@ bool unref_data_list(
 hound_err driver_ref(
     struct driver *drv,
     struct queue *queue,
-    const struct hound_data_rq_list *rq_list,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
     bool modify)
 {
     bool changed;
@@ -826,19 +829,19 @@ hound_err driver_ref(
 
     XASSERT_NOT_NULL(drv);
     XASSERT_NOT_NULL(queue);
-    XASSERT_NOT_NULL(rq_list);
+    XASSERT_NOT_NULL(rqs);
 
     lock_mutex(&drv->state_lock);
 
     /* Update the active data list. */
-    err = ref_data_list(drv, rq_list, &changed);
+    err = ref_data_list(drv, rqs, rqs_len, &changed);
     if (err != HOUND_OK) {
         goto out;
     }
 
     /* Tell the driver to change what data it generates. */
     if (changed) {
-        err = drv_op_setdata(drv, rq_list);
+        err = drv_op_setdata(drv, rqs, rqs_len);
         if (err != HOUND_OK) {
             goto error_driver_setdata;
         }
@@ -869,7 +872,7 @@ hound_err driver_ref(
         }
     }
 
-    err = io_add_queue(drv->fd, rq_list, queue);
+    err = io_add_queue(drv->fd, rqs, rqs_len, queue);
     if (err != HOUND_OK) {
         goto error_io_add_queue;
     }
@@ -896,7 +899,7 @@ error_driver_start:
         io_resume_poll();
     }
 error_driver_setdata:
-    (void) unref_data_list(drv, rq_list);
+    (void) unref_data_list(drv, rqs, rqs_len);
 out:
     unlock_mutex(&drv->state_lock);
     return err;
@@ -905,7 +908,8 @@ out:
 hound_err driver_unref(
     struct driver *drv,
     struct queue *queue,
-    const struct hound_data_rq_list *rq_list,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
     bool modify)
 {
     bool changed;
@@ -914,12 +918,12 @@ hound_err driver_unref(
 
     XASSERT_NOT_NULL(drv);
     XASSERT_NOT_NULL(queue);
-    XASSERT_NOT_NULL(rq_list);
+    XASSERT_NOT_NULL(rqs);
 
     lock_mutex(&drv->state_lock);
 
     /* Update the active data list. */
-    changed = unref_data_list(drv, rq_list);
+    changed = unref_data_list(drv, rqs, rqs_len);
 
     io_pause_poll();
 
@@ -953,12 +957,12 @@ hound_err driver_unref(
          * io_remove_fd destroys the driver queues, so we need to explicitly
          * remove ourselves only if the driver is still active.
          */
-        io_remove_queue(drv->fd, rq_list, queue);
+        io_remove_queue(drv->fd, rqs, rqs_len, queue);
 
         if (changed) {
-            err = drv_op_setdata(drv, rq_list);
+            err = drv_op_setdata(drv, rqs, rqs_len);
             if (err != HOUND_OK) {
-                err2 = io_add_queue(drv->fd, rq_list, queue);
+                err2 = io_add_queue(drv->fd, rqs, rqs_len, queue);
                 hound_log_err(err2, "driver %p failed to queue", (void *) drv);
                 goto error_driver_op;
             }
@@ -982,7 +986,7 @@ hound_err driver_unref(
 error_driver_op:
     ++drv->refcount;
     io_resume_poll();
-    err2 = ref_data_list(drv, rq_list, NULL);
+    err2 = ref_data_list(drv, rqs, rqs_len, NULL);
     if (err2 != HOUND_OK) {
         hound_log_err(err2, "driver %p failed to ref data list", (void *) drv);
     }

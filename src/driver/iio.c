@@ -1135,7 +1135,8 @@ static
 hound_err get_channel_sort_entries(
     const char *dev_dir,
     size_t num_channels,
-    const struct hound_data_rq_list *data_list,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
     struct chan_sort_entry *sort_entries)
 {
     const struct chan_desc *channels;
@@ -1156,10 +1157,10 @@ hound_err get_channel_sort_entries(
      * read.
      */
     entry_index = 0;
-    for (i = 0; i < data_list->len; ++i) {
+    for (i = 0; i < rqs_len; ++i) {
         for (j = 0; j < ARRAYLEN(s_channels); ++j) {
             entry = &s_channels[j];
-            if (entry->id != data_list->data[i].id) {
+            if (entry->id != rqs[i].id) {
                 continue;
             }
             channels = entry->channels;
@@ -1277,7 +1278,7 @@ size_t iio_finalize_scan(
 }
 
 static
-hound_err iio_setdata(const struct hound_data_rq_list *data_list)
+hound_err iio_setdata(const struct hound_data_rq *rqs, size_t rqs_len)
 {
     uint_fast64_t buf_samples;
     double buf_sec;
@@ -1299,9 +1300,8 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
     const struct chan_sort_entry *sort_entry;
     struct chan_sort_entry *sort_entries;
 
-    XASSERT_NOT_NULL(data_list);
-    XASSERT_GT(data_list->len, 0);
-    XASSERT_NOT_NULL(data_list->data);
+    XASSERT_NOT_NULL(rqs);
+    XASSERT_GT(rqs_len, 0);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
@@ -1337,12 +1337,12 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
     /* Set the data frequency, and calculate the buffer we'll need. */
     buf_sec = ((double) ctx->buf_ns) / NSEC_PER_SEC;
     buf_samples = 0;
-    for (i = 0; i < data_list->len; ++i) {
-        period = data_list->data[i].period_ns;
+    for (i = 0; i < rqs_len; ++i) {
+        period = rqs[i].period_ns;
         /* Find our corresponding device entry. */
         for (j = 0; j < ARRAYLEN(s_channels); ++j) {
             entry = &s_channels[j];
-            if (entry->id != data_list->data[i].id) {
+            if (entry->id != rqs[i].id) {
                 continue;
             }
             err = iio_set_period(
@@ -1380,10 +1380,10 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
      * Preallocate all the channels we need, including the special timestamp channel.
      */
     num_channels = 1;
-    for (i = 0; i < data_list->len; ++i) {
+    for (i = 0; i < rqs_len; ++i) {
         for (j = 0; j < ARRAYLEN(s_channels); ++j) {
             entry = &s_channels[j];
-            if (entry->id != data_list->data[i].id) {
+            if (entry->id != rqs[i].id) {
                 continue;
             }
             num_channels += entry->num_channels;
@@ -1396,7 +1396,12 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
         goto out_error;
     }
 
-    err = get_channel_sort_entries(ctx->dev_dir, num_channels, data_list, sort_entries);
+    err = get_channel_sort_entries(
+        ctx->dev_dir,
+        num_channels,
+        rqs,
+        rqs_len,
+        sort_entries);
     if (err != HOUND_OK) {
         err = HOUND_OOM;
         goto out_error;
@@ -1409,7 +1414,7 @@ hound_err iio_setdata(const struct hound_data_rq_list *data_list)
      * request specifying the same ID multiple times, the size of the data list
      * is also the number of unique data IDs we are handling.
      */
-    ctx->num_entries = data_list->len;
+    ctx->num_entries = rqs_len;
     if (ctx->entries != NULL) {
         free_parse_entries(ctx->entries, ctx->num_entries);
     }

@@ -271,7 +271,7 @@ out:
 }
 
 static
-hound_err obd_setdata(const struct hound_data_rq_list *rq_list)
+hound_err obd_setdata(const struct hound_data_rq *rqs, size_t rqs_len)
 {
     const struct obd_ctx *ctx;
     struct can_frame *frame;
@@ -283,7 +283,7 @@ hound_err obd_setdata(const struct hound_data_rq_list *rq_list)
     int ret;
     yobd_err yerr;
 
-    XASSERT_NOT_NULL(rq_list);
+    XASSERT_NOT_NULL(rqs);
 
     ctx = drv_ctx();
     XASSERT_NOT_NULL(ctx);
@@ -292,8 +292,8 @@ hound_err obd_setdata(const struct hound_data_rq_list *rq_list)
      * Populate the frame map so we can make pre-"canned" (haha) requests in
      * the next call.
      */
-    for (i = 0; i < rq_list->len; ++i) {
-        id = rq_list->data[i].id;
+    for (i = 0; i < rqs_len; ++i) {
+        id = rqs[i].id;
         hound_obd_get_mode_pid(id, &mode, &pid);
         iter = xh_get(FRAME_MAP, ctx->frame_cache, id);
         if (iter != xh_end(ctx->frame_cache)) {

@@ -115,7 +115,9 @@ hound_err nop_datadesc(size_t desc_count, struct drv_datadesc *descs)
 }
 
 static
-hound_err nop_setdata(UNUSED const struct hound_data_rq_list *data)
+hound_err nop_setdata(
+    UNUSED const struct hound_data_rq *rqs,
+    UNUSED size_t rqs_len)
 {
     return HOUND_OK;
 }

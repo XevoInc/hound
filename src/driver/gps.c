@@ -158,12 +158,11 @@ hound_err gps_datadesc(size_t desc_count, struct drv_datadesc *descs)
 }
 
 static
-hound_err gps_setdata(const struct hound_data_rq_list *data_list)
+hound_err gps_setdata(const struct hound_data_rq *rqs, size_t rqs_len)
 {
-    XASSERT_NOT_NULL(data_list);
-    XASSERT_EQ(data_list->len, 1);
-    XASSERT_NOT_NULL(data_list->data);
-    XASSERT_EQ(data_list->data[0].id, HOUND_DATA_GPS);
+    XASSERT_NOT_NULL(rqs);
+    XASSERT_EQ(rqs_len, 1);
+    XASSERT_EQ(rqs[0].id, HOUND_DATA_GPS);
 
     /* We always yield the same type of data, so there's nothing to do here. */
 

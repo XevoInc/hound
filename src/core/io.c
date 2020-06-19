@@ -746,7 +746,8 @@ void set_fd_timeout(int fd, struct fdctx *ctx)
 
 hound_err io_add_queue(
     int fd,
-    const struct hound_data_rq_list *rq_list,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
     struct queue *queue)
 {
     struct fdctx *ctx;
@@ -757,7 +758,7 @@ hound_err io_add_queue(
     xhiter_t iter;
     size_t j;
     size_t queue_count;
-    struct hound_data_rq *rq;
+    const struct hound_data_rq *rq;
     struct pull_timeout_info *timeout_info;
 
     /*
@@ -773,7 +774,7 @@ hound_err io_add_queue(
 
     err = HOUND_OK;
     queue_count = 0;
-    for (i = 0; i < rq_list->len; ++i) {
+    for (i = 0; i < rqs_len; ++i) {
         /*
          * Add exactly one queue entry per data ID in this request. If we add
          * more than one queue entry, then the same record will get delivered
@@ -782,9 +783,9 @@ hound_err io_add_queue(
          * data ID, but the same data ID in *a single user context* should
          * result in just one queue entry.
          */
-        rq = &rq_list->data[i];
+        rq = &rqs[i];
         for (j = 0; j < i; ++j) {
-            if (rq->id == rq_list->data[j].id) {
+            if (rq->id == rqs[j].id) {
                 /* We already added a queue entry, so don't add another. */
                 break;
             }
@@ -844,7 +845,8 @@ out:
 
 void io_remove_queue(
     int fd,
-    const struct hound_data_rq_list *rq_list,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
     struct queue *queue)
 {
     struct fdctx *ctx;
@@ -853,7 +855,7 @@ void io_remove_queue(
     struct pull_info *info;
     xhiter_t iter;
     size_t j;
-    struct hound_data_rq *rq;
+    const struct hound_data_rq *rq;
     struct pull_timeout_info *timeout_info;
 
     /*
@@ -871,8 +873,8 @@ void io_remove_queue(
     iter = xh_get(PULL_MAP, s_pull_map, fd);
     XASSERT_NEQ(iter, xh_end(s_pull_map));
     info = &xh_val(s_pull_map, iter);
-    for (i = 0; i < rq_list->len; ++i) {
-        rq = &rq_list->data[i];
+    for (i = 0; i < rqs_len; ++i) {
+        rq = &rqs[i];
         for (j = 0; j < xv_size(ctx->queues); ++j) {
             entry = &xv_A(ctx->queues, j);
             if (rq->id != entry->id || queue != entry->queue) {

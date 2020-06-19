@@ -85,7 +85,9 @@ hound_err counter_datadesc(size_t desc_count, struct drv_datadesc *descs)
 }
 
 static
-hound_err counter_setdata(UNUSED const struct hound_data_rq_list *rq_list)
+hound_err counter_setdata(
+    UNUSED const struct hound_data_rq *rqs,
+    UNUSED size_t rqs_len)
 {
     return HOUND_OK;
 }

@@ -75,11 +75,12 @@ struct driver_ops {
      * Sets the data the driver should be prepared to generate when start() is
      * called.
      *
-     * @param data the data to be generated
+     * @param rqs a list of data requests
+     * @param rqs_len the length of the data request list
      *
      * @return an error code
      */
-    hound_err (*setdata)(const struct hound_data_rq_list *data);
+    hound_err (*setdata)(const struct hound_data_rq *rqs, size_t rqs_len);
 
     /**
      * Called when the driver's fd is ready to read or write data. A driver must
@@ -243,7 +244,8 @@ hound_err driver_next(struct driver *drv, hound_data_id id, size_t n);
 hound_err driver_ref(
     struct driver *drv,
     struct queue *queue,
-    const struct hound_data_rq_list *data_rq_list,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
     bool modify);
 
 /*
@@ -253,7 +255,8 @@ hound_err driver_ref(
 hound_err driver_unref(
     struct driver *drv,
     struct queue *queue,
-    const struct hound_data_rq_list *data_rq_list,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
     bool modify);
 
 hound_err driver_get(hound_data_id id, struct driver **drv);

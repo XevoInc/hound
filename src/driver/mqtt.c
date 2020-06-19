@@ -944,7 +944,8 @@ error_loop:
 static
 hound_err set_topic_list(
     struct mqtt_ctx *ctx,
-    const struct hound_data_rq_list *rq_list)
+    const struct hound_data_rq *rqs,
+    size_t rqs_len)
 {
     size_t i;
     int ret;
@@ -957,8 +958,8 @@ hound_err set_topic_list(
      * each active ID (quadratic time), even in the best case.
      */
     xh_clear(ACTIVE_IDS, ctx->active_ids);
-    for (i = 0; i < rq_list->len; ++i) {
-        rq = &rq_list->data[i];
+    for (i = 0; i < rqs_len; ++i) {
+        rq = &rqs[i];
         xh_put(ACTIVE_IDS, ctx->active_ids, rq->id, &ret);
         /* We emptied the set, so we shouldn't ever get a hit here. */
         XASSERT_NEQ(ret, 0);
@@ -1108,7 +1109,8 @@ hound_err do_unsubscribe(
 static
 hound_err subscribe_new(
     struct mqtt_ctx *ctx,
-    const struct hound_data_rq_list *rq_list)
+    const struct hound_data_rq *rqs,
+    size_t rqs_len)
 {
     hound_err err;
     size_t i;
@@ -1119,14 +1121,14 @@ hound_err subscribe_new(
 
     /* Subscribe to any new topics in the request list. */
     xv_init(topics);
-    for (i = 0; i < rq_list->len; ++i) {
-        iter = xh_get(ACTIVE_IDS, ctx->active_ids, rq_list->data[i].id);
+    for (i = 0; i < rqs_len; ++i) {
+        iter = xh_get(ACTIVE_IDS, ctx->active_ids, rqs[i].id);
         if (iter != xh_end(ctx->active_ids)) {
             /* We are already subscribed to this topic. */
             continue;
         }
 
-        iter = xh_get(ID_MAP, ctx->id_map, rq_list->data[i].id);
+        iter = xh_get(ID_MAP, ctx->id_map, rqs[i].id);
         XASSERT_NEQ(iter, xh_end(ctx->id_map));
         schema = xh_val(ctx->id_map, iter);
 
@@ -1148,7 +1150,9 @@ out:
 static
 hound_err unsubscribe_old(
     struct mqtt_ctx *ctx,
-    const struct hound_data_rq_list *rq_list)
+    const struct hound_data_rq *rqs,
+    size_t rqs_len)
+
 {
     hound_data_id id;
     hound_err err;
@@ -1161,12 +1165,12 @@ hound_err unsubscribe_old(
     /* Unsubscribe from any old topics that we no longer care about. */
     xv_init(topics);
     xh_foreach_key(ctx->active_ids, id,
-        for (i = 0; i < rq_list->len; ++i) {
-            if (id == rq_list->data[i].id) {
+        for (i = 0; i < rqs_len; ++i) {
+            if (id == rqs[i].id) {
                 break;
             }
         }
-        if (i < rq_list->len) {
+        if (i < rqs_len) {
             /*
              * This data ID is in the request list, so should keep this
              * subscription.
@@ -1174,7 +1178,7 @@ hound_err unsubscribe_old(
             continue;
         }
 
-        iter = xh_get(ID_MAP, ctx->id_map, rq_list->data[i].id);
+        iter = xh_get(ID_MAP, ctx->id_map, rqs[i].id);
         XASSERT_NEQ(iter, xh_end(ctx->id_map));
         schema = xh_val(ctx->id_map, iter);
 
@@ -1194,7 +1198,7 @@ out:
 }
 
 static
-hound_err mqtt_setdata(const struct hound_data_rq_list *rq_list)
+hound_err mqtt_setdata(const struct hound_data_rq *rqs, size_t rqs_len)
 {
     struct mqtt_ctx *ctx;
     hound_err err;
@@ -1202,18 +1206,18 @@ hound_err mqtt_setdata(const struct hound_data_rq_list *rq_list)
     ctx = drv_ctx();
 
     if (ctx->active) {
-        err = subscribe_new(ctx, rq_list);
+        err = subscribe_new(ctx, rqs, rqs_len);
         if (err != HOUND_OK) {
             return err;
         }
 
-        err = unsubscribe_old(ctx, rq_list);
+        err = unsubscribe_old(ctx, rqs, rqs_len);
         if (err != HOUND_OK) {
             return err;
         }
     }
 
-    err = set_topic_list(ctx, rq_list);
+    err = set_topic_list(ctx, rqs, rqs_len);
     if (err != HOUND_OK) {
         return err;
     }

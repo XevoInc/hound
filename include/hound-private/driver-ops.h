@@ -35,7 +35,7 @@ void clear_active_drv(void);
 
 struct data {
     refcount_val refcount;
-    struct hound_data_rq *rq;
+    const struct hound_data_rq *rq;
 };
 
 struct driver {
@@ -92,7 +92,12 @@ DEFINE_DRV_OP(
         size_t desc_count,
         struct drv_datadesc *descs),
     TOKENIZE(desc_count, descs))
-DEFINE_DRV_OP(setdata, const struct hound_data_rq_list *data, data)
+DEFINE_DRV_OP(setdata,
+    TOKENIZE(
+        const struct hound_data_rq *rqs,
+        size_t rqs_len
+    ),
+    TOKENIZE(rqs, rqs_len))
 DEFINE_DRV_OP(
     poll,
     TOKENIZE(

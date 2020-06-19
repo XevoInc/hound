@@ -47,11 +47,13 @@ void io_resume_poll(void);
 
 hound_err io_add_queue(
     int fd,
-    const struct hound_data_rq_list *drv_data_list,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
     struct queue *queue);
 void io_remove_queue(
     int fd,
-    const struct hound_data_rq_list *rq_list,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
     struct queue *queue);
 
 #endif /* HOUND_PRIVATE_IO_H_ */

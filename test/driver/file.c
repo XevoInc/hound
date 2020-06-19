@@ -103,17 +103,13 @@ hound_err file_datadesc(size_t desc_count, struct drv_datadesc *descs)
 }
 
 static
-hound_err file_setdata(const struct hound_data_rq_list *data)
+hound_err file_setdata(const struct hound_data_rq *rqs, size_t rqs_len)
 {
-    const struct hound_data_rq *rq;
+    XASSERT_NOT_NULL(rqs);
+    XASSERT_EQ(rqs_len, 1);
 
-    XASSERT_NOT_NULL(data);
-    XASSERT_EQ(data->len, 1);
-    XASSERT_NOT_NULL(data->data);
-
-    rq = data->data;
-    XASSERT_EQ(rq->id, s_datadesc.data_id);
-    XASSERT_EQ(rq->period_ns, s_datadesc.avail_periods[0]);
+    XASSERT_EQ(rqs[0].id, s_datadesc.data_id);
+    XASSERT_EQ(rqs[0].period_ns, s_datadesc.avail_periods[0]);
 
     return HOUND_OK;
 }
