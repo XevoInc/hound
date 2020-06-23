@@ -76,8 +76,8 @@ static pthread_t s_poll_thread;
 static int s_self_pipe[2];
 static pthread_mutex_t s_poll_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_poll_cond = PTHREAD_COND_INITIALIZER;
-static volatile bool s_poll_active_target = false;
-static volatile bool s_poll_active_current = false;
+static bool s_poll_active_target = false;
+static bool s_poll_active_current = false;
 
 static unsigned char s_read_buf[POLL_BUF_SIZE];
 
