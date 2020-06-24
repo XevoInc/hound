@@ -29,7 +29,7 @@ void record_ref_dec(struct record_info *info);
 hound_err queue_alloc(
     struct queue **queue,
     size_t max_len);
-hound_err queue_resize(struct queue **queue, size_t max_len, bool flush);
+hound_err queue_resize(struct queue *queue, size_t max_len, bool flush);
 
 void queue_destroy(struct queue *queue);
 

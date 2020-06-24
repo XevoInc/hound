@@ -673,8 +673,8 @@ size_t get_active_data_index(
 
     for (i = 0; i < xv_size(drv->active_data); ++i) {
         data = &xv_A(drv->active_data, i);
-        if (data->rq->id == drv_data->id &&
-            data->rq->period_ns == drv_data->period_ns) {
+        if (data->rq.id == drv_data->id &&
+            data->rq.period_ns == drv_data->period_ns) {
             *found = true;
             return i;
         }
@@ -719,7 +719,7 @@ hound_err push_drv_data(struct driver *drv, const struct hound_data_rq *rq)
         return HOUND_OOM;
     }
     data->refcount = 1;
-    data->rq = rq;
+    data->rq = *rq;
 
     return HOUND_OK;
 }
@@ -820,12 +820,11 @@ hound_err driver_ref(
     struct driver *drv,
     struct queue *queue,
     const struct hound_data_rq *rqs,
-    size_t rqs_len,
-    bool modify)
+    size_t rqs_len)
 {
     bool changed;
     hound_err err;
-    hound_err err2;
+    hound_err tmp;
 
     XASSERT_NOT_NULL(drv);
     XASSERT_NOT_NULL(queue);
@@ -839,65 +838,49 @@ hound_err driver_ref(
         goto out;
     }
 
-    /* Tell the driver to change what data it generates. */
     if (changed) {
+        /* Tell the driver to change what data it generates. */
         err = drv_op_setdata(drv, rqs, rqs_len);
         if (err != HOUND_OK) {
             goto error_driver_setdata;
         }
     }
 
-    /* If we're doing a modify operation, polling should already be paused. */
-    if (!modify) {
-        io_pause_poll();
-    }
-
     /* Start the driver if needed, and tell the I/O layer what we need. */
     ++drv->refcount;
     if (drv->refcount == 1) {
-        /*
-         * If we are doing a modify operation, then we never stopped the driver,
-         * so we shouldn't start it again.
-         */
-        if (!modify) {
-            err = drv_op_start(drv, &drv->fd);
-            if (err != HOUND_OK) {
-                goto error_driver_start;
-            }
+        err = drv_op_start(drv, &drv->fd);
+        if (err != HOUND_OK) {
+            goto error_driver_start;
         }
 
-        err = io_add_fd(drv->fd, drv);
+        err = io_add_fd(drv->fd, drv, rqs, rqs_len, queue);
         if (err != HOUND_OK) {
+            tmp = drv_op_stop(drv);
+            if (tmp != HOUND_OK) {
+                hound_log_err(tmp, "driver %p failed to stop", (void *) drv);
+            }
             goto error_io_add_fd;
         }
     }
-
-    err = io_add_queue(drv->fd, rqs, rqs_len, queue);
-    if (err != HOUND_OK) {
-        goto error_io_add_queue;
+    else {
+        /*
+         * io_add_fd also adds a queue, so we need to do this explicitly if we
+         * didn't add an fd.
+         */
+        err = io_add_queue(drv->fd, rqs, rqs_len, queue);
+        if (err != HOUND_OK) {
+            goto error_io_add_queue;
+        }
     }
-
-    io_resume_poll();
 
     err = HOUND_OK;
     goto out;
 
 error_io_add_queue:
-    if (drv->refcount == 1) {
-        io_remove_fd(drv->fd);
-    }
 error_io_add_fd:
-    if (drv->refcount == 1) {
-        err2 = drv_op_stop(drv);
-        if (err2 != HOUND_OK) {
-            hound_log_err(err2, "driver %p failed to stop", (void *) drv);
-        }
-    }
 error_driver_start:
     --drv->refcount;
-    if (!modify) {
-        io_resume_poll();
-    }
 error_driver_setdata:
     (void) unref_data_list(drv, rqs, rqs_len);
 out:
@@ -909,8 +892,7 @@ hound_err driver_unref(
     struct driver *drv,
     struct queue *queue,
     const struct hound_data_rq *rqs,
-    size_t rqs_len,
-    bool modify)
+    size_t rqs_len)
 {
     bool changed;
     hound_err err;
@@ -925,32 +907,24 @@ hound_err driver_unref(
     /* Update the active data list. */
     changed = unref_data_list(drv, rqs, rqs_len);
 
-    io_pause_poll();
-
     /* Stop the driver if needed. */
     --drv->refcount;
     if (drv->refcount == 0) {
         io_remove_fd(drv->fd);
 
-        /*
-         * If we're doing a modify operation, don't stop the driver, as we would
-         * lose its fd and thus lose data.
-         */
-        if (!modify) {
-            err = drv_op_stop(drv);
-            if (err != HOUND_OK) {
-                err2 = io_add_fd(drv->fd, drv);
-                if (err2 != HOUND_OK) {
-                    hound_log_err(
-                        err2,
-                        "driver %p failed to add fd %d",
-                        (void *) drv,
-                        drv->fd);
-                }
-                goto error_driver_op;
+        err = drv_op_stop(drv);
+        if (err != HOUND_OK) {
+            err2 = io_add_fd(drv->fd, drv, rqs, rqs_len, queue);
+            if (err2 != HOUND_OK) {
+                hound_log_err(
+                    err2,
+                    "driver %p failed to add fd %d",
+                    (void *) drv,
+                    drv->fd);
             }
-            drv->fd = FD_INVALID;
+            goto error_driver_op;
         }
+        drv->fd = FD_INVALID;
     }
     else {
         /*
@@ -969,23 +943,11 @@ hound_err driver_unref(
         }
     }
 
-    /*
-     * If we're doing a modify operation, don't resume polling, as we want to do
-     * that only once the entire operation is finished. Without this safe-guard,
-     * we will drop data between this call and the corresponding driver_ref
-     * call, since data will continue to be generated but have no backing queue
-     * associated with it.
-     */
-    if (!modify) {
-        io_resume_poll();
-    }
-
     err = HOUND_OK;
     goto out;
 
 error_driver_op:
     ++drv->refcount;
-    io_resume_poll();
     err2 = ref_data_list(drv, rqs, rqs_len, NULL);
     if (err2 != HOUND_OK) {
         hound_log_err(err2, "driver %p failed to ref data list", (void *) drv);
@@ -1013,6 +975,91 @@ hound_err driver_get(hound_data_id data_id, struct driver **drv)
 
 out:
     pthread_rwlock_unlock(&s_driver_rwlock);
+    return err;
+}
+
+hound_err driver_modify(
+    struct driver *drv,
+    struct queue *queue,
+    const struct hound_data_rq *old_rqs,
+    size_t old_rqs_len,
+    const struct hound_data_rq *new_rqs,
+    size_t new_rqs_len)
+{
+    bool changed;
+    hound_err err;
+    hound_err tmp;
+
+    XASSERT_NOT_NULL(drv);
+    XASSERT_NOT_NULL(queue);
+    XASSERT_NOT_NULL(old_rqs);
+    XASSERT_GT(old_rqs_len, 0);
+    XASSERT_NOT_NULL(new_rqs);
+    XASSERT_GT(new_rqs_len, 0);
+
+    lock_mutex(&drv->state_lock);
+
+    err = ref_data_list(drv, new_rqs, new_rqs_len, &changed);
+    if (err != HOUND_OK) {
+        goto out;
+    }
+
+    changed |= unref_data_list(drv, old_rqs, old_rqs_len);
+    if (err != HOUND_OK) {
+        goto error_unref;
+    }
+
+    if (changed) {
+        if (drv->refcount > 0) {
+            /* Tell the I/O layer to expect different data. */
+            err = io_modify_queue(
+                drv->fd,
+                old_rqs,
+                old_rqs_len,
+                new_rqs,
+                new_rqs_len,
+                queue);
+            if (err != HOUND_OK) {
+                goto error_modify_queue;
+            }
+        }
+
+        /* Tell the driver to generate different data. */
+        err = drv_op_setdata(drv, new_rqs, new_rqs_len);
+        if (err != HOUND_OK) {
+            goto error_setdata;
+        }
+    }
+
+    err = HOUND_OK;
+    goto out;
+
+error_setdata:
+    tmp = io_modify_queue(
+        drv->fd,
+        new_rqs,
+        new_rqs_len,
+        old_rqs,
+        old_rqs_len,
+        queue);
+    if (tmp != HOUND_OK) {
+        hound_log_err(
+            tmp,
+            "failed to restore queue for driver %p during cleanup",
+            (void *) drv);
+    }
+error_modify_queue:
+    tmp = ref_data_list(drv, old_rqs, old_rqs_len, NULL);
+    if (tmp != HOUND_OK) {
+        hound_log_err(
+            tmp,
+            "failed to ref_data_list driver %p during cleanup",
+            (void *) drv);
+    }
+error_unref:
+    (void) unref_data_list(drv, new_rqs, new_rqs_len);
+out:
+    unlock_mutex(&drv->state_lock);
     return err;
 }
 

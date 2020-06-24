@@ -296,7 +296,7 @@ out:
 }
 
 static
-hound_err ref_drivers(struct hound_ctx *ctx, bool modify)
+hound_err ref_drivers(struct hound_ctx *ctx)
 {
     struct driver *drv;
     hound_err ref_err;
@@ -312,8 +312,7 @@ hound_err ref_drivers(struct hound_ctx *ctx, bool modify)
             drv,
             ctx->queue,
             xv_data(*rq_vec),
-            xv_size(*rq_vec),
-            modify);
+            xv_size(*rq_vec));
         if (ref_err != HOUND_OK) {
             goto error;
         }
@@ -336,8 +335,7 @@ error:
             drv,
             ctx->queue,
             xv_data(*rq_vec),
-            xv_size(*rq_vec),
-            modify);
+            xv_size(*rq_vec));
         if (unref_err != HOUND_OK) {
             hound_log_err(
                 unref_err,
@@ -350,7 +348,7 @@ out:
 }
 
 static
-hound_err unref_drivers(struct hound_ctx *ctx, bool modify)
+hound_err unref_drivers(struct hound_ctx *ctx)
 {
     struct driver *drv;
     hound_err err;
@@ -366,8 +364,7 @@ hound_err unref_drivers(struct hound_ctx *ctx, bool modify)
             drv,
             ctx->queue,
             xv_data(*rq_vec),
-            xv_size(*rq_vec),
-            modify);
+            xv_size(*rq_vec));
         if (tmp != HOUND_OK) {
             err = tmp;
             hound_log_err(
@@ -379,8 +376,152 @@ hound_err unref_drivers(struct hound_ctx *ctx, bool modify)
     return err;
 }
 
+hound_err modify_drivers(
+    struct hound_ctx *ctx,
+    xhash_t(DRIVER_DATA_MAP) *new_drv_data_map)
+{
+    struct driver *drv;
+    hound_err err;
+    xhiter_t iter;
+    xhiter_t new_iter;
+    xhiter_t old_iter;
+    data_rq_vec *new_rq_vec;
+    data_rq_vec *old_rq_vec;
+    hound_err tmp;
+
+    /*
+     * First go through the new map and modify/ref each driver, depending on
+     * whether or not it overlaps with the old map.
+     */
+    xh_iter(new_drv_data_map, new_iter,
+        drv = xh_key(new_drv_data_map, new_iter);
+        new_rq_vec = &xh_val(new_drv_data_map, new_iter);
+
+        old_iter = xh_get(DRIVER_DATA_MAP, ctx->drv_data_map, drv);
+        if (old_iter != xh_end(ctx->drv_data_map)) {
+            /*
+             * This driver is also in the old driver map, so we can just modify
+             * it.
+             */
+            old_rq_vec = &xh_val(ctx->drv_data_map, new_iter);
+            err = driver_modify(
+                drv,
+                ctx->queue,
+                xv_data(*old_rq_vec),
+                xv_size(*old_rq_vec),
+                xv_data(*new_rq_vec),
+                xv_size(*new_rq_vec));
+        }
+        else {
+            /*
+             * This driver is not in the old driver map, so we have to ref it if
+             * the context is currently active (if not active, it will get
+             * reffed when the context is started).
+             */
+            if (ctx->active) {
+                err = driver_ref(
+                    drv,
+                    ctx->queue,
+                    xv_data(*new_rq_vec),
+                    xv_size(*new_rq_vec));
+            }
+        }
+        if (err != HOUND_OK) {
+            goto error_new_vec;
+        }
+    );
+
+    /* Next, go through the old map and unref any drivers not in the new map. */
+    xh_iter(ctx->drv_data_map, old_iter,
+        if (xh_exist(new_drv_data_map, old_iter)) {
+            continue;
+        }
+
+        drv = xh_key(ctx->drv_data_map, old_iter);
+        old_rq_vec = &xh_val(ctx->drv_data_map, old_iter);
+        err = driver_unref(
+            drv,
+            ctx->queue,
+            xv_data(*old_rq_vec),
+            xv_size(*old_rq_vec));
+        if (err != HOUND_OK) {
+            if (err != HOUND_OK) {
+                goto error_unref;
+            }
+        }
+    );
+
+    return HOUND_OK;
+
+error_unref:
+    xh_iter(ctx->drv_data_map, iter,
+        if (iter == old_iter) {
+            break;
+        }
+        if (xh_exist(new_drv_data_map, iter)) {
+            continue;
+        }
+
+        drv = xh_key(ctx->drv_data_map, iter);
+        old_rq_vec = &xh_val(ctx->drv_data_map, iter);
+        err = driver_ref(
+            drv,
+            ctx->queue,
+            xv_data(*old_rq_vec),
+            xv_size(*old_rq_vec));
+        if (err != HOUND_OK) {
+            hound_log_err(
+                err,
+                "failed to ref driver %p during cleanup",
+                (void *) drv);
+        }
+    );
+error_new_vec:
+    xh_iter(new_drv_data_map, iter,
+        if (iter == new_iter) {
+            break;
+        }
+        drv = xh_key(new_drv_data_map, iter);
+        new_rq_vec = &xh_val(new_drv_data_map, new_iter);
+
+        old_iter = xh_get(DRIVER_DATA_MAP, ctx->drv_data_map, drv);
+        if (old_iter == xh_end(ctx->drv_data_map)) {
+            old_rq_vec = &xh_val(ctx->drv_data_map, new_iter);
+            tmp = driver_modify(
+                drv,
+                ctx->queue,
+                xv_data(*new_rq_vec),
+                xv_size(*new_rq_vec),
+                xv_data(*old_rq_vec),
+                xv_size(*old_rq_vec));
+                if (tmp != HOUND_OK) {
+                    hound_log_err(
+                        err,
+                        "failed to modify driver %p during cleanup",
+                        (void *) drv);
+                        }
+        }
+        else {
+            if (ctx->active) {
+                tmp = driver_unref(
+                    drv,
+                    ctx->queue,
+                    xv_data(*new_rq_vec),
+                    xv_size(*new_rq_vec));
+                if (tmp != HOUND_OK) {
+                    hound_log_err(
+                        err,
+                        "failed to unref driver %p during cleanup",
+                        (void *) drv);
+                }
+            }
+        }
+    );
+    return err;
+}
+
 static
-hound_err ctx_start_nolock(struct hound_ctx *ctx, bool modify)
+hound_err ctx_start_nolock(struct hound_ctx *ctx)
 {
     hound_err err;
 
@@ -389,7 +530,7 @@ hound_err ctx_start_nolock(struct hound_ctx *ctx, bool modify)
         return HOUND_CTX_ACTIVE;
     }
 
-    err = ref_drivers(ctx, modify);
+    err = ref_drivers(ctx);
     if (err != HOUND_OK) {
         return err;
     }
@@ -406,14 +547,14 @@ hound_err ctx_start(struct hound_ctx *ctx)
     NULL_CHECK(ctx);
 
     pthread_rwlock_wrlock(&ctx->rwlock);
-    err = ctx_start_nolock(ctx, false);
+    err = ctx_start_nolock(ctx);
     pthread_rwlock_unlock(&ctx->rwlock);
 
     return err;
 }
 
 static
-hound_err ctx_stop_nolock(struct hound_ctx *ctx, bool modify)
+hound_err ctx_stop_nolock(struct hound_ctx *ctx)
 {
     hound_err err;
 
@@ -423,7 +564,7 @@ hound_err ctx_stop_nolock(struct hound_ctx *ctx, bool modify)
     }
 
     queue_interrupt(ctx->queue);
-    err = unref_drivers(ctx, modify);
+    err = unref_drivers(ctx);
     ctx->active = false;
 
     return err;
@@ -436,33 +577,10 @@ hound_err ctx_stop(struct hound_ctx *ctx)
     NULL_CHECK(ctx);
 
     pthread_rwlock_wrlock(&ctx->rwlock);
-    err = ctx_stop_nolock(ctx, false);
+    err = ctx_stop_nolock(ctx);
     pthread_rwlock_unlock(&ctx->rwlock);
 
     return err;
-}
-
-static
-hound_err replace_maps(
-    struct hound_ctx *ctx,
-    const struct hound_data_rq_list *rq_list)
-{
-    hound_err err;
-    xhash_t(DRIVER_DATA_MAP) *drv_data_map;
-    xhash_t(ON_DEMAND_MAP) *on_demand_map;
-
-    err = make_driver_data_maps(rq_list, &drv_data_map, &on_demand_map);
-    if (err != HOUND_OK) {
-        return err;
-    }
-
-    destroy_drv_data_map(ctx->drv_data_map);
-    destroy_on_demand_map(ctx->on_demand_data_map);
-
-    ctx->drv_data_map = drv_data_map;
-    ctx->on_demand_data_map = on_demand_map;
-
-    return HOUND_OK;
 }
 
 hound_err ctx_modify(
@@ -470,8 +588,11 @@ hound_err ctx_modify(
     const struct hound_rq *rq,
     bool flush)
 {
+    xhash_t(DRIVER_DATA_MAP) *drv_data_map;
     hound_err err;
-    bool stopped;
+    xhash_t(ON_DEMAND_MAP) *on_demand_map;
+    size_t orig_max_len;
+    hound_err tmp;
 
     NULL_CHECK(ctx);
     NULL_CHECK(rq);
@@ -484,51 +605,47 @@ hound_err ctx_modify(
     /* The request is OK, so let's proceed. */
     pthread_rwlock_wrlock(&ctx->rwlock);
 
-    if (ctx->active) {
-        err = ctx_stop_nolock(ctx, true);
-        if (err != HOUND_OK) {
-            goto error_stop;
-        }
-        stopped = true;
-    }
-    else {
-        stopped = false;
-    }
-
-    err = queue_resize(&ctx->queue, rq->queue_len, flush);
+    orig_max_len = queue_max_len(ctx->queue);
+    err = queue_resize(ctx->queue, rq->queue_len, flush);
     if (err != HOUND_OK) {
-        goto error_queue_resize;
+        goto error_resize;
     }
 
-    err = replace_maps(ctx, &rq->rq_list);
+    err = make_driver_data_maps(&rq->rq_list, &drv_data_map, &on_demand_map);
     if (err != HOUND_OK) {
-        goto error_replace_maps;
+        goto error_driver_maps;
     }
 
+    err = modify_drivers(ctx, drv_data_map);
+    if (err != HOUND_OK) {
+        goto error_modify_drivers;
+    }
+
+    destroy_drv_data_map(ctx->drv_data_map);
+    destroy_on_demand_map(ctx->on_demand_data_map);
+
+    ctx->drv_data_map = drv_data_map;
+    ctx->on_demand_data_map = on_demand_map;
     ctx->cb = rq->cb;
     ctx->cb_ctx = rq->cb_ctx;
-
-    if (stopped) {
-        err = ctx_start_nolock(ctx, true);
-        if (err != HOUND_OK) {
-            goto out;
-        }
-    }
 
     err = HOUND_OK;
     goto out;
 
-error_start:
-error_replace_maps:
-error_queue_resize:
-    if (stopped) {
-        err = ctx_start_nolock(ctx, true);
-        if (err != HOUND_OK) {
-            hound_log_err_nofmt(err, "Failed to restart ctx");
-            goto error_start;
-        }
+error_modify_drivers:
+    destroy_drv_data_map(drv_data_map);
+    destroy_on_demand_map(on_demand_map);
+error_driver_maps:
+    tmp = queue_resize(ctx->queue, orig_max_len, false);
+    if (tmp != HOUND_OK) {
+        hound_log_err(
+            err,
+            "failed to restore queue for ctx %p to its original size of %zu; size is now %lu",
+            (void *) ctx,
+            orig_max_len,
+            rq->queue_len);
     }
-error_stop:
+error_resize:
 out:
     pthread_rwlock_unlock(&ctx->rwlock);
     return err;

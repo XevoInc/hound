@@ -20,7 +20,13 @@ struct driver;
 void io_init(void);
 void io_destroy(void);
 
-hound_err io_add_fd(int fd, struct driver *drv);
+hound_err io_add_fd(
+    int fd,
+    struct driver *drv,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
+    struct queue *queue);
+
 void io_remove_fd(int fd);
 
 PUBLIC_API
@@ -42,9 +48,6 @@ hound_err io_default_pull(
 PUBLIC_API
 void io_push_records(struct hound_record *records, size_t count);
 
-void io_pause_poll(void);
-void io_resume_poll(void);
-
 hound_err io_add_queue(
     int fd,
     const struct hound_data_rq *rqs,
@@ -54,6 +57,13 @@ void io_remove_queue(
     int fd,
     const struct hound_data_rq *rqs,
     size_t rqs_len,
+    struct queue *queue);
+hound_err io_modify_queue(
+    int fd,
+    const struct hound_data_rq *old_rqs,
+    size_t old_rqs_len,
+    const struct hound_data_rq *new_rqs,
+    size_t new_rqs_len,
     struct queue *queue);
 
 #endif /* HOUND_PRIVATE_IO_H_ */

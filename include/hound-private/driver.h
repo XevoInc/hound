@@ -245,8 +245,7 @@ hound_err driver_ref(
     struct driver *drv,
     struct queue *queue,
     const struct hound_data_rq *rqs,
-    size_t rqs_len,
-    bool modify);
+    size_t rqs_len);
 
 /*
  * Drop a reference on this driver, causing the driver to stop if it's the last
@@ -256,8 +255,20 @@ hound_err driver_unref(
     struct driver *drv,
     struct queue *queue,
     const struct hound_data_rq *rqs,
-    size_t rqs_len,
-    bool modify);
+    size_t rqs_len);
+
+/*
+ * Modifies the given driver to use the new request list instead of the old one.
+ * Does not change the driver refcount.
+ */
+hound_err driver_modify(
+    struct driver *drv,
+    struct queue *queue,
+    const struct hound_data_rq *old_rqs,
+    size_t old_rqs_len,
+    const struct hound_data_rq *new_rqs,
+    size_t new_rqs_len);
+
 
 hound_err driver_get(hound_data_id id, struct driver **drv);
 

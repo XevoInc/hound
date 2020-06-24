@@ -35,7 +35,7 @@ void clear_active_drv(void);
 
 struct data {
     refcount_val refcount;
-    const struct hound_data_rq *rq;
+    struct hound_data_rq rq;
 };
 
 struct driver {

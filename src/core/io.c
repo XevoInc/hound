@@ -160,7 +160,7 @@ void io_push_records(struct hound_record *records, size_t count)
             continue;
         }
         record->dev_id = drv->id;
-        memcpy(&rec_info->record, record, sizeof(*record));
+        rec_info->record = *record;
         atomic_ref_init(&rec_info->refcount, 0);
 
         pushed = false;
@@ -168,6 +168,7 @@ void io_push_records(struct hound_record *records, size_t count)
             entry = &xv_A(fdctx->queues, i);
             if (record->data_id == entry->id) {
                 atomic_ref_inc(&rec_info->refcount);
+//                fprintf(stderr, "pushing %p into %lu\n", (void *) rec_info, i);
                 queue_push(entry->queue, rec_info);
                 pushed = true;
             }
@@ -527,7 +528,8 @@ void *io_poll(UNUSED void *data)
     return NULL;
 }
 
-void io_pause_poll(void)
+static
+void pause_poll(void)
 {
     ssize_t bytes;
     static const char payload = 1;
@@ -549,24 +551,13 @@ void io_pause_poll(void)
     unlock_mutex(&s_poll_mutex);
 }
 
-void io_resume_poll(void)
+static
+void resume_poll(void)
 {
     lock_mutex(&s_poll_mutex);
     s_poll_active_target = true;
     cond_signal(&s_poll_cond);
     unlock_mutex(&s_poll_mutex);
-}
-
-static
-bool io_is_paused(void)
-{
-    bool paused;
-
-    lock_mutex(&s_poll_mutex);
-    paused = !s_poll_active_current;
-    unlock_mutex(&s_poll_mutex);
-
-    return paused;
 }
 
 static
@@ -589,7 +580,7 @@ void io_stop_poll(void)
     void *ret;
 
     /* First let the event loop gracefully exit. */
-    io_pause_poll();
+    pause_poll();
 
     /* Now shoot it in the head. */
     err = pthread_cancel(s_poll_thread);
@@ -599,116 +590,6 @@ void io_stop_poll(void)
     err = pthread_join(s_poll_thread, &ret);
     XASSERT_EQ(err, 0);
     XASSERT_EQ(ret, PTHREAD_CANCELED);
-}
-
-hound_err io_add_fd(int fd, struct driver *drv)
-{
-    struct fdctx *ctx;
-    hound_err err;
-    int flags;
-    struct pull_info *info;
-    xhiter_t iter;
-    struct pollfd *pfd;
-    int ret;
-
-    /*
-     * Polling *must* have been paused before calling this function, as we
-     * modify the poll structures here.
-     */
-    XASSERT(io_is_paused());
-
-    XASSERT_NOT_NULL(drv);
-    XASSERT_NEQ(fd, 0);
-
-    /* Our fds must be non-blocking for the poll loop to work. */
-    flags = fcntl(fd, F_GETFL, 0);
-    XASSERT_NEQ(flags, -1);
-    err = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    XASSERT_NEQ(err, -1);
-
-    pthread_rwlock_wrlock(&s_ios.lock);
-
-    pfd = xv_pushp(struct pollfd, s_ios.fds);
-    if (pfd == NULL) {
-        err = HOUND_OOM;
-        goto error_fds_push;
-    }
-    pfd->fd = fd;
-    pfd->events = POLL_DEFAULT_EVENTS;
-
-    ctx = xv_pushp(struct fdctx, s_ios.ctx);
-    if (ctx == NULL) {
-        err = HOUND_OOM;
-        goto error_ctx_push;
-    }
-    ctx->drv = drv;
-    ctx->timeout_enabled = false;
-    ctx->timeout_ns = UINT64_MAX;
-    xv_init(ctx->queues);
-
-    if (driver_is_pull_mode(drv)) {
-        iter = xh_put(PULL_MAP, s_pull_map, fd, &ret);
-        if (ret == -1) {
-            err = HOUND_OOM;
-            goto error_pull_mode_indices_push;
-        }
-        info = &xh_val(s_pull_map, iter);
-
-        info->last_pull = 0;
-        xv_init(info->timeout_info);
-    }
-
-    err = HOUND_OK;
-    goto out;
-
-error_pull_mode_indices_push:
-    (void) xv_pop(s_ios.ctx);
-error_ctx_push:
-    (void) xv_pop(s_ios.fds);
-error_fds_push:
-out:
-    pthread_rwlock_unlock(&s_ios.lock);
-    return err;
-}
-
-void io_remove_fd(int fd)
-{
-    struct fdctx *ctx;
-    size_t ctx_index;
-    size_t fd_index;
-    struct pull_info *info;
-    xhiter_t iter;
-
-    /*
-     * Polling *must* have been paused before calling this function, as we
-     * modify the poll structures here.
-     */
-    XASSERT(io_is_paused());
-
-    pthread_rwlock_wrlock(&s_ios.lock);
-
-    fd_index = get_fd_index(fd);
-    ctx_index = get_fdctx_index(fd_index);
-    ctx = get_fdctx_from_fd_index(fd_index);
-    XASSERT_NOT_NULL(ctx);
-
-    if (driver_is_pull_mode(ctx->drv)) {
-        /* If we have a pointer to this index in the pull mode map, remove it. */
-        iter = xh_get(PULL_MAP, s_pull_map, fd);
-        if (iter != xh_end(s_pull_map)) {
-            info = &xh_val(s_pull_map, iter);
-            xv_destroy(info->timeout_info);
-            xh_del(PULL_MAP, s_pull_map, iter);
-        }
-    }
-
-    /* Remove fd and ctx. */
-    xv_quickdel(s_ios.fds, fd_index);
-    xv_quickdel(s_ios.ctx, ctx_index);
-
-    xv_destroy(ctx->queues);
-
-    pthread_rwlock_unlock(&s_ios.lock);
 }
 
 static
@@ -744,7 +625,8 @@ void set_fd_timeout(int fd, struct fdctx *ctx)
     ctx->timeout_ns = min_timeout;
 }
 
-hound_err io_add_queue(
+static
+hound_err add_queue_nolock(
     int fd,
     const struct hound_data_rq *rqs,
     size_t rqs_len,
@@ -760,14 +642,6 @@ hound_err io_add_queue(
     size_t queue_count;
     const struct hound_data_rq *rq;
     struct pull_timeout_info *timeout_info;
-
-    /*
-     * Polling *must* have been paused before calling this function, as we
-     * modify the poll structures here.
-     */
-    XASSERT(io_is_paused());
-
-    pthread_rwlock_wrlock(&s_ios.lock);
 
     ctx = get_fdctx(fd);
     XASSERT_NOT_NULL(ctx);
@@ -794,8 +668,7 @@ hound_err io_add_queue(
             /* We haven't yet added a queue entry for this data ID. */
             entry = xv_pushp(struct queue_entry, ctx->queues);
             if (entry == NULL) {
-                err = HOUND_OOM;
-                goto out;
+                return HOUND_OOM;
             }
             entry->id = rq->id;
             entry->queue = queue;
@@ -817,11 +690,10 @@ hound_err io_add_queue(
             info = &xh_val(s_pull_map, iter);
             timeout_info = xv_pushp(struct pull_timeout_info, info->timeout_info);
             if (timeout_info == NULL) {
-                err = HOUND_OOM;
                 for (j = 0; j < queue_count; ++j) {
                     (void) xv_pop(ctx->queues);
                 }
-                goto out;
+                return HOUND_OOM;
             }
 
             timeout_info->id = entry->id;
@@ -838,12 +710,11 @@ hound_err io_add_queue(
         set_fd_timeout(fd, ctx);
     }
 
-out:
-    pthread_rwlock_unlock(&s_ios.lock);
     return err;
 }
 
-void io_remove_queue(
+static
+void remove_queue_nolock(
     int fd,
     const struct hound_data_rq *rqs,
     size_t rqs_len,
@@ -857,14 +728,6 @@ void io_remove_queue(
     size_t j;
     const struct hound_data_rq *rq;
     struct pull_timeout_info *timeout_info;
-
-    /*
-     * Polling *must* have been paused before calling this function, as we
-     * modify the poll structures here.
-     */
-    XASSERT(io_is_paused());
-
-    pthread_rwlock_wrlock(&s_ios.lock);
 
     ctx = get_fdctx(fd);
     XASSERT_NOT_NULL(ctx);
@@ -883,8 +746,6 @@ void io_remove_queue(
             /* Remove the queue. */
             xv_quickdel(ctx->queues, j);
         }
-        /* We should have removed at least one queue entry. */
-        XASSERT_LT(j, xv_size(ctx->queues));
 
         if (driver_is_pull_mode(ctx->drv) && rq->period_ns > 0) {
             /* Remove pull-mode timing info, if any. */
@@ -896,11 +757,6 @@ void io_remove_queue(
                     break;
                 }
             }
-            /*
-             * We should have found a timing entry, as this is a pull-mode data
-             * ID.
-             */
-            XASSERT_LT(j, xv_size(info->timeout_info));
         }
     }
 
@@ -911,8 +767,172 @@ void io_remove_queue(
     if (driver_is_pull_mode(ctx->drv)) {
         set_fd_timeout(fd, ctx);
     }
+}
+
+hound_err io_add_fd(
+    int fd,
+    struct driver *drv,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
+    struct queue *queue)
+{
+    struct fdctx *ctx;
+    hound_err err;
+    int flags;
+    struct pull_info *info;
+    xhiter_t iter;
+    struct pollfd *pfd;
+    int ret;
+
+    XASSERT_NOT_NULL(drv);
+    XASSERT_NEQ(fd, 0);
+
+    /* Our fds must be non-blocking for the poll loop to work. */
+    flags = fcntl(fd, F_GETFL, 0);
+    XASSERT_NEQ(flags, -1);
+    err = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+    XASSERT_NEQ(err, -1);
+
+    pause_poll();
+    pthread_rwlock_wrlock(&s_ios.lock);
+
+    pfd = xv_pushp(struct pollfd, s_ios.fds);
+    if (pfd == NULL) {
+        err = HOUND_OOM;
+        goto error_fds_push;
+    }
+    pfd->fd = fd;
+    pfd->events = POLL_DEFAULT_EVENTS;
+
+    ctx = xv_pushp(struct fdctx, s_ios.ctx);
+    if (ctx == NULL) {
+        err = HOUND_OOM;
+        goto error_ctx_push;
+    }
+    ctx->drv = drv;
+    ctx->timeout_enabled = false;
+    ctx->timeout_ns = UINT64_MAX;
+    xv_init(ctx->queues);
+
+    if (driver_is_pull_mode(drv)) {
+        iter = xh_put(PULL_MAP, s_pull_map, fd, &ret);
+        if (ret == -1) {
+            err = HOUND_OOM;
+            goto error_pull_mode_indices_push;
+        }
+        info = &xh_val(s_pull_map, iter);
+
+        info->last_pull = 0;
+        xv_init(info->timeout_info);
+    }
+
+    err = add_queue_nolock(fd, rqs, rqs_len, queue);
+    if (err != HOUND_OK) {
+        remove_queue_nolock(fd, rqs, rqs_len, queue);
+    }
+
+    err = HOUND_OK;
+    goto out;
+
+error_pull_mode_indices_push:
+    (void) xv_pop(s_ios.ctx);
+error_ctx_push:
+    (void) xv_pop(s_ios.fds);
+error_fds_push:
+out:
+    pthread_rwlock_unlock(&s_ios.lock);
+    resume_poll();
+    return err;
+}
+
+void io_remove_fd(int fd)
+{
+    struct fdctx *ctx;
+    size_t ctx_index;
+    size_t fd_index;
+    struct pull_info *info;
+    xhiter_t iter;
+
+    pause_poll();
+    pthread_rwlock_wrlock(&s_ios.lock);
+
+    fd_index = get_fd_index(fd);
+    ctx_index = get_fdctx_index(fd_index);
+    ctx = get_fdctx_from_fd_index(fd_index);
+    XASSERT_NOT_NULL(ctx);
+
+    if (driver_is_pull_mode(ctx->drv)) {
+        /* If we have a pointer to this index in the pull mode map, remove it. */
+        iter = xh_get(PULL_MAP, s_pull_map, fd);
+        if (iter != xh_end(s_pull_map)) {
+            info = &xh_val(s_pull_map, iter);
+            xv_destroy(info->timeout_info);
+            xh_del(PULL_MAP, s_pull_map, iter);
+        }
+    }
+
+    /* Remove fd and ctx. */
+    xv_quickdel(s_ios.fds, fd_index);
+    xv_quickdel(s_ios.ctx, ctx_index);
+
+    xv_destroy(ctx->queues);
 
     pthread_rwlock_unlock(&s_ios.lock);
+    resume_poll();
+}
+
+hound_err io_modify_queue(
+    int fd,
+    const struct hound_data_rq *old_rqs,
+    size_t old_rqs_len,
+    const struct hound_data_rq *new_rqs,
+    size_t new_rqs_len,
+    struct queue *queue)
+{
+    hound_err err;
+
+    pause_poll();
+    pthread_rwlock_wrlock(&s_ios.lock);
+    remove_queue_nolock(fd, old_rqs, old_rqs_len, queue);
+    err = add_queue_nolock(fd, new_rqs, new_rqs_len, queue);
+    if (err != HOUND_OK) {
+        goto out;
+    }
+
+out:
+    pthread_rwlock_unlock(&s_ios.lock);
+    resume_poll();
+    return err;
+}
+
+hound_err io_add_queue(
+    int fd,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
+    struct queue *queue)
+{
+    hound_err err;
+
+    pause_poll();
+    pthread_rwlock_wrlock(&s_ios.lock);
+    err = add_queue_nolock(fd, rqs, rqs_len, queue);
+    pthread_rwlock_unlock(&s_ios.lock);
+    resume_poll();
+
+    return err;
+}
+
+void io_remove_queue(
+    int fd,
+    const struct hound_data_rq *rqs,
+    size_t rqs_len,
+    struct queue *queue)
+{
+    pause_poll();
+    pthread_rwlock_wrlock(&s_ios.lock);
+    remove_queue_nolock(fd, rqs, rqs_len, queue);
+    pthread_rwlock_unlock(&s_ios.lock);
+    resume_poll();
 }
 
 void io_init(void)

@@ -28,7 +28,7 @@ struct queue {
     size_t len;
     size_t front;
     hound_seqno front_seqno;
-    struct record_info *data[];
+    struct record_info **data;
 };
 
 static
@@ -56,13 +56,20 @@ hound_err queue_alloc(
     struct queue **out_queue,
     size_t max_len)
 {
+    hound_err err;
     struct queue *queue;
 
     XASSERT_NOT_NULL(out_queue);
 
-    queue = malloc(sizeof(*queue) + sizeof(*queue->data)*max_len);
+    queue = malloc(sizeof(*queue));
     if (queue == NULL) {
         return HOUND_OOM;
+    }
+
+    queue->data = malloc(max_len * sizeof(*queue->data));
+    if (queue->data == NULL) {
+        err = HOUND_OOM;
+        goto error_alloc_data;
     }
 
     init_mutex(&queue->mutex);
@@ -76,6 +83,10 @@ hound_err queue_alloc(
     *out_queue = queue;
 
     return HOUND_OK;
+
+error_alloc_data:
+    free(queue);
+    return err;
 }
 
 static
@@ -316,12 +327,11 @@ void expand_queue(struct queue *queue, size_t new_max_len)
     }
 }
 
-hound_err queue_resize(struct queue **out_queue, size_t max_len, bool flush)
+hound_err queue_resize(struct queue *queue, size_t max_len, bool flush)
 {
+    struct record_info **data;
     hound_err err;
-    struct queue *queue;
 
-    queue = *out_queue;
     XASSERT_NOT_NULL(queue);
 
     lock_mutex(&queue->mutex);
@@ -339,14 +349,14 @@ hound_err queue_resize(struct queue **out_queue, size_t max_len, bool flush)
     }
 
     if (max_len != queue->max_len) {
-        queue = realloc(
-            queue,
-            sizeof(*queue) + sizeof(*queue->data)*max_len);
-        if (queue == NULL) {
+        data = realloc(
+            queue->data,
+            max_len * sizeof(*data));
+        if (data == NULL) {
             err = HOUND_OOM;
             goto out;
         }
-        *out_queue = queue;
+        queue->data = data;
 
         if (max_len > queue->max_len) {
             expand_queue(queue, max_len);
@@ -368,6 +378,7 @@ void queue_destroy(struct queue *queue)
     queue_drain(queue);
     destroy_mutex(&queue->mutex);
     destroy_cond(&queue->ready_cond);
+    free(queue->data);
     free(queue);
 }
 
