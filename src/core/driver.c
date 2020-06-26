@@ -37,6 +37,8 @@ static xhash_t(DEVICE_MAP) *s_device_map = NULL;
 XHASH_MAP_INIT_INT64(DATA_MAP, struct driver *)
 static xhash_t(DATA_MAP) *s_data_map;
 
+XVEC_DEFINE(data_rq_vec, struct hound_data_rq);
+
 /* Forward declaration. */
 hound_err driver_destroy_nolock(const char *path);
 
@@ -816,6 +818,52 @@ bool unref_data_list(
     return changed;
 }
 
+static
+hound_err make_active_data_vec(
+    const active_data_vec *active_data,
+    data_rq_vec *rq_vec)
+{
+    size_t i;
+    struct hound_data_rq *rq;
+
+    /* Preallocate space for the request vector. */
+    xv_resize(struct hound_data_rq, *rq_vec, xv_size(*active_data));
+    if (xv_data(*rq_vec) == NULL) {
+        return HOUND_OOM;
+    }
+
+    for (i = 0; i < xv_size(*active_data); ++i) {
+        rq = xv_pushp(struct hound_data_rq, *rq_vec);
+        /*
+         * This shouldn't fail because we already preallocated space for the
+         * pushes.
+         */
+        XASSERT_NOT_NULL(rq);
+
+        *rq = xv_A(*active_data, i).rq;
+    }
+
+    return HOUND_OK;
+}
+
+static
+hound_err set_driver_data(struct driver *drv)
+{
+    hound_err err;
+    data_rq_vec rq_vec;
+
+    xv_init(rq_vec);
+    err = make_active_data_vec(&drv->active_data, &rq_vec);
+    if (err != HOUND_OK) {
+        return err;
+    }
+
+    err = drv_op_setdata(drv, xv_data(rq_vec), xv_size(rq_vec));
+    xv_destroy(rq_vec);
+
+    return err;
+}
+
 hound_err driver_ref(
     struct driver *drv,
     struct queue *queue,
@@ -840,7 +888,7 @@ hound_err driver_ref(
 
     if (changed) {
         /* Tell the driver to change what data it generates. */
-        err = drv_op_setdata(drv, rqs, rqs_len);
+        err = set_driver_data(drv);
         if (err != HOUND_OK) {
             goto error_driver_setdata;
         }
@@ -883,6 +931,15 @@ error_driver_start:
     --drv->refcount;
 error_driver_setdata:
     (void) unref_data_list(drv, rqs, rqs_len);
+    if (changed) {
+        tmp = set_driver_data(drv);
+        if (tmp != HOUND_OK) {
+            hound_log_err(
+                tmp,
+                "failed to restore active data for driver %p during cleanup",
+                (void *) drv);
+        }
+    }
 out:
     unlock_mutex(&drv->state_lock);
     return err;
@@ -934,7 +991,7 @@ hound_err driver_unref(
         io_remove_queue(drv->fd, rqs, rqs_len, queue);
 
         if (changed) {
-            err = drv_op_setdata(drv, rqs, rqs_len);
+            err = set_driver_data(drv);
             if (err != HOUND_OK) {
                 err2 = io_add_queue(drv->fd, rqs, rqs_len, queue);
                 hound_log_err(err2, "driver %p failed to queue", (void *) drv);
@@ -1025,7 +1082,7 @@ hound_err driver_modify(
         }
 
         /* Tell the driver to generate different data. */
-        err = drv_op_setdata(drv, new_rqs, new_rqs_len);
+        err = set_driver_data(drv);
         if (err != HOUND_OK) {
             goto error_setdata;
         }

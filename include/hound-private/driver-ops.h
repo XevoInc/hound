@@ -38,6 +38,8 @@ struct data {
     struct hound_data_rq rq;
 };
 
+XVEC_DEFINE(active_data_vec, struct data);
+
 struct driver {
     pthread_mutex_t state_lock;
     pthread_mutex_t op_lock;
@@ -48,7 +50,7 @@ struct driver {
     size_t desc_count;
     struct hound_datadesc *descs;
 
-    xvec_t(struct data) active_data;
+    active_data_vec active_data;
 
     int fd;
     struct driver_ops ops;
