@@ -732,10 +732,15 @@ void remove_queue_nolock(
     ctx = get_fdctx(fd);
     XASSERT_NOT_NULL(ctx);
 
-    /* Remove all matching queue entries. */
     iter = xh_get(PULL_MAP, s_pull_map, fd);
-    XASSERT_NEQ(iter, xh_end(s_pull_map));
-    info = &xh_val(s_pull_map, iter);
+    if (iter != xh_end(s_pull_map)) {
+        info = &xh_val(s_pull_map, iter);
+    }
+    else {
+        info = NULL;
+    }
+
+    /* Remove all matching queue entries. */
     for (i = 0; i < rqs_len; ++i) {
         rq = &rqs[i];
         for (j = 0; j < xv_size(ctx->queues); ++j) {
