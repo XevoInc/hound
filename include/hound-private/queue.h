@@ -21,7 +21,6 @@ struct queue;
 
 struct record_info {
     atomic_refcount_val refcount;
-    hound_seqno seqno;
     struct hound_record record;
 };
 
