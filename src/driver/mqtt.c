@@ -565,19 +565,12 @@ hound_err wait_for_reply_cb(struct mqtt_ctx *ctx, const cb_state *state)
 
     /*
      * Wait for a response to our written message, which will trigger callbacks.
-     * Disable the on_message callback while we wait for our callback message,
-     * as we can't create records outside of the poll loop.
-     *
-     * TODO: We should queue up received messages we receive during this time
-     * and make records during the next poll. More ideally, we should also
-     * inform the hound core to call poll ASAP.
      */
-    mosquitto_message_callback_set(ctx->mosq, NULL);
     timeout = ctx->timeout_ms;
     while (true) {
         err = do_poll(mosquitto_socket(ctx->mosq), POLLIN, &timeout);
         if (err != HOUND_OK) {
-           goto out;
+           return err;
         }
 
         /* Read from the socket and trigger a callback if we get a reply. */
@@ -588,11 +581,11 @@ hound_err wait_for_reply_cb(struct mqtt_ctx *ctx, const cb_state *state)
 
         if (*state == CB_FAIL) {
             err = HOUND_IO_ERROR;
-            goto out;
+           return err;
         }
         else if (*state == CB_SUCCESS) {
             err = HOUND_OK;
-            goto out;
+            return err;
         }
         else {
             /* No callback yet; keep reading. */
@@ -600,8 +593,6 @@ hound_err wait_for_reply_cb(struct mqtt_ctx *ctx, const cb_state *state)
         }
     }
 
-out:
-    mosquitto_message_callback_set(ctx->mosq, on_message);
     return HOUND_OK;
 }
 
