@@ -182,13 +182,13 @@ struct hound_data_fmt {
 };
 
 struct hound_datadesc {
-    /** an ID uniquely describing a datatype. */
+    /** an ID uniquely describing a datatype */
     hound_data_id data_id;
 
-    /** an ID uniquely describing a device. */
+    /** an ID uniquely describing a device */
     hound_dev_id dev_id;
 
-    /** the name of this datatype. */
+    /** the name of this datatype */
     const char *name;
 
     /** the number of available periods for this data */
@@ -202,7 +202,6 @@ struct hound_datadesc {
 
     /** an array of data formats */
     struct hound_data_fmt *fmts;
-
 };
 
 struct hound_data_rq {
